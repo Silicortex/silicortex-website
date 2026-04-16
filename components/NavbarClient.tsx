@@ -26,11 +26,19 @@ export function NavbarClient() {
         {/* Logo */}
         <Link
           href="/"
-          className="text-lg font-bold tracking-tight text-white"
+          className="flex items-center"
           onClick={() => setMenuOpen(false)}
         >
-          <span className="text-blue-500">Mo-Tek</span>
-          <span className="text-slate-400">-Solutions</span>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/favicon.ico"
+            alt="Mo-Tek Solutions"
+            className="h-10 w-auto"
+          />
+          <span className="ml-2 text-sm font-bold tracking-tight">
+            <span className="text-blue-500">Mo-Tek</span>
+            <span className="text-slate-400">-Solutions</span>
+          </span>
         </Link>
 
         {/* Desktop nav */}
