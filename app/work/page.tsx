@@ -5,7 +5,7 @@ import { WorkflowCanvas } from "@/components/WorkflowCanvas"
 export const metadata: Metadata = {
   title: "Work",
   description:
-    "AI Agents and n8n automation workflows built by Mo-Tek Solutions.",
+    "AI Agents and n8n automation workflows built by Mo-Tek-Solutions.",
 }
 
 export default function WorkPage() {

@@ -29,8 +29,8 @@ export function NavbarClient() {
           className="text-lg font-bold tracking-tight text-white"
           onClick={() => setMenuOpen(false)}
         >
-          <span className="text-blue-500">{siteConfig.logoText.split("-")[0]}-</span>
-          <span>Tek</span>
+          <span className="text-blue-500">Mo-Tek</span>
+          <span className="text-slate-400">-Solutions</span>
         </Link>
 
         {/* Desktop nav */}

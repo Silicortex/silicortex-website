@@ -137,7 +137,7 @@ const de: Dictionary = {
     subtitle:
       "Wir bauen ein verteiltes Netzwerk aus erstklassigen Entwicklern.",
     description:
-      "Mo-Tek arbeitet als schlanke, hochproduktive Agentur, die von einem kuratierten Netzwerk aus Spezialisten angetrieben wird. Wenn Sie außergewöhnlich gut in KI, Automatisierung, Design oder Entwicklung sind — wir möchten mit Ihnen zusammenarbeiten.",
+      "Mo-Tek-Solutions arbeitet als schlanke, hochproduktive Agentur, die von einem kuratierten Netzwerk aus Spezialisten angetrieben wird. Wenn Sie außergewöhnlich gut in KI, Automatisierung, Design oder Entwicklung sind — wir möchten mit Ihnen zusammenarbeiten.",
     cta: "Jetzt bewerben",
     perks: [
       {
@@ -180,7 +180,7 @@ const de: Dictionary = {
     },
   },
   footer: {
-    copyright: "© 2026 Mo-Tek Solutions. Alle Rechte vorbehalten.",
+    copyright: "© 2026 Mo-Tek-Solutions. Alle Rechte vorbehalten.",
     tagline:
       "Wir bauen Automatisierungsinfrastruktur für das nächste Jahrzehnt.",
   },

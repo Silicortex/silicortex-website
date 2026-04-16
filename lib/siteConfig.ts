@@ -1,6 +1,6 @@
 export const siteConfig = {
-  name: "Mo-Tek Solutions",
-  logoText: "Mo-Tek",
+  name: "Mo-Tek-Solutions",
+  logoText: "Mo-Tek-Solutions",
   slogan: "We Build the Machines That Build Your Future",
   contactEmail: "hello@mo-tek.solutions",
   socialLinks: {

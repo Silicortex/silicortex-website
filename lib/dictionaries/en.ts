@@ -134,7 +134,7 @@ const en = {
     title: "Join the Team",
     subtitle: "We're building a distributed network of elite builders.",
     description:
-      "Mo-Tek operates as a lean, high-output agency powered by a curated network of specialists. If you're exceptional at what you do — AI, automation, design, or development — we want to work with you.",
+      "Mo-Tek-Solutions operates as a lean, high-output agency powered by a curated network of specialists. If you're exceptional at what you do — AI, automation, design, or development — we want to work with you.",
     cta: "Apply to Collaborate",
     perks: [
       {
@@ -176,7 +176,7 @@ const en = {
     },
   },
   footer: {
-    copyright: "© 2026 Mo-Tek Solutions. All rights reserved.",
+    copyright: "© 2026 Mo-Tek-Solutions. All rights reserved.",
     tagline: "Building automation infrastructure for the next decade.",
   },
 }
