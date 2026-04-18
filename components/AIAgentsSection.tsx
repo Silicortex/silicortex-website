@@ -8,7 +8,7 @@ export function AIAgentsSection() {
   const ai = dict.work.aiAgents
 
   return (
-    <section className="bg-slate-950 px-6 py-24 sm:px-8">
+    <section className="bg-slate-50 px-6 py-24 dark:bg-slate-950 sm:px-8">
       <div className="mx-auto max-w-7xl">
         <motion.div
           initial={{ opacity: 0, y: 24 }}
@@ -17,16 +17,13 @@ export function AIAgentsSection() {
           transition={{ duration: 0.5 }}
           className="mb-14"
         >
-          <span className="mb-3 block text-sm font-medium uppercase tracking-widest text-blue-400">
+          <span className="mb-3 block text-sm font-medium uppercase tracking-widest text-blue-500 dark:text-blue-400">
             {ai.subtitle}
           </span>
-          <h2
-            className="mb-4 font-bold text-white"
-            style={{ fontSize: "clamp(1.75rem, 3vw + 0.5rem, 3rem)" }}
-          >
+          <h2 className="mb-4 font-bold text-slate-900 dark:text-white" style={{ fontSize: "clamp(1.75rem, 3vw + 0.5rem, 3rem)" }}>
             {ai.title}
           </h2>
-          <p className="max-w-2xl text-slate-400" style={{ fontSize: "clamp(0.9rem, 1vw + 0.5rem, 1.125rem)" }}>
+          <p className="max-w-2xl text-slate-600 dark:text-slate-400" style={{ fontSize: "clamp(0.9rem, 1vw + 0.5rem, 1.125rem)" }}>
             {ai.description}
           </p>
         </motion.div>
@@ -39,13 +36,13 @@ export function AIAgentsSection() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: "-40px" }}
               transition={{ duration: 0.5, delay: i * 0.1 }}
-              className="group rounded-2xl border border-white/8 bg-white/5 p-6 backdrop-blur-sm transition-all hover:border-blue-500/30 hover:bg-white/8"
+              className="group rounded-2xl border border-black/8 bg-black/[0.03] p-6 backdrop-blur-sm transition-all hover:border-blue-500/30 hover:bg-black/5 dark:border-white/8 dark:bg-white/5 dark:hover:bg-white/8"
             >
               <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-blue-500/10 text-2xl">
                 {card.icon}
               </div>
-              <h3 className="mb-3 text-lg font-semibold text-white">{card.title}</h3>
-              <p className="text-sm leading-relaxed text-slate-400">{card.description}</p>
+              <h3 className="mb-3 text-lg font-semibold text-slate-900 dark:text-white">{card.title}</h3>
+              <p className="text-sm leading-relaxed text-slate-600 dark:text-slate-400">{card.description}</p>
             </motion.div>
           ))}
         </div>

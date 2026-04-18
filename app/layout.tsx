@@ -2,6 +2,7 @@ import type { Metadata } from "next"
 import { Geist, Geist_Mono } from "next/font/google"
 import "./globals.css"
 import { LangProvider } from "@/components/providers/LangProvider"
+import { ThemeProvider } from "@/components/providers/ThemeProvider"
 import { NavbarClient } from "@/components/NavbarClient"
 import { siteConfig } from "@/lib/siteConfig"
 
@@ -30,21 +31,25 @@ export default function RootLayout({
   return (
     <html
       lang="en"
+      data-scroll-behavior="smooth"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      suppressHydrationWarning
     >
-      <body className="min-h-full bg-slate-950 text-white">
-        <LangProvider>
-          <NavbarClient />
-          {children}
-          <footer className="border-t border-white/5 bg-slate-950 px-6 py-8 text-center">
-            <p className="mb-1 text-xs text-slate-600">
-              {siteConfig.name} — {siteConfig.slogan}
-            </p>
-            <p className="text-xs text-slate-700">
-              © 2026 {siteConfig.name}. All rights reserved.
-            </p>
-          </footer>
-        </LangProvider>
+      <body className="min-h-full text-slate-900 dark:text-white">
+        <ThemeProvider>
+          <LangProvider>
+            <NavbarClient />
+            {children}
+            <footer className="border-t border-black/5 bg-white px-6 py-8 text-center dark:border-white/5 dark:bg-slate-950">
+              <p className="mb-1 text-xs text-slate-400 dark:text-slate-600">
+                {siteConfig.name} — {siteConfig.slogan}
+              </p>
+              <p className="text-xs text-slate-300 dark:text-slate-700">
+                © 2026 {siteConfig.name}. All rights reserved.
+              </p>
+            </footer>
+          </LangProvider>
+        </ThemeProvider>
       </body>
     </html>
   )

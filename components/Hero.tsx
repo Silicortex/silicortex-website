@@ -7,9 +7,8 @@ import { useLang } from "@/components/providers/LangProvider"
 function HeroBackground() {
   return (
     <div className="pointer-events-none absolute inset-0 overflow-hidden">
-      {/* Grid lines */}
       <div
-        className="absolute inset-0 opacity-[0.04]"
+        className="absolute inset-0 opacity-[0.04] dark:opacity-[0.04]"
         style={{
           backgroundImage: `
             linear-gradient(to right, #3b82f6 1px, transparent 1px),
@@ -18,7 +17,6 @@ function HeroBackground() {
           backgroundSize: "60px 60px",
         }}
       />
-      {/* Animated glow blobs */}
       <motion.div
         animate={{ x: [0, 40, -20, 0], y: [0, -30, 20, 0] }}
         transition={{ duration: 18, repeat: Infinity, ease: "easeInOut" }}
@@ -53,7 +51,7 @@ export function Hero() {
   const h = dict.hero
 
   return (
-    <section className="relative flex min-h-screen items-center justify-center overflow-hidden bg-slate-950 pt-16">
+    <section className="relative flex min-h-screen items-center justify-center overflow-hidden bg-slate-50 pt-16 dark:bg-slate-950">
       <HeroBackground />
 
       <div className="relative mx-auto max-w-5xl px-6 py-24 text-center sm:px-8">
@@ -63,41 +61,30 @@ export function Hero() {
           animate="visible"
           className="flex flex-col items-center gap-8"
         >
-          {/* Badge */}
           <motion.div variants={itemVariants}>
-            <span className="inline-flex items-center gap-2 rounded-full border border-blue-500/20 bg-blue-500/10 px-4 py-1.5 text-sm font-medium text-blue-400">
-              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-blue-400" />
+            <span className="inline-flex items-center gap-2 rounded-full border border-blue-500/20 bg-blue-500/10 px-4 py-1.5 text-sm font-medium text-blue-500 dark:text-blue-400">
+              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-blue-500 dark:bg-blue-400" />
               {h.badge}
             </span>
           </motion.div>
 
-          {/* Headline */}
           <motion.h1
             variants={itemVariants}
-            className="text-balance font-bold tracking-tight text-white"
-            style={{
-              fontSize: "clamp(2.25rem, 5vw + 1rem, 4.5rem)",
-              lineHeight: 1.1,
-              whiteSpace: "pre-line",
-            }}
+            className="text-balance font-bold tracking-tight text-slate-900 dark:text-white"
+            style={{ fontSize: "clamp(2.25rem, 5vw + 1rem, 4.5rem)", lineHeight: 1.1, whiteSpace: "pre-line" }}
           >
             {h.title}
           </motion.h1>
 
-          {/* Subtitle */}
           <motion.p
             variants={itemVariants}
-            className="max-w-2xl text-slate-400"
+            className="max-w-2xl text-slate-600 dark:text-slate-400"
             style={{ fontSize: "clamp(1rem, 1.5vw + 0.5rem, 1.25rem)", lineHeight: 1.7 }}
           >
             {h.subtitle}
           </motion.p>
 
-          {/* CTAs */}
-          <motion.div
-            variants={itemVariants}
-            className="flex flex-wrap justify-center gap-4"
-          >
+          <motion.div variants={itemVariants} className="flex flex-wrap justify-center gap-4">
             <Link
               href="/work"
               className="flex min-h-[48px] items-center rounded-full bg-blue-600 px-8 text-sm font-semibold text-white transition-colors hover:bg-blue-500"
@@ -106,22 +93,18 @@ export function Hero() {
             </Link>
             <Link
               href="/contact"
-              className="flex min-h-[48px] items-center rounded-full border border-white/10 px-8 text-sm font-semibold text-white transition-colors hover:border-blue-500/40 hover:bg-white/5"
+              className="flex min-h-[48px] items-center rounded-full border border-black/10 px-8 text-sm font-semibold text-slate-700 transition-colors hover:border-blue-500/40 hover:bg-black/5 dark:border-white/10 dark:text-white dark:hover:bg-white/5"
             >
               {h.cta2}
             </Link>
           </motion.div>
 
-          {/* Scroll hint */}
-          <motion.div
-            variants={itemVariants}
-            className="mt-8 flex flex-col items-center gap-2 text-xs text-slate-600"
-          >
+          <motion.div variants={itemVariants} className="mt-8 flex flex-col items-center gap-2 text-xs text-slate-400 dark:text-slate-600">
             <span>{h.scrollHint}</span>
             <motion.div
               animate={{ y: [0, 6, 0] }}
               transition={{ duration: 1.5, repeat: Infinity }}
-              className="h-4 w-px bg-gradient-to-b from-slate-600 to-transparent"
+              className="h-4 w-px bg-gradient-to-b from-slate-400 to-transparent dark:from-slate-600"
             />
           </motion.div>
         </motion.div>
