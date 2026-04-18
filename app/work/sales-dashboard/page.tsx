@@ -391,7 +391,7 @@ export default function SalesDashboard() {
   const sectionLabel: React.CSSProperties = { margin: "0 0 3px", color: C.muted, fontSize: 11, fontWeight: 700, letterSpacing: 2, textTransform: "uppercase" }
   const sectionTitle: React.CSSProperties = { margin: "0 0 18px", color: C.text2, fontWeight: 700, fontSize: 16 }
 
-  const [range, setRange] = useState("30D")
+  const [range, setRange] = useState<keyof typeof RANGE_DATA>("30D")
   const [filter, setFilter] = useState("All")
   const data = RANGE_DATA[range]
   const scatterData = RANGE_DATA["30D"].map(d => ({ orders: d.orders, revenue: d.revenue, date: d.date }))
@@ -462,7 +462,7 @@ export default function SalesDashboard() {
               <p style={{ margin: "4px 0 0", color: C.dim, fontSize: 13 }}>{d.fullYearDataset}</p>
             </div>
             <div style={{ display: "flex", gap: 4, background: C.surfaceAlt, border: `1px solid ${C.border}`, borderRadius: 12, padding: 4 }}>
-              {["7D", "30D", "90D", "1Y"].map(r => (
+              {(["7D", "30D", "90D", "1Y"] as const).map(r => (
                 <button key={r} onClick={() => setRange(r)} style={{
                   background: range === r ? "linear-gradient(135deg,#7c3aed,#0891b2)" : "transparent",
                   border: "none", borderRadius: 8, padding: "6px 14px",

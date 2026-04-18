@@ -2,8 +2,6 @@ import { NextRequest, NextResponse } from "next/server"
 import Groq from "groq-sdk"
 import { MONTHLY, PRODUCTS as PRODUCT_LIST, COMPANY } from "@/lib/dashboardData"
 
-const groq = new Groq({ apiKey: process.env.GROQ_API_KEY })
-
 // ─── Shared dataset: Lumina Analytics GmbH (Jan–Dec 2025) ────────────────────
 const DB = {
   company: COMPANY,
@@ -24,7 +22,7 @@ const DB = {
 }
 
 // ─── Tool definitions (OpenAI format) ────────────────────────────────────────
-const tools: Groq.Chat.CompletionCreateParams.Tool[] = [
+const tools: Groq.Chat.Completions.ChatCompletionTool[] = [
   {
     type: "function",
     function: {
@@ -84,12 +82,13 @@ function executeTool(name: string, args: string): string {
 
 // ─── Route handler ─────────────────────────────────────────────────────────────
 export async function POST(req: NextRequest) {
-  const { messages } = await req.json() as { messages: Groq.Chat.MessageParam[] }
+  const groq = new Groq({ apiKey: process.env.GROQ_API_KEY })
+  const { messages } = await req.json() as { messages: Groq.Chat.Completions.ChatCompletionMessageParam[] }
 
   const system = `You are a sales analyst for ${COMPANY.name} — ${COMPANY.industry}, ${COMPANY.location}. Dataset: ${COMPANY.period}.
 Always call the relevant tool before answering. Format numbers with commas and $ signs. Keep responses to 2–4 sentences unless a breakdown is needed.`
 
-  let currentMessages: Groq.Chat.MessageParam[] = [
+  let currentMessages: Groq.Chat.Completions.ChatCompletionMessageParam[] = [
     { role: "system", content: system },
     ...messages,
   ]
@@ -109,7 +108,7 @@ Always call the relevant tool before answering. Format numbers with commas and $
 
     if (choice.finish_reason === "tool_calls" && msg.tool_calls?.length) {
       // Execute all requested tools
-      const toolResults: Groq.Chat.MessageParam[] = msg.tool_calls.map(tc => ({
+      const toolResults: Groq.Chat.Completions.ChatCompletionMessageParam[] = msg.tool_calls.map((tc: Groq.Chat.Completions.ChatCompletionMessageToolCall) => ({
         role: "tool" as const,
         tool_call_id: tc.id,
         content: executeTool(tc.function.name, tc.function.arguments),
