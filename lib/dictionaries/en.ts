@@ -101,7 +101,7 @@ const en = {
     subtitle: "Full-Stack Developer & Data Engineer based in Wiesbaden, Germany.",
     items: [
       {
-        year: "08/2024 – 03/2025",
+        year: "08/2024 – 03/2026",
         title: "Full-Stack Developer & AI Integration",
         company: "schubwerk GmbH · Wiesbaden",
         description:

@@ -103,7 +103,7 @@ const de: Dictionary = {
     subtitle: "Full-Stack Developer & Data Engineer mit Sitz in Wiesbaden.",
     items: [
       {
-        year: "08/2024 – 03/2025",
+        year: "08/2024 – 03/2026",
         title: "Full-Stack Developer & KI-Integration",
         company: "schubwerk GmbH · Wiesbaden",
         description:
