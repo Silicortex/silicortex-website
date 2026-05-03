@@ -1,13 +1,13 @@
 export const siteConfig = {
-  name: "Mo-Tek-Solutions",
-  logoText: "Mo-Tek-Solutions",
+  name: "Silicortex",
+  logoText: "Silicortex",
   slogan: "We Build the Machines That Build Your Future",
   contactEmail: "mohamadkatramez98@gmail.com",
   contactPhone: "+49 174 6197197",
   socialLinks: {
-    github: "https://github.com/Mo-Tek-Solutions",
+    github: "https://github.com/Silicortex",
     linkedin: "https://www.linkedin.com/in/mohamad-katramez-a24705215",
-    twitter: "https://x.com/moteksolutions",
+    twitter: "https://x.com/silicortex",
   },
   themeColors: {
     background: "#020617",

@@ -1,7 +1,7 @@
-// Mo-Tek-Solutions — fictional B2B SaaS company used as demo dataset
+// Silicortex — fictional B2B SaaS company used as demo dataset
 
 export const COMPANY = {
-  name: "Mo-Tek-Solutions",
+  name: "Silicortex",
   industry: "B2B SaaS · Analytics Platform",
   location: "Berlin, Germany",
   period: "Jan – Dec 2025",

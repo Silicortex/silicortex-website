@@ -98,6 +98,87 @@ const de: Dictionary = {
       ],
     },
   },
+  workShowcase: {
+    header: "Unsere Projekte",
+    title: "Was wir bauen",
+    subtitle: "Echte Projekte, Live-Demos und die Fähigkeiten hinter jedem Auftrag.",
+    sections: {
+      capabilities: {
+        label: "Fähigkeiten",
+        title: "Kernkompetenzen",
+        description: "Umfassende Softwareentwicklung, von robusten Backends und Data Lakes bis hin zu modernen Frontends und KI-Integration.",
+        items: [
+          {
+            tag: "Web Dev",
+            title: "Webentwicklung",
+            description: "Entwicklung kompletter, durchgehender Webanwendungen. Design von Frontend-UIs mit HTML/CSS, React, Vue, Next.js und Bootstrap. Entwicklung von Backend-Architekturen mit Python, Java, PHP, C, C#, Laravel und SpringBoot.",
+          },
+          {
+            tag: "Daten",
+            title: "Data Engineering",
+            description: "Design und Aufbau von Data Warehouses und Data Lakes. Verwaltung von Pipelines mit Dagster und AWS. Aufbau komplexer Datenmodelle und Verwaltung von Datenbanken wie PostgreSQL, MySQL und MongoDB.",
+          },
+          {
+            tag: "KI / ML",
+            title: "KI & Maschinelles Lernen",
+            description: "Integration von KI in Web- und Datensysteme. Entwicklung prädiktiver Prognosesysteme durch Kombination von ML und stochastischen Modellen. Erstellung generativer KI-Anwendungen mit fortschrittlichem Prompt Engineering.",
+          },
+          {
+            tag: "Integration",
+            title: "Systemintegration",
+            description: "Programmierung von Schnittstellen und sichere Anbindung von Drittsystemen über RESTful APIs und OAuth 2.0. Integration weit verbreiteter Plattformen wie Shopify, Shopware, Meta und Google Analytics.",
+          },
+        ]
+      },
+      dashboards: {
+        label: "Dashboards",
+        title: "Daten-Dashboards",
+        description: "Interaktive Analytics-Interfaces mit Live-Diagrammen, KPI-Tracking und KI-gestützten Analyse-Panels.",
+        items: [
+          {
+            tag: "Live-Demo",
+            title: "KI-gestütztes Sales-Dashboard",
+            description: "Ein vollständiges Analytics-Dashboard mit KPI-Karten, Umsatztrends, Bestellübersichten, Produkt-Rankings, einem KI-Chatbot für Datenbankabfragen und einem Claude KI-Insights-Panel.",
+            cta: "Live-Demo ansehen",
+          }
+        ]
+      },
+      aiAgents: {
+        label: "KI-Agenten",
+        title: "KI-Agenten & Assistenten",
+        description: "Autonome Systeme und konversationelle Agenten, die denken, Daten abrufen und für Sie handeln — rund um die Uhr.",
+        items: [
+          {
+            tag: "KI-Agenten",
+            title: "RAG Wissenssysteme",
+            description: "Retrieval-Augmented Generation, die Ihre private Wissensdatenbank mit einem LLM verbindet. Stellen Sie Fragen in natürlicher Sprache und erhalten Sie präzise Antworten aus Ihren eigenen Daten.",
+          },
+          {
+            tag: "KI-Agenten",
+            title: "Chatbots & Assistenten",
+            description: "Konversationelle Agenten für Support, Sales-Qualifizierung und Onboarding — live auf Ihrer Website, in Slack oder WhatsApp — 24/7.",
+          },
+          {
+            tag: "KI-Agenten",
+            title: "Research-Agenten",
+            description: "Autonome Agenten, die das Web durchsuchen, Daten aggregieren, Berichte erstellen und Erkenntnisse liefern — auf Abruf, ohne manuellen Aufwand.",
+          }
+        ]
+      },
+      automation: {
+        label: "Automatisierung",
+        title: "Workflow-Automatisierung",
+        description: "End-to-End-Pipelines, die Ihren gesamten Stack verbinden — durch Ereignisse ausgelöst, mit KI angereichert und vollautomatisch ausgeführt.",
+        items: [
+          {
+            tag: "Automatisierung",
+            title: "n8n Workflow-Automatisierung",
+            description: "Visuelle Workflows, die Ihren gesamten Stack verbinden — API-Trigger, KI-Verarbeitung, Datentransformationen, Datenbankeinträge und Benachrichtigungen in einer Ansicht.",
+          }
+        ]
+      }
+    }
+  },
   experience: {
     title: "Erfahrung & Ausbildung",
     subtitle: "Full-Stack Developer & Data Engineer mit Sitz in Wiesbaden.",
@@ -157,7 +238,7 @@ const de: Dictionary = {
     subtitle:
       "Wir bauen ein verteiltes Netzwerk aus erstklassigen Entwicklern.",
     description:
-      "Mo-Tek-Solutions arbeitet als schlanke, hochproduktive Agentur, die von einem kuratierten Netzwerk aus Spezialisten angetrieben wird. Wenn Sie außergewöhnlich gut in KI, Automatisierung, Design oder Entwicklung sind — wir möchten mit Ihnen zusammenarbeiten.",
+      "Silicortex arbeitet als schlanke, hochproduktive Agentur, die von einem kuratierten Netzwerk aus Spezialisten angetrieben wird. Wenn Sie außergewöhnlich gut in KI, Automatisierung, Design oder Entwicklung sind — wir möchten mit Ihnen zusammenarbeiten.",
     cta: "Jetzt bewerben",
     perks: [
       {
@@ -200,7 +281,7 @@ const de: Dictionary = {
     },
   },
   footer: {
-    copyright: "© 2026 Mo-Tek-Solutions. Alle Rechte vorbehalten.",
+    copyright: "© 2026 Silicortex. Alle Rechte vorbehalten.",
     tagline:
       "Wir bauen Automatisierungsinfrastruktur für das nächste Jahrzehnt.",
   },
@@ -244,7 +325,7 @@ const de: Dictionary = {
     colStatus: "Status",
     colDate: "Datum",
     rawDataset: "Rohdatensatz",
-    datasetTitle: "Mo-Tek-Solutions · Jan – Dez 2025",
+    datasetTitle: "Silicortex · Jan – Dez 2025",
     monthlyRevOrders: "Monatlicher Umsatz & Bestellungen",
     colMonth: "Monat",
     colRevenue: "Umsatz",

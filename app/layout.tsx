@@ -22,7 +22,7 @@ export const metadata: Metadata = {
     template: `%s | ${siteConfig.name}`,
   },
   description: siteConfig.slogan,
-  metadataBase: new URL("https://mo-tek.solutions"),
+  metadataBase: new URL("https://silicortex.com"),
 }
 
 export default function RootLayout({

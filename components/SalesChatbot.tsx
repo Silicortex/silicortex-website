@@ -80,7 +80,7 @@ const LIGHT = {
 const STATIC_RESPONSES: { keywords: string[]; response: string }[] = [
   {
     keywords: ["q4", "last 3", "last three", "october", "november", "december", "oct", "nov", "dec"],
-    response: `In Q4 2025 (Oct–Dec), Mo-Tek-Solutions generated **$${$(_q4Rev)}** in revenue across **${$(_q4Orders)} orders**. October contributed $${$(_oct.revenue)}, November was the strongest month at $${$(_nov.revenue)} driven by a Black Friday spike ($52,400 in one week), and December closed at $148,600. That's a +${_q4pct}% increase compared to Q3's $${$(_q3Rev)}.`,
+    response: `In Q4 2025 (Oct–Dec), Silicortex generated **$${$(_q4Rev)}** in revenue across **${$(_q4Orders)} orders**. October contributed $${$(_oct.revenue)}, November was the strongest month at $${$(_nov.revenue)} driven by a Black Friday spike ($52,400 in one week), and December closed at $148,600. That's a +${_q4pct}% increase compared to Q3's $${$(_q3Rev)}.`,
   },
   {
     keywords: ["product", "plan", "best", "top", "revenue", "subscription", "pro", "enterprise", "starter", "business"],
@@ -100,7 +100,7 @@ const STATIC_RESPONSES: { keywords: string[]; response: string }[] = [
   },
   {
     keywords: ["growth", "yoy", "year", "annual", "2025", "total"],
-    response: `Mo-Tek-Solutions grew **${_yoy}** year-over-year in 2025, ending at $${$(_total)} in total revenue across ${$(_totalOrd)} orders. H2 ($${$(_h2Rev)}) outperformed H1 ($${$(_h1Rev)}) by ${Math.round(_h2Rev / _h1Rev * 100 - 100)}%, driven by a strong Q4. New customer acquisition grew +22.6% to ${$(_newCust)} while churn dropped to ${_churn}, resulting in strong net revenue retention.`,
+    response: `Silicortex grew **${_yoy}** year-over-year in 2025, ending at $${$(_total)} in total revenue across ${$(_totalOrd)} orders. H2 ($${$(_h2Rev)}) outperformed H1 ($${$(_h1Rev)}) by ${Math.round(_h2Rev / _h1Rev * 100 - 100)}%, driven by a strong Q4. New customer acquisition grew +22.6% to ${$(_newCust)} while churn dropped to ${_churn}, resulting in strong net revenue retention.`,
   },
   {
     keywords: ["new customer", "acquisition", "acquire", "onboard"],
@@ -137,7 +137,7 @@ export function SalesChatbot() {
   const C = resolvedTheme === "light" ? LIGHT : DARK
 
   const [messages, setMessages] = useState<Message[]>([
-    { role: "assistant", content: "Hi! I'm analyzing Mo-Tek-Solutions's 2025 sales data. Ask me about revenue, orders, top plans, KPIs, or monthly trends — try a suggestion below." },
+    { role: "assistant", content: "Hi! I'm analyzing Silicortex's 2025 sales data. Ask me about revenue, orders, top plans, KPIs, or monthly trends — try a suggestion below." },
   ])
   const [input, setInput] = useState("")
   const [loading, setLoading] = useState(false)

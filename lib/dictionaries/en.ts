@@ -96,6 +96,87 @@ const en = {
       ],
     },
   },
+  workShowcase: {
+    header: "Our Work",
+    title: "What We Build",
+    subtitle: "Real projects, live demos, and the capabilities behind every engagement.",
+    sections: {
+      capabilities: {
+        label: "Capabilities",
+        title: "Core Expertise",
+        description: "Comprehensive software development, from robust backends and data lakes to modern frontends and AI integration.",
+        items: [
+          {
+            tag: "Web Dev",
+            title: "Web Development",
+            description: "Build complete, end-to-end web applications. Design frontend UIs with HTML/CSS, React, Vue, Next.js, and Bootstrap. Develop backend architectures with Python, Java, PHP, C, C#, Laravel, and SpringBoot.",
+          },
+          {
+            tag: "Data",
+            title: "Data Engineering",
+            description: "Design and build Data Warehouses and Data Lakes. Manage pipelines with Dagster and AWS. Build complex data models and manage databases like PostgreSQL, MySQL, and MongoDB.",
+          },
+          {
+            tag: "AI / ML",
+            title: "AI & Machine Learning",
+            description: "Integrate AI into web and data systems. Develop predictive forecasting systems combining ML and stochastic models. Build Generative AI applications utilizing advanced prompt engineering.",
+          },
+          {
+            tag: "Integration",
+            title: "System Integration",
+            description: "Program interfaces and securely connect 3rd-party systems using RESTful APIs and OAuth 2.0. Integrate widely-used platforms like Shopify, Shopware, Meta, and Google Analytics.",
+          },
+        ]
+      },
+      dashboards: {
+        label: "Dashboards",
+        title: "Data Dashboards",
+        description: "Interactive analytics interfaces with live charts, KPI tracking, and AI-powered insights panels.",
+        items: [
+          {
+            tag: "Live Demo",
+            title: "AI-Powered Sales Dashboard",
+            description: "Full-featured analytics dashboard with KPI cards, revenue trends, order breakdowns, product rankings, a natural-language chatbot that queries the database, and a Claude AI insights panel.",
+            cta: "View live demo",
+          }
+        ]
+      },
+      aiAgents: {
+        label: "AI Agents",
+        title: "AI Agents & Assistants",
+        description: "Autonomous systems and conversational agents that reason, retrieve data, and act on your behalf — around the clock.",
+        items: [
+          {
+            tag: "AI Agents",
+            title: "RAG Knowledge Systems",
+            description: "Retrieval-Augmented Generation that connects your private knowledge base to an LLM. Ask questions in natural language, get precise answers from your own data.",
+          },
+          {
+            tag: "AI Agents",
+            title: "Chatbots & Assistants",
+            description: "Conversational agents that handle support, sales qualification, and onboarding — live on your website, Slack, or WhatsApp 24/7.",
+          },
+          {
+            tag: "AI Agents",
+            title: "Research Agents",
+            description: "Autonomous agents that scour the web, aggregate data, write reports, and surface insights — on demand, without manual effort.",
+          }
+        ]
+      },
+      automation: {
+        label: "Automation",
+        title: "Workflow Automation",
+        description: "End-to-end pipelines that connect your entire stack — triggered by events, enriched by AI, and delivered without manual work.",
+        items: [
+          {
+            tag: "Automation",
+            title: "n8n Workflow Automation",
+            description: "Visual workflows that connect your entire stack — API triggers, AI processing, data transforms, database writes, and notifications in one canvas.",
+          }
+        ]
+      }
+    }
+  },
   experience: {
     title: "Experience & Education",
     subtitle: "Full-Stack Developer & Data Engineer based in Wiesbaden, Germany.",
@@ -154,7 +235,7 @@ const en = {
     title: "Join the Team",
     subtitle: "We're building a distributed network of elite builders.",
     description:
-      "Mo-Tek-Solutions operates as a lean, high-output agency powered by a curated network of specialists. If you're exceptional at what you do — AI, automation, design, or development — we want to work with you.",
+      "Silicortex operates as a lean, high-output agency powered by a curated network of specialists. If you're exceptional at what you do — AI, automation, design, or development — we want to work with you.",
     cta: "Apply to Collaborate",
     perks: [
       {
@@ -196,7 +277,7 @@ const en = {
     },
   },
   footer: {
-    copyright: "© 2026 Mo-Tek-Solutions. All rights reserved.",
+    copyright: "© 2026 Silicortex. All rights reserved.",
     tagline: "Building automation infrastructure for the next decade.",
   },
   salesDashboard: {
@@ -239,7 +320,7 @@ const en = {
     colStatus: "Status",
     colDate: "Date",
     rawDataset: "Raw Dataset",
-    datasetTitle: "Mo-Tek-Solutions · Jan – Dec 2025",
+    datasetTitle: "Silicortex · Jan – Dec 2025",
     monthlyRevOrders: "Monthly Revenue & Orders",
     colMonth: "Month",
     colRevenue: "Revenue",

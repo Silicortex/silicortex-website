@@ -4,7 +4,7 @@ import { FreelanceNetwork } from "@/components/FreelanceNetwork"
 export const metadata: Metadata = {
   title: "Network",
   description:
-    "Join the Mo-Tek-Solutions freelance network. Work remotely on high-value AI and automation projects.",
+    "Join the Silicortex freelance network. Work remotely on high-value AI and automation projects.",
 }
 
 export default function NetworkPage() {

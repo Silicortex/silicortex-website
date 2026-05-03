@@ -21,13 +21,13 @@ export function LangProvider({ children }: { children: ReactNode }) {
   const [lang, setLangState] = useState<Lang>("en")
 
   useEffect(() => {
-    const stored = localStorage.getItem("mo-tek-lang") as Lang | null
+    const stored = localStorage.getItem("silicortex-lang") as Lang | null
     if (stored === "en" || stored === "de") setLangState(stored)
   }, [])
 
   function setLang(next: Lang) {
     setLangState(next)
-    localStorage.setItem("mo-tek-lang", next)
+    localStorage.setItem("silicortex-lang", next)
   }
 
   const dict = getDictionary(lang)

@@ -3,6 +3,7 @@
 import { useRef } from "react"
 import { motion } from "framer-motion"
 import Link from "next/link"
+import { useLang } from "@/components/providers/LangProvider"
 
 interface WorkItem {
   tag: string; icon: string; title: string
@@ -15,79 +16,121 @@ interface Section {
   accent: string; accentMuted: string; items: WorkItem[]
 }
 
-const SECTIONS: Section[] = [
-  {
-    id: "dashboards",
-    icon: "📊",
-    label: "Dashboards",
-    title: "Data Dashboards",
-    description: "Interactive analytics interfaces with live charts, KPI tracking, and AI-powered insights panels.",
-    accent: "#a78bfa",
-    accentMuted: "rgba(167,139,250,0.1)",
-    items: [
-      {
-        tag: "Live Demo", icon: "📊",
-        title: "AI-Powered Sales Dashboard",
-        description: "Full-featured analytics dashboard with KPI cards, revenue trends, order breakdowns, product rankings, a natural-language chatbot that queries the database, and a Claude AI insights panel.",
-        tech: ["Next.js", "Recharts", "Claude AI", "Tool Use"],
-        href: "/work/sales-dashboard", cta: "View live demo", featured: true,
-        accent: "#a78bfa", accentMuted: "rgba(167,139,250,0.12)",
-      },
-    ],
-  },
-  {
-    id: "ai-agents",
-    icon: "🧠",
-    label: "AI Agents",
-    title: "AI Agents & Assistants",
-    description: "Autonomous systems and conversational agents that reason, retrieve data, and act on your behalf — around the clock.",
-    accent: "#38bdf8",
-    accentMuted: "rgba(56,189,248,0.1)",
-    items: [
-      {
-        tag: "AI Agents", icon: "🧠",
-        title: "RAG Knowledge Systems",
-        description: "Retrieval-Augmented Generation that connects your private knowledge base to an LLM. Ask questions in natural language, get precise answers from your own data.",
-        tech: ["LangChain", "LlamaIndex", "Pinecone", "OpenAI"],
-        accent: "#38bdf8", accentMuted: "rgba(56,189,248,0.10)",
-      },
-      {
-        tag: "AI Agents", icon: "💬",
-        title: "Chatbots & Assistants",
-        description: "Conversational agents that handle support, sales qualification, and onboarding — live on your website, Slack, or WhatsApp 24/7.",
-        tech: ["Claude AI", "GPT-4", "Slack API", "WhatsApp"],
-        accent: "#34d399", accentMuted: "rgba(52,211,153,0.10)",
-      },
-      {
-        tag: "AI Agents", icon: "🔍",
-        title: "Research Agents",
-        description: "Autonomous agents that scour the web, aggregate data, write reports, and surface insights — on demand, without manual effort.",
-        tech: ["Anthropic SDK", "Tavily", "Python", "n8n"],
-        accent: "#f472b6", accentMuted: "rgba(244,114,182,0.10)",
-      },
-    ],
-  },
-  {
-    id: "automation",
-    icon: "⚡",
-    label: "Automation",
-    title: "Workflow Automation",
-    description: "End-to-end pipelines that connect your entire stack — triggered by events, enriched by AI, and delivered without manual work.",
-    accent: "#fb923c",
-    accentMuted: "rgba(251,146,60,0.1)",
-    items: [
-      {
-        tag: "Automation", icon: "⚡",
-        title: "n8n Workflow Automation",
-        description: "Visual workflows that connect your entire stack — API triggers, AI processing, data transforms, database writes, and notifications in one canvas.",
-        tech: ["n8n", "REST APIs", "Webhooks", "PostgreSQL"],
-        accent: "#fb923c", accentMuted: "rgba(251,146,60,0.10)",
-      },
-    ],
-  },
-]
-
 export function WorkShowcase() {
+  const { dict } = useLang()
+  const ws = dict.workShowcase
+
+  const SECTIONS: Section[] = [
+    {
+      id: "capabilities",
+      icon: "💻",
+      label: ws.sections.capabilities.label,
+      title: ws.sections.capabilities.title,
+      description: ws.sections.capabilities.description,
+      accent: "#ec4899",
+      accentMuted: "rgba(236,72,153,0.1)",
+      items: [
+        {
+          tag: ws.sections.capabilities.items[0].tag, icon: "🌐",
+          title: ws.sections.capabilities.items[0].title,
+          description: ws.sections.capabilities.items[0].description,
+          tech: ["React", "Next.js", "Vue", "Python", "Java"],
+          accent: "#ec4899", accentMuted: "rgba(236,72,153,0.12)",
+        },
+        {
+          tag: ws.sections.capabilities.items[1].tag, icon: "🗄️",
+          title: ws.sections.capabilities.items[1].title,
+          description: ws.sections.capabilities.items[1].description,
+          tech: ["AWS", "Dagster", "PostgreSQL", "MongoDB"],
+          accent: "#8b5cf6", accentMuted: "rgba(139,92,246,0.12)",
+        },
+        {
+          tag: ws.sections.capabilities.items[2].tag, icon: "🤖",
+          title: ws.sections.capabilities.items[2].title,
+          description: ws.sections.capabilities.items[2].description,
+          tech: ["GenAI", "Machine Learning", "Predictive Models"],
+          accent: "#10b981", accentMuted: "rgba(16,185,129,0.12)",
+        },
+        {
+          tag: ws.sections.capabilities.items[3].tag, icon: "🔗",
+          title: ws.sections.capabilities.items[3].title,
+          description: ws.sections.capabilities.items[3].description,
+          tech: ["REST APIs", "OAuth 2.0", "Shopify", "Meta"],
+          accent: "#f59e0b", accentMuted: "rgba(245,158,11,0.12)",
+        },
+      ],
+    },
+    {
+      id: "dashboards",
+      icon: "📊",
+      label: ws.sections.dashboards.label,
+      title: ws.sections.dashboards.title,
+      description: ws.sections.dashboards.description,
+      accent: "#a78bfa",
+      accentMuted: "rgba(167,139,250,0.1)",
+      items: [
+        {
+          tag: ws.sections.dashboards.items[0].tag, icon: "📊",
+          title: ws.sections.dashboards.items[0].title,
+          description: ws.sections.dashboards.items[0].description,
+          tech: ["Next.js", "Recharts", "Claude AI", "Tool Use"],
+          href: "/work/sales-dashboard", cta: ws.sections.dashboards.items[0].cta, featured: true,
+          accent: "#a78bfa", accentMuted: "rgba(167,139,250,0.12)",
+        },
+      ],
+    },
+    {
+      id: "ai-agents",
+      icon: "🧠",
+      label: ws.sections.aiAgents.label,
+      title: ws.sections.aiAgents.title,
+      description: ws.sections.aiAgents.description,
+      accent: "#38bdf8",
+      accentMuted: "rgba(56,189,248,0.1)",
+      items: [
+        {
+          tag: ws.sections.aiAgents.items[0].tag, icon: "🧠",
+          title: ws.sections.aiAgents.items[0].title,
+          description: ws.sections.aiAgents.items[0].description,
+          tech: ["LangChain", "LlamaIndex", "Pinecone", "OpenAI"],
+          accent: "#38bdf8", accentMuted: "rgba(56,189,248,0.10)",
+        },
+        {
+          tag: ws.sections.aiAgents.items[1].tag, icon: "💬",
+          title: ws.sections.aiAgents.items[1].title,
+          description: ws.sections.aiAgents.items[1].description,
+          tech: ["Claude AI", "GPT-4", "Slack API", "WhatsApp"],
+          accent: "#34d399", accentMuted: "rgba(52,211,153,0.10)",
+        },
+        {
+          tag: ws.sections.aiAgents.items[2].tag, icon: "🔍",
+          title: ws.sections.aiAgents.items[2].title,
+          description: ws.sections.aiAgents.items[2].description,
+          tech: ["Anthropic SDK", "Tavily", "Python", "n8n"],
+          accent: "#f472b6", accentMuted: "rgba(244,114,182,0.10)",
+        },
+      ],
+    },
+    {
+      id: "automation",
+      icon: "⚡",
+      label: ws.sections.automation.label,
+      title: ws.sections.automation.title,
+      description: ws.sections.automation.description,
+      accent: "#fb923c",
+      accentMuted: "rgba(251,146,60,0.1)",
+      items: [
+        {
+          tag: ws.sections.automation.items[0].tag, icon: "⚡",
+          title: ws.sections.automation.items[0].title,
+          description: ws.sections.automation.items[0].description,
+          tech: ["n8n", "REST APIs", "Webhooks", "PostgreSQL"],
+          accent: "#fb923c", accentMuted: "rgba(251,146,60,0.10)",
+        },
+      ],
+    },
+  ]
+
   const sectionRefs = useRef<Record<string, HTMLElement | null>>({})
 
   const scrollTo = (id: string) => {
@@ -106,13 +149,13 @@ export function WorkShowcase() {
           className="mb-14"
         >
           <span className="mb-3 block text-sm font-semibold uppercase tracking-widest text-violet-500 dark:text-violet-400">
-            Our Work
+            {ws.header}
           </span>
           <h1 className="mb-4 font-extrabold text-slate-900 dark:text-white" style={{ fontSize: "clamp(2rem, 4vw + 0.5rem, 3.5rem)" }}>
-            What We Build
+            {ws.title}
           </h1>
           <p className="max-w-2xl text-slate-600 dark:text-slate-400" style={{ fontSize: "clamp(0.95rem, 1vw + 0.5rem, 1.15rem)" }}>
-            Real projects, live demos, and the capabilities behind every engagement.
+            {ws.subtitle}
           </p>
         </motion.div>
 

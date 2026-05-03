@@ -3,7 +3,7 @@ import { ContactForm } from "@/components/ContactForm"
 
 export const metadata: Metadata = {
   title: "Contact",
-  description: "Get in touch with Mo-Tek-Solutions to start your project.",
+  description: "Get in touch with Silicortex to start your project.",
 }
 
 export default function ContactPage() {
