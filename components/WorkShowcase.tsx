@@ -285,10 +285,13 @@ function WorkCard({ item }: { item: WorkItem }) {
         </div>
 
         {item.cta && (
-          <div className="flex items-center gap-1.5 text-sm font-bold transition-all duration-200 group-hover:gap-2.5" style={{ color: item.accent }}>
+          <div 
+            className="mt-2 inline-flex w-fit items-center gap-2 rounded-xl px-5 py-3 text-sm font-bold text-white shadow-md transition-all duration-300 hover:scale-105 hover:shadow-lg group-hover:gap-3" 
+            style={{ background: `linear-gradient(135deg, ${item.accent}, ${item.accent}cc)` }}
+          >
             {item.cta}
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-              <path d="M2 7h10M8 3l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+            <svg width="16" height="16" viewBox="0 0 14 14" fill="none">
+              <path d="M2 7h10M8 3l4 4-4 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
           </div>
         )}

@@ -330,7 +330,7 @@ function DatasetOverview() {
           </div>
 
           <p style={{ margin: "0 0 8px", color: C.muted, fontSize: 11, fontWeight: 700, letterSpacing: 2, textTransform: "uppercase" }}>{d.kpiSummary}</p>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 10 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 10 }}>
             {KPI.map(k => (
               <div key={k.label} style={{ background: C.surfaceAlt, border: `1px solid ${C.borderLo}`, borderRadius: 10, padding: "12px 14px" }}>
                 <p style={{ margin: "0 0 4px", fontSize: 10, color: C.dim, textTransform: "uppercase", letterSpacing: 1 }}>{d.kpiLabels[k.label] ?? k.label}</p>
@@ -407,6 +407,9 @@ export default function SalesDashboard() {
           .kpi:hover{transform:translateY(-3px)!important;transition:transform .18s;}
           ::-webkit-scrollbar{width:5px;height:5px}
           ::-webkit-scrollbar-thumb{background:rgba(124,58,237,.35);border-radius:3px}
+          @media (max-width: 1024px) {
+            .chart-grid { grid-template-columns: 1fr !important; }
+          }
         `}</style>
 
         {/* Project Intro Hero */}
@@ -476,7 +479,7 @@ export default function SalesDashboard() {
           {/* KPIs */}
           <SectionDivider />
           <SectionHeader icon="📈" label="Key Metrics" title="KPI Overview" accent="#a78bfa" />
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(5,1fr)", gap: 12, marginBottom: 20 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 12, marginBottom: 20 }}>
             {KPI.map((k, i) => (
               <div key={k.label} className="kpi" style={{ ...card, animationDelay: `${i * 0.05}s`, padding: "14px 16px" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }}>
@@ -517,7 +520,7 @@ export default function SalesDashboard() {
           {/* Donut + Bar */}
           <SectionDivider />
           <SectionHeader icon="🔄" label="Order Analytics" title="Orders & Comparisons" accent="#22d3ee" />
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1.6fr", gap: 16, marginBottom: 20 }}>
+          <div className="chart-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1.6fr", gap: 16, marginBottom: 20 }}>
             <div style={card}>
               <p style={sectionLabel}>{d.breakdown}</p>
               <p style={sectionTitle}>{d.orderStatusMix}</p>
@@ -575,7 +578,7 @@ export default function SalesDashboard() {
           {/* Products + Scatter */}
           <SectionDivider />
           <SectionHeader icon="📦" label="Product Performance" title="Products & Correlations" accent="#4ade80" />
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1.4fr", gap: 16, marginBottom: 20 }}>
+          <div className="chart-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1.4fr", gap: 16, marginBottom: 20 }}>
             <div style={card}>
               <p style={sectionLabel}>{d.products}</p>
               <p style={sectionTitle}>{d.topByRevenue}</p>
