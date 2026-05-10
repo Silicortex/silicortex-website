@@ -18,7 +18,7 @@ export function ProfileCard() {
         <div className="relative h-28 w-28 shrink-0 overflow-hidden rounded-2xl border border-black/10 dark:border-white/10 sm:h-32 sm:w-32">
           <Image
             src="/mohamad.jpg"
-            alt="Mohamad Katramezzz"
+            alt="Mohamad Katramez"
             fill
             sizes="(max-width: 640px) 112px, 128px"
             className="object-cover object-top"
@@ -28,7 +28,7 @@ export function ProfileCard() {
 
         {/* Bio */}
         <div className="flex-1 text-center sm:text-left">
-          <h3 className="mb-0.5 text-xl font-bold text-slate-900 dark:text-white">Mohamad Katramezzz</h3>
+          <h3 className="mb-0.5 text-xl font-bold text-slate-900 dark:text-white">Mohamad Katramez</h3>
           <p className="mb-3 text-sm font-medium text-blue-500 dark:text-blue-400">Full-Stack Developer & Data Engineer</p>
           <p className="mb-5 text-sm leading-relaxed text-slate-600 dark:text-slate-400">
             Based in Wiesbaden, Germany. B.Sc. Applied Informatics from Hochschule RheinMain.
