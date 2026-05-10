@@ -141,6 +141,18 @@ const en = {
           }
         ]
       },
+      saas: {
+        label: "SaaS",
+        title: "SaaS Platforms",
+        description: "Multi-tenant platforms with role-based access control, subscription functionality, and custom domains.",
+        items: [
+          {
+            tag: "Multi-Tenant",
+            title: "Barber Shop SaaS",
+            description: "An enterprise-grade, multi-tenant SaaS platform for barber shops. Built with Next.js, Supabase, and PostgreSQL with Row-Level Security (RLS). Features multi-roles and subscription plans.",
+          }
+        ]
+      },
       aiAgents: {
         label: "AI Agents",
         title: "AI Agents & Assistants",
@@ -181,6 +193,15 @@ const en = {
     title: "Experience & Education",
     subtitle: "Full-Stack Developer & Data Engineer based in Wiesbaden, Germany.",
     items: [
+      {
+        year: "04/2026",
+        title: "Develop Generative AI Applications: Get Started",
+        company: "IBM Skills Network",
+        description:
+          "Successfully completed an online course authorized by IBM and offered through Coursera. Learned foundational concepts and practical approaches for developing Generative AI applications.",
+        link: "https://coursera.org/verify/SEXN3DTP7GGC",
+        tags: ["Generative AI", "IBM", "Coursera", "AI Applications"],
+      },
       {
         year: "08/2024 – 03/2026",
         title: "Full-Stack Developer & AI Integration",

@@ -56,6 +56,11 @@ export function Timeline() {
                       <p className="mb-3 text-xs font-medium text-blue-500 dark:text-blue-400">{(item as { company: string }).company}</p>
                     )}
                     <p className="mb-4 text-sm leading-relaxed text-slate-600 dark:text-slate-400">{item.description}</p>
+                    {"link" in item && (
+                      <a href={(item as { link: string }).link} target="_blank" rel="noopener noreferrer" className="mb-4 inline-block text-xs font-medium text-blue-600 hover:underline dark:text-blue-400">
+                        Verify / View Credential ↗
+                      </a>
+                    )}
                     <div className="flex flex-wrap gap-2">
                       {item.tags.map((tag) => (
                         <span key={tag} className="rounded-full border border-black/8 bg-black/[0.03] px-2.5 py-0.5 text-xs text-slate-500 dark:border-white/10 dark:bg-white/5 dark:text-slate-400">

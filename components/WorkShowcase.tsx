@@ -80,6 +80,25 @@ export function WorkShowcase() {
       ],
     },
     {
+      id: "saas",
+      icon: "🏢",
+      label: ws.sections.saas.label,
+      title: ws.sections.saas.title,
+      description: ws.sections.saas.description,
+      accent: "#14b8a6",
+      accentMuted: "rgba(20,184,166,0.1)",
+      items: [
+        {
+          tag: ws.sections.saas.items[0].tag, icon: "🏢",
+          title: ws.sections.saas.items[0].title,
+          description: ws.sections.saas.items[0].description,
+          tech: ["Next.js", "Supabase", "PostgreSQL", "RLS"],
+          featured: true,
+          accent: "#14b8a6", accentMuted: "rgba(20,184,166,0.12)",
+        },
+      ],
+    },
+    {
       id: "ai-agents",
       icon: "🧠",
       label: ws.sections.aiAgents.label,

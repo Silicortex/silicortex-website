@@ -143,6 +143,18 @@ const de: Dictionary = {
           }
         ]
       },
+      saas: {
+        label: "SaaS",
+        title: "SaaS-Plattformen",
+        description: "Multi-Tenant-Plattformen mit rollenbasierter Zugriffskontrolle, Abonnements und benutzerdefinierten Domains.",
+        items: [
+          {
+            tag: "Multi-Tenant",
+            title: "Barber Shop SaaS",
+            description: "Eine Multi-Tenant-SaaS-Plattform für Friseursalons auf Unternehmensniveau. Entwickelt mit Next.js, Supabase und PostgreSQL mit Row-Level Security (RLS). Bietet Mehrfachrollen und Abonnementpläne.",
+          }
+        ]
+      },
       aiAgents: {
         label: "KI-Agenten",
         title: "KI-Agenten & Assistenten",
@@ -183,6 +195,15 @@ const de: Dictionary = {
     title: "Erfahrung & Ausbildung",
     subtitle: "Full-Stack Developer & Data Engineer mit Sitz in Wiesbaden.",
     items: [
+      {
+        year: "04/2026",
+        title: "Develop Generative AI Applications: Get Started",
+        company: "IBM Skills Network",
+        description:
+          "Erfolgreicher Abschluss eines von IBM autorisierten und über Coursera angebotenen Online-Kurses. Erlernung von Grundlagen und praktischen Ansätzen zur Entwicklung generativer KI-Anwendungen.",
+        link: "https://coursera.org/verify/SEXN3DTP7GGC",
+        tags: ["Generative KI", "IBM", "Coursera", "KI-Anwendungen"],
+      },
       {
         year: "08/2024 – 03/2026",
         title: "Full-Stack Developer & KI-Integration",
