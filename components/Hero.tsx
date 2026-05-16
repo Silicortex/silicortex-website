@@ -1,8 +1,10 @@
 "use client"
 
+import { useEffect, useState } from "react"
 import Link from "next/link"
 import { motion, type Variants } from "framer-motion"
 import { useLang } from "@/components/providers/LangProvider"
+import { wordItem } from "@/lib/motion"
 
 function HeroBackground() {
   return (
@@ -36,14 +38,80 @@ function HeroBackground() {
   )
 }
 
+function WordRevealHeading({ text, className, style }: { text: string; className?: string; style?: React.CSSProperties }) {
+  const lines = text.split("\n")
+  return (
+    <h1 className={className} style={style}>
+      {lines.map((line, li) => {
+        const words = line.split(" ")
+        return (
+          <span key={li} style={{ display: "block" }}>
+            {words.map((word, wi) => (
+              <span key={wi} style={{ display: "inline-block", overflow: "hidden", verticalAlign: "bottom" }}>
+                <motion.span
+                  variants={wordItem}
+                  initial="hidden"
+                  animate="visible"
+                  transition={{ delay: (li * words.length + wi) * 0.07 }}
+                  style={{ display: "inline-block" }}
+                >
+                  {word}{wi < words.length - 1 ? "\u00a0" : ""}
+                </motion.span>
+              </span>
+            ))}
+          </span>
+        )
+      })}
+    </h1>
+  )
+}
+
+function TypingSubtitle({ text }: { text: string }) {
+  const [displayed, setDisplayed] = useState("")
+  const [done, setDone] = useState(false)
+
+  useEffect(() => {
+    let i = 0
+    const delay = 800 // start after heading reveals
+    const timer = setTimeout(() => {
+      const interval = setInterval(() => {
+        i++
+        setDisplayed(text.slice(0, i))
+        if (i >= text.length) {
+          clearInterval(interval)
+          setDone(true)
+        }
+      }, 22)
+      return () => clearInterval(interval)
+    }, delay)
+    return () => clearTimeout(timer)
+  }, [text])
+
+  return (
+    <p
+      className="max-w-2xl text-slate-600 dark:text-slate-400"
+      style={{ fontSize: "clamp(1rem, 1.5vw + 0.5rem, 1.25rem)", lineHeight: 1.7 }}
+    >
+      {displayed}
+      {!done && (
+        <motion.span
+          animate={{ opacity: [1, 0] }}
+          transition={{ duration: 0.5, repeat: Infinity, repeatType: "reverse" }}
+          className="ml-0.5 inline-block h-[1.1em] w-0.5 translate-y-[0.1em] bg-blue-500"
+        />
+      )}
+    </p>
+  )
+}
+
 const containerVariants: Variants = {
   hidden: {},
   visible: { transition: { staggerChildren: 0.12 } },
 }
 
 const itemVariants: Variants = {
-  hidden: { opacity: 0, y: 24 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: [0.25, 0.1, 0.25, 1] } },
+  hidden: { opacity: 0, y: 16 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: [0.25, 0.1, 0.25, 1] as [number, number, number, number] } },
 }
 
 export function Hero() {
@@ -68,26 +136,20 @@ export function Hero() {
             </span>
           </motion.div>
 
-          <motion.h1
-            variants={itemVariants}
+          <WordRevealHeading
+            text={h.title}
             className="text-balance font-bold tracking-tight text-slate-900 dark:text-white"
-            style={{ fontSize: "clamp(2.25rem, 5vw + 1rem, 4.5rem)", lineHeight: 1.1, whiteSpace: "pre-line" }}
-          >
-            {h.title}
-          </motion.h1>
+            style={{ fontSize: "clamp(2.25rem, 5vw + 1rem, 4.5rem)", lineHeight: 1.1 }}
+          />
 
-          <motion.p
-            variants={itemVariants}
-            className="max-w-2xl text-slate-600 dark:text-slate-400"
-            style={{ fontSize: "clamp(1rem, 1.5vw + 0.5rem, 1.25rem)", lineHeight: 1.7 }}
-          >
-            {h.subtitle}
-          </motion.p>
+          <motion.div variants={itemVariants}>
+            <TypingSubtitle text={h.subtitle} />
+          </motion.div>
 
           <motion.div variants={itemVariants} className="flex flex-wrap justify-center gap-4">
             <Link
               href="/work"
-              className="flex min-h-[48px] items-center rounded-full bg-blue-600 px-8 text-sm font-semibold text-white transition-colors hover:bg-blue-500"
+              className="glow-border flex min-h-[48px] items-center rounded-full bg-blue-600 px-8 text-sm font-semibold text-white transition-colors hover:bg-blue-500"
             >
               {h.cta1}
             </Link>

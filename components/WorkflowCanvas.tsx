@@ -2,6 +2,8 @@
 
 import { motion } from "framer-motion"
 import { useLang } from "@/components/providers/LangProvider"
+import { AnimatedHeading } from "@/components/AnimatedHeading"
+import { scaleUp, staggerContainer } from "@/lib/motion"
 
 interface Node {
   id: string; label: string; color: string; x: number; y: number
@@ -63,20 +65,24 @@ export function WorkflowCanvas() {
           <span className="mb-3 block text-sm font-medium uppercase tracking-widest text-violet-500 dark:text-violet-400">
             {auto.subtitle}
           </span>
-          <h2 className="mb-4 font-bold text-slate-900 dark:text-white" style={{ fontSize: "clamp(1.75rem, 3vw + 0.5rem, 3rem)" }}>
+          <AnimatedHeading
+            as="h2"
+            className="mb-4 font-bold text-slate-900 dark:text-white"
+            style={{ fontSize: "clamp(1.75rem, 3vw + 0.5rem, 3rem)" }}
+          >
             {auto.title}
-          </h2>
+          </AnimatedHeading>
           <p className="max-w-2xl text-slate-600 dark:text-slate-400" style={{ fontSize: "clamp(0.9rem, 1vw + 0.5rem, 1.125rem)" }}>
             {auto.description}
           </p>
         </motion.div>
 
         <motion.div
-          initial={{ opacity: 0, scale: 0.97 }}
-          whileInView={{ opacity: 1, scale: 1 }}
+          variants={scaleUp}
+          initial="hidden"
+          whileInView="visible"
           viewport={{ once: true }}
-          transition={{ duration: 0.6 }}
-          className="overflow-x-auto rounded-2xl border border-black/8 bg-black/[0.02] p-6 backdrop-blur-sm dark:border-white/8 dark:bg-white/3"
+          className="glow-border overflow-x-auto rounded-2xl border border-black/8 bg-black/[0.02] p-6 backdrop-blur-sm dark:border-white/8 dark:bg-white/3"
         >
           <svg viewBox={`0 0 ${CANVAS_W} ${CANVAS_H}`} className="w-full min-w-[520px]" style={{ height: CANVAS_H }}>
             <defs>

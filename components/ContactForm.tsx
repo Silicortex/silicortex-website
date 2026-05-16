@@ -4,7 +4,8 @@ import { useState, type FormEvent } from "react"
 import { motion } from "framer-motion"
 import { useLang } from "@/components/providers/LangProvider"
 import { siteConfig } from "@/lib/siteConfig"
-import { ProfileCard } from "@/components/ProfileCard"
+import { AnimatedHeading } from "@/components/AnimatedHeading"
+import { clipReveal, scaleUp } from "@/lib/motion"
 
 export function ContactForm() {
   const { dict } = useLang()
@@ -23,29 +24,33 @@ export function ContactForm() {
   }
 
   return (
-    <section className="bg-white px-6 py-24 dark:bg-slate-950 sm:px-8">
+    <section className="bg-white px-6 pb-24 pt-0 dark:bg-slate-950 sm:px-8">
       <div className="mx-auto max-w-2xl">
-        <ProfileCard />
         <motion.div
-          initial={{ opacity: 0, y: 24 }}
-          whileInView={{ opacity: 1, y: 0 }}
+          variants={clipReveal}
+          initial="hidden"
+          whileInView="visible"
           viewport={{ once: true }}
-          transition={{ duration: 0.5 }}
           className="mb-12 text-center"
+          style={{ overflow: "hidden" }}
         >
-          <h2 className="mb-4 font-bold text-slate-900 dark:text-white" style={{ fontSize: "clamp(1.75rem, 3vw + 0.5rem, 3rem)" }}>
+          <AnimatedHeading
+            as="h2"
+            className="mb-4 font-bold text-slate-900 dark:text-white"
+            style={{ fontSize: "clamp(1.75rem, 3vw + 0.5rem, 3rem)" }}
+          >
             {dict.contact.title}
-          </h2>
+          </AnimatedHeading>
           <p className="text-slate-600 dark:text-slate-400" style={{ fontSize: "clamp(0.9rem, 1vw + 0.5rem, 1.125rem)" }}>
             {dict.contact.subtitle}
           </p>
         </motion.div>
 
         <motion.div
-          initial={{ opacity: 0, y: 32 }}
-          whileInView={{ opacity: 1, y: 0 }}
+          variants={scaleUp}
+          initial="hidden"
+          whileInView="visible"
           viewport={{ once: true }}
-          transition={{ duration: 0.5, delay: 0.1 }}
           className="rounded-2xl border border-black/8 bg-black/[0.02] p-8 backdrop-blur-sm dark:border-white/8 dark:bg-white/5"
         >
           {submitted ? (
@@ -73,7 +78,7 @@ export function ContactForm() {
               </div>
               <button
                 type="submit"
-                className="mt-2 flex min-h-[48px] items-center justify-center rounded-full bg-blue-600 px-8 text-sm font-semibold text-white transition-colors hover:bg-blue-500"
+                className="glow-border mt-2 flex min-h-[48px] items-center justify-center rounded-full bg-blue-600 px-8 text-sm font-semibold text-white transition-colors hover:bg-blue-500"
               >
                 {f.submit}
               </button>
