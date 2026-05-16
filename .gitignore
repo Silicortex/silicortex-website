@@ -42,3 +42,6 @@ next-env.d.ts
 
 #python .venv
 .venv
+# Claude Code
+.claude/
+.superpowers/
