@@ -1,9 +1,11 @@
 "use client"
 
 import { useRef } from "react"
-import { motion } from "framer-motion"
+import { motion, AnimatePresence } from "framer-motion"
 import Link from "next/link"
 import { useLang } from "@/components/providers/LangProvider"
+import { AnimatedHeading } from "@/components/AnimatedHeading"
+import { clipReveal, scaleUp, staggerContainer } from "@/lib/motion"
 
 interface WorkItem {
   tag: string; icon: string; title: string
@@ -170,15 +172,19 @@ export function WorkShowcase() {
           <span className="mb-3 block text-sm font-semibold uppercase tracking-widest text-violet-500 dark:text-violet-400">
             {ws.header}
           </span>
-          <h1 className="mb-4 font-extrabold text-slate-900 dark:text-white" style={{ fontSize: "clamp(2rem, 4vw + 0.5rem, 3.5rem)" }}>
+          <AnimatedHeading
+            as="h1"
+            className="mb-4 font-extrabold text-slate-900 dark:text-white"
+            style={{ fontSize: "clamp(2rem, 4vw + 0.5rem, 3.5rem)" }}
+          >
             {ws.title}
-          </h1>
+          </AnimatedHeading>
           <p className="max-w-2xl text-slate-600 dark:text-slate-400" style={{ fontSize: "clamp(0.95rem, 1vw + 0.5rem, 1.15rem)" }}>
             {ws.subtitle}
           </p>
         </motion.div>
 
-        {/* Section nav pills */}
+        {/* Section nav pills with layoutId */}
         <motion.div
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
@@ -186,10 +192,14 @@ export function WorkShowcase() {
           className="mb-16 flex flex-wrap gap-3"
         >
           {SECTIONS.map(s => (
-            <button
+            <motion.button
               key={s.id}
+              layoutId={`pill-${s.id}`}
               onClick={() => scrollTo(s.id)}
-              className="flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold transition-all duration-200 hover:scale-105"
+              whileHover={{ scale: 1.06 }}
+              whileTap={{ scale: 0.97 }}
+              transition={{ type: "spring", stiffness: 300, damping: 20 }}
+              className="flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold"
               style={{
                 borderColor: s.accent + "44",
                 background: s.accentMuted,
@@ -198,7 +208,7 @@ export function WorkShowcase() {
             >
               <span>{s.icon}</span>
               {s.label}
-            </button>
+            </motion.button>
           ))}
         </motion.div>
 
@@ -208,10 +218,10 @@ export function WorkShowcase() {
             <motion.div
               key={section.id}
               ref={el => { sectionRefs.current[section.id] = el }}
-              initial={{ opacity: 0, y: 32 }}
-              whileInView={{ opacity: 1, y: 0 }}
+              variants={clipReveal}
+              initial="hidden"
+              whileInView="visible"
               viewport={{ once: true, margin: "-80px" }}
-              transition={{ duration: 0.5, delay: si * 0.05 }}
             >
               {/* Section header */}
               <div className="mb-8 flex items-start gap-4">
@@ -241,20 +251,23 @@ export function WorkShowcase() {
               </div>
 
               {/* Cards grid */}
-              <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+              <motion.div
+                variants={staggerContainer}
+                initial="hidden"
+                whileInView="visible"
+                viewport={{ once: true }}
+                className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3"
+              >
                 {section.items.map((item, i) => (
                   <motion.div
                     key={item.title}
-                    initial={{ opacity: 0, y: 16 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    viewport={{ once: true }}
-                    transition={{ duration: 0.35, delay: i * 0.08 }}
+                    variants={scaleUp}
                     className={item.featured ? "sm:col-span-2" : ""}
                   >
                     <WorkCard item={item} />
                   </motion.div>
                 ))}
-              </div>
+              </motion.div>
             </motion.div>
           ))}
         </div>
@@ -304,8 +317,8 @@ function WorkCard({ item }: { item: WorkItem }) {
         </div>
 
         {item.cta && (
-          <div 
-            className="mt-2 inline-flex w-fit items-center gap-2 rounded-xl px-5 py-3 text-sm font-bold text-white shadow-md transition-all duration-300 hover:scale-105 hover:shadow-lg group-hover:gap-3" 
+          <div
+            className="mt-2 inline-flex w-fit items-center gap-2 rounded-xl px-5 py-3 text-sm font-bold text-white shadow-md transition-all duration-300 hover:scale-105 hover:shadow-lg group-hover:gap-3"
             style={{ background: `linear-gradient(135deg, ${item.accent}, ${item.accent}cc)` }}
           >
             {item.cta}

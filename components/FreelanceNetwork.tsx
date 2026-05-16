@@ -3,6 +3,9 @@
 import Link from "next/link"
 import { motion } from "framer-motion"
 import { useLang } from "@/components/providers/LangProvider"
+import { TiltCard } from "@/components/TiltCard"
+import { AnimatedHeading } from "@/components/AnimatedHeading"
+import { scaleUp, staggerContainer } from "@/lib/motion"
 
 export function FreelanceNetwork() {
   const { dict } = useLang()
@@ -22,30 +25,37 @@ export function FreelanceNetwork() {
           transition={{ duration: 0.5 }}
           className="mb-16 text-center"
         >
-          <h2 className="mb-4 font-bold text-slate-900 dark:text-white" style={{ fontSize: "clamp(1.75rem, 3vw + 0.5rem, 3rem)" }}>
+          <AnimatedHeading
+            as="h2"
+            className="mb-4 font-bold text-slate-900 dark:text-white"
+            style={{ fontSize: "clamp(1.75rem, 3vw + 0.5rem, 3rem)" }}
+          >
             {net.title}
-          </h2>
+          </AnimatedHeading>
           <p className="mx-auto max-w-xl text-slate-600 dark:text-slate-400" style={{ fontSize: "clamp(0.9rem, 1vw + 0.5rem, 1.125rem)" }}>
             {net.subtitle}
           </p>
         </motion.div>
 
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-          {net.perks.map((perk, i) => (
-            <motion.div
-              key={perk.title}
-              initial={{ opacity: 0, y: 32 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, margin: "-40px" }}
-              transition={{ duration: 0.5, delay: i * 0.08 }}
-              className="rounded-2xl border border-black/8 bg-black/[0.02] p-6 backdrop-blur-sm transition-colors hover:border-blue-500/20 dark:border-white/8 dark:bg-white/5"
-            >
-              <div className="mb-4 text-3xl">{perk.icon}</div>
-              <h3 className="mb-2 font-semibold text-slate-900 dark:text-white">{perk.title}</h3>
-              <p className="text-sm leading-relaxed text-slate-600 dark:text-slate-400">{perk.description}</p>
+        <motion.div
+          variants={staggerContainer}
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, margin: "-40px" }}
+          className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4"
+        >
+          {net.perks.map((perk) => (
+            <motion.div key={perk.title} variants={scaleUp}>
+              <TiltCard className="h-full">
+                <div className="h-full rounded-2xl border border-black/8 bg-black/[0.02] p-6 backdrop-blur-sm transition-colors hover:border-blue-500/20 dark:border-white/8 dark:bg-white/5">
+                  <div className="mb-4 text-3xl">{perk.icon}</div>
+                  <h3 className="mb-2 font-semibold text-slate-900 dark:text-white">{perk.title}</h3>
+                  <p className="text-sm leading-relaxed text-slate-600 dark:text-slate-400">{perk.description}</p>
+                </div>
+              </TiltCard>
             </motion.div>
           ))}
-        </div>
+        </motion.div>
 
         <motion.div
           initial={{ opacity: 0, y: 24 }}
@@ -59,7 +69,7 @@ export function FreelanceNetwork() {
           </p>
           <Link
             href="/contact"
-            className="inline-flex min-h-[48px] items-center rounded-full bg-blue-600 px-10 text-sm font-semibold text-white transition-colors hover:bg-blue-500"
+            className="glow-border inline-flex min-h-[48px] items-center rounded-full bg-blue-600 px-10 text-sm font-semibold text-white transition-colors hover:bg-blue-500"
           >
             {net.cta}
           </Link>

@@ -2,6 +2,9 @@
 
 import { motion } from "framer-motion"
 import { useLang } from "@/components/providers/LangProvider"
+import { TiltCard } from "@/components/TiltCard"
+import { AnimatedHeading } from "@/components/AnimatedHeading"
+import { scaleUp, staggerContainer } from "@/lib/motion"
 
 const glassCard =
   "group relative overflow-hidden rounded-3xl border border-black/5 p-8 shadow-[0_2px_10px_-3px_rgba(6,81,237,0.1)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_8px_30px_-4px_rgba(6,81,237,0.15)] dark:border-white/10 dark:backdrop-blur-xl dark:hover:border-white/20 dark:hover:shadow-[0_8px_30px_-4px_rgba(0,0,0,0.5)]"
@@ -46,14 +49,8 @@ function BentoCard({
   title: string; description: string; tag: string; span: string
   accent: string; iconBgClass: string; bgClass: string; icon: string; index: number
 }) {
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 32 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: "-60px" }}
-      transition={{ duration: 0.5, delay: index * 0.08, ease: "easeOut" }}
-      className={`${glassCard} ${span} ${bgClass} flex flex-col justify-between gap-6`}
-    >
+  const inner = (
+    <div className={`${glassCard} ${span} ${bgClass} ${index === 0 ? "glow-border" : ""} flex flex-col justify-between gap-6 h-full`}>
       <div className="flex items-start justify-between gap-4">
         <span className={`flex h-12 w-12 items-center justify-center rounded-2xl text-xl shadow-sm ring-1 ring-inset ring-black/5 dark:ring-white/10 ${iconBgClass}`}>
           {icon}
@@ -70,6 +67,14 @@ function BentoCard({
           {description}
         </p>
       </div>
+    </div>
+  )
+
+  return (
+    <motion.div variants={scaleUp} className={span}>
+      <TiltCard className="h-full">
+        {inner}
+      </TiltCard>
     </motion.div>
   )
 }
@@ -88,18 +93,28 @@ export function BentoGrid() {
           transition={{ duration: 0.5 }}
           className="mb-16 text-center"
         >
-          <h2 className="mb-4 font-bold tracking-tight text-slate-900 dark:text-white" style={{ fontSize: "clamp(2rem, 4vw + 0.5rem, 3.5rem)" }}>
+          <AnimatedHeading
+            as="h2"
+            className="mb-4 font-bold tracking-tight text-slate-900 dark:text-white"
+            style={{ fontSize: "clamp(2rem, 4vw + 0.5rem, 3.5rem)" }}
+          >
             {s.title}
-          </h2>
+          </AnimatedHeading>
           <p className="mx-auto max-w-2xl text-slate-600 dark:text-slate-400" style={{ fontSize: "clamp(1rem, 1.5vw + 0.5rem, 1.25rem)" }}>
             {s.subtitle}
           </p>
         </motion.div>
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-3 md:grid-rows-3 snap-y">
+        <motion.div
+          variants={staggerContainer}
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, margin: "-60px" }}
+          className="grid grid-cols-1 gap-6 md:grid-cols-3 md:grid-rows-3 snap-y"
+        >
           {s.items.map((item, i) => (
             <BentoCard key={item.title} {...item} span={spanConfigs[i]} accent={accentColors[i]} iconBgClass={iconBg[i]} bgClass={cardBgs[i]} icon={icons[i]} index={i} />
           ))}
-        </div>
+        </motion.div>
       </div>
     </section>
   )

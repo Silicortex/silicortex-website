@@ -2,6 +2,9 @@
 
 import { motion } from "framer-motion"
 import Link from "next/link"
+import { TiltCard } from "@/components/TiltCard"
+import { AnimatedHeading } from "@/components/AnimatedHeading"
+import { scaleUp, staggerContainer } from "@/lib/motion"
 
 const BUILDS = [
   {
@@ -31,51 +34,54 @@ export function FeaturedBuilds() {
           <span className="mb-3 block text-sm font-medium uppercase tracking-widest text-violet-400">
             Featured Builds
           </span>
-          <h2
+          <AnimatedHeading
+            as="h2"
             className="mb-4 font-bold text-white"
             style={{ fontSize: "clamp(1.75rem, 3vw + 0.5rem, 3rem)" }}
           >
             Real Products, Live Demos
-          </h2>
+          </AnimatedHeading>
           <p className="max-w-2xl text-slate-400" style={{ fontSize: "clamp(0.9rem, 1vw + 0.5rem, 1.125rem)" }}>
             Interactive examples of dashboards, tools, and AI-integrated interfaces we build for clients.
           </p>
         </motion.div>
 
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {BUILDS.map((b, i) => (
-            <motion.div
-              key={b.href}
-              initial={{ opacity: 0, y: 32 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, margin: "-40px" }}
-              transition={{ duration: 0.5, delay: i * 0.1 }}
-            >
-              <Link href={b.href} className="group block h-full">
-                <div className={`h-full rounded-2xl border bg-gradient-to-br ${b.gradient} ${b.border} p-6 backdrop-blur-sm transition-all duration-200`}>
-                  <span className={`mb-4 inline-block rounded-full px-3 py-1 text-xs font-semibold ${b.tagColor}`}>
-                    {b.tag}
-                  </span>
-                  <h3 className="mb-3 text-lg font-semibold text-white group-hover:text-violet-300 transition-colors">
-                    {b.title}
-                  </h3>
-                  <p className="mb-5 text-sm leading-relaxed text-slate-400">{b.description}</p>
-                  <div className="flex flex-wrap gap-2">
-                    {b.tech.map(t => (
-                      <span key={t} className="rounded-md bg-white/5 px-2 py-1 text-xs text-slate-400">
-                        {t}
-                      </span>
-                    ))}
+        <motion.div
+          variants={staggerContainer}
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, margin: "-40px" }}
+          className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3"
+        >
+          {BUILDS.map((b) => (
+            <motion.div key={b.href} variants={scaleUp}>
+              <TiltCard className="h-full">
+                <Link href={b.href} className="group block h-full">
+                  <div className={`h-full rounded-2xl border bg-gradient-to-br ${b.gradient} ${b.border} p-6 backdrop-blur-sm transition-all duration-200`}>
+                    <span className={`mb-4 inline-block rounded-full px-3 py-1 text-xs font-semibold ${b.tagColor}`}>
+                      {b.tag}
+                    </span>
+                    <h3 className="mb-3 text-lg font-semibold text-white group-hover:text-violet-300 transition-colors">
+                      {b.title}
+                    </h3>
+                    <p className="mb-5 text-sm leading-relaxed text-slate-400">{b.description}</p>
+                    <div className="flex flex-wrap gap-2">
+                      {b.tech.map(t => (
+                        <span key={t} className="rounded-md bg-white/5 px-2 py-1 text-xs text-slate-400">
+                          {t}
+                        </span>
+                      ))}
+                    </div>
+                    <div className="mt-5 flex items-center gap-1 text-sm font-semibold text-violet-400 group-hover:gap-2 transition-all">
+                      View live demo
+                      <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 7h10M8 3l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                    </div>
                   </div>
-                  <div className="mt-5 flex items-center gap-1 text-sm font-semibold text-violet-400 group-hover:gap-2 transition-all">
-                    View live demo
-                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 7h10M8 3l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                  </div>
-                </div>
-              </Link>
+                </Link>
+              </TiltCard>
             </motion.div>
           ))}
-        </div>
+        </motion.div>
       </div>
     </section>
   )

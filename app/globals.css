@@ -48,3 +48,9 @@ body {
   background: #1e3a5f;
   border-radius: 2px;
 }
+
+@keyframes glowPulse {
+  0%, 100% { box-shadow: 0 0 0 1px rgba(99,102,241,0.25), 0 0 15px rgba(59,130,246,0.08); }
+  50% { box-shadow: 0 0 0 1px rgba(59,130,246,0.55), 0 0 28px rgba(59,130,246,0.18); }
+}
+.glow-border { animation: glowPulse 3s ease-in-out infinite; }

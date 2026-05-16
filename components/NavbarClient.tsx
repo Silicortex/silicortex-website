@@ -85,7 +85,7 @@ export function NavbarClient() {
 
             if (!link.children) {
               return (
-                <li key={link.href}>
+                <li key={link.href} className="relative">
                   <Link
                     href={link.href}
                     className={`text-sm transition-colors ${
@@ -96,6 +96,13 @@ export function NavbarClient() {
                   >
                     {link.label}
                   </Link>
+                  {isActive && (
+                    <motion.div
+                      layoutId="nav-underline"
+                      className="absolute -bottom-1 left-0 right-0 h-px bg-blue-500"
+                      transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                    />
+                  )}
                 </li>
               )
             }
