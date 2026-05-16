@@ -1,18 +1,9 @@
-"use client"
-
-import { motion } from "framer-motion"
 import Image from "next/image"
 import { siteConfig } from "@/lib/siteConfig"
 
 export function ProfileCard() {
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 24 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true }}
-      transition={{ duration: 0.5 }}
-      className="mx-auto mb-16 max-w-2xl"
-    >
+    <div className="mx-auto mb-16 max-w-2xl">
       <div className="flex flex-col items-center gap-6 rounded-2xl border border-black/8 bg-black/[0.02] p-8 backdrop-blur-sm dark:border-white/8 dark:bg-white/3 sm:flex-row sm:items-start">
         {/* Photo */}
         <div className="relative h-28 w-28 shrink-0 overflow-hidden rounded-2xl border border-black/10 dark:border-white/10 sm:h-32 sm:w-32">
@@ -69,6 +60,6 @@ export function ProfileCard() {
           </div>
         </div>
       </div>
-    </motion.div>
+    </div>
   )
 }
