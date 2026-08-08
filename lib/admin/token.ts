@@ -4,8 +4,8 @@ export const SESSION_MAX_AGE_SECONDS = 60 * 60 * 24 * 7
 
 export type SessionPayload = { sub: 'owner'; exp: number }
 
-// Read per call so a rotated secret takes effect immediately and tests
-// can set the env var before importing nothing further.
+// Read per call so a rotated secret takes effect without a redeploy, and so tests
+// can set the env var before importing this module.
 function secretKey(): Uint8Array {
   const secret = process.env.SESSION_SECRET
   if (!secret) throw new Error('SESSION_SECRET is not set')

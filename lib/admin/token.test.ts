@@ -1,5 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
+import { SignJWT } from 'jose'
 
 process.env.SESSION_SECRET = 'test-secret-at-least-32-bytes-long!!'
 
@@ -36,4 +37,27 @@ test('an unsigned "alg: none" token is rejected', async () => {
   const header = Buffer.from(JSON.stringify({ alg: 'none', typ: 'JWT' })).toString('base64url')
   const body = Buffer.from(JSON.stringify({ sub: 'owner', exp: 9999999999 })).toString('base64url')
   assert.equal(await verifySessionToken(`${header}.${body}.`), null)
+})
+
+test('a token signed with a different HS algorithm is rejected', async () => {
+  // Guards the `algorithms: ['HS256']` pin itself: jose rejects alg:none on its
+  // own, so only an HS384 token proves the pin is doing work.
+  const key = new TextEncoder().encode(process.env.SESSION_SECRET)
+  const token = await new SignJWT({ sub: 'owner' })
+    .setProtectedHeader({ alg: 'HS384' })
+    .setIssuedAt()
+    .setExpirationTime('7d')
+    .sign(key)
+  assert.equal(await verifySessionToken(token), null)
+})
+
+test('an expired token is rejected', async () => {
+  // Verify exp enforcement is working.
+  const key = new TextEncoder().encode(process.env.SESSION_SECRET)
+  const token = await new SignJWT({ sub: 'owner' })
+    .setProtectedHeader({ alg: 'HS256' })
+    .setIssuedAt()
+    .setExpirationTime('-1s')
+    .sign(key)
+  assert.equal(await verifySessionToken(token), null)
 })
