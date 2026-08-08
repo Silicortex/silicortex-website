@@ -65,15 +65,35 @@ test('includes a 0 % group with no VAT', () => {
   assert.equal(totals.grossTotal, 50)
 })
 
-test('groups VAT per rate rather than per line', () => {
-  // Per line: round2(0.055) = 0.06 twice = 0.12
-  // Per group (correct): round2(0.29 × 0.19) = 0.06
+// The printed document must be arithmetically consistent: the group net is
+// the sum of the line nets AS PRINTED. Summing unrounded values instead would
+// print lines of 0,15 + 0,15 under a subtotal of 0,29 — an invoice that
+// visibly does not add up, which is worse than a one-cent rounding choice.
+test('the group net is the sum of the rounded line nets, so the invoice adds up', () => {
   const totals = computeTotals([
     item({ quantity: 1, unitPrice: 0.145, vatRate: 19 }),
     item({ quantity: 1, unitPrice: 0.145, vatRate: 19 }),
   ])
-  assert.equal(totals.groups[0].net, 0.29)
+  assert.deepEqual(totals.lineNets, [0.15, 0.15])
+  assert.equal(totals.groups[0].net, 0.3)
+  assert.equal(totals.netTotal, 0.3)
   assert.equal(totals.groups[0].vat, 0.06)
+})
+
+// This is the § 14 UStG requirement itself: VAT is owed on the summed net of
+// each rate, not on each line separately.
+test('computes VAT per rate group, not per line', () => {
+  // Four lines of 0,03 net at 19 %. Per line the VAT rounds to 0,01 each,
+  // i.e. 0,04 in total; on the summed net of 0,12 it is 0,02. The invoice
+  // must show 0,02.
+  const totals = computeTotals([
+    item({ quantity: 1, unitPrice: 0.03, vatRate: 19 }),
+    item({ quantity: 1, unitPrice: 0.03, vatRate: 19 }),
+    item({ quantity: 1, unitPrice: 0.03, vatRate: 19 }),
+    item({ quantity: 1, unitPrice: 0.03, vatRate: 19 }),
+  ])
+  assert.equal(totals.groups[0].net, 0.12)
+  assert.equal(totals.groups[0].vat, 0.02)
 })
 
 test('an empty invoice is all zeros', () => {

@@ -33,21 +33,22 @@ export function round2(value: number): number {
 
 // VAT is computed per rate group, never per line: § 14 UStG requires the
 // net subtotal and the VAT owed to be shown for each rate.
+//
+// The order matters and is deliberate: round each line first, then sum the
+// ROUNDED line nets per rate, then round the VAT of each group. Grouping
+// unrounded values would leave the printed line amounts not summing to the
+// printed subtotal — an invoice that visibly does not add up.
 export function computeTotals(items: InvoiceItemInput[]): InvoiceTotals {
   const lineNets = items.map((i) => round2(i.quantity * i.unitPrice))
 
   const netByRate = new Map<number, number>()
-  items.forEach((item) => {
-    const lineNet = item.quantity * item.unitPrice
-    netByRate.set(item.vatRate, (netByRate.get(item.vatRate) ?? 0) + lineNet)
+  items.forEach((item, index) => {
+    netByRate.set(item.vatRate, round2((netByRate.get(item.vatRate) ?? 0) + lineNets[index]))
   })
 
   const groups: VatGroup[] = [...netByRate.entries()]
     .sort((a, b) => a[0] - b[0])
-    .map(([rate, net]) => {
-      const roundedNet = round2(net)
-      return { rate, net: roundedNet, vat: round2((roundedNet * rate) / 100) }
-    })
+    .map(([rate, net]) => ({ rate, net, vat: round2((net * rate) / 100) }))
 
   const netTotal = round2(groups.reduce((sum, g) => sum + g.net, 0))
   const vatTotal = round2(groups.reduce((sum, g) => sum + g.vat, 0))
