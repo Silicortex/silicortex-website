@@ -49,3 +49,8 @@ next-env.d.ts
 # IDE config
 .continue/
 .agents/
+
+# Playwright
+/test-results/
+/playwright-report/
+/tests/e2e/.auth/
