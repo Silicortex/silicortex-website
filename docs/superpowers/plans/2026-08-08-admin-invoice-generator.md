@@ -3118,10 +3118,14 @@ follow master data until manually edited."
 import 'server-only'
 import { randomUUID } from 'node:crypto'
 import { sql } from './client.ts'
-import { computeTotals } from '@/lib/invoice/totals.ts'
-import { compareInvoiceNumbers } from '@/lib/invoice/numbering.ts'
-import { todayIso } from '@/lib/invoice/format.ts'
-import type { InvoiceDraft, InvoiceStatus, InvoiceSummary } from '@/lib/invoice/types.ts'
+// Relative, not `@/…`: plain Node ESM cannot resolve the tsconfig path alias,
+// so an `@/` import here breaks every bare-Node verification script in this
+// plan (it reads `@/lib/…` as an invalid bare package name). The rest of
+// `lib/` already imports relatively for the same reason.
+import { computeTotals } from '../invoice/totals.ts'
+import { compareInvoiceNumbers } from '../invoice/numbering.ts'
+import { todayIso } from '../invoice/format.ts'
+import type { InvoiceDraft, InvoiceStatus, InvoiceSummary } from '../invoice/types.ts'
 import type { MasterDataInvoiceVisible } from './masterData.ts'
 
 // Verified against the live database: the driver parses a `date` column into a
@@ -3438,7 +3442,7 @@ npm run build && npm run lint
 - [ ] **Step 6: Commit**
 
 ```bash
-git add lib/db/invoices.ts app/admin
+git add lib/db/invoices.ts app/admin components/admin/AdminApp.tsx
 git commit -m "feat(invoice): add invoice repository and draft actions
 
 Items are replaced inside a transaction; drafts hold no invoice number,
