@@ -2412,6 +2412,27 @@ export type InvoiceSummary = {
   grossTotal: number
 }
 
+// `crypto.randomUUID()` exists only in a secure context, so a dev server
+// reached over a plain-HTTP LAN address (from a phone, say) would throw and take
+// the whole admin app down. `getRandomValues` has no such restriction, so the
+// fallback is still cryptographically random — and it must keep a valid UUID
+// shape, because `invoices.id` is a `uuid` column.
+export function newInvoiceId(): string {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID()
+  }
+  const bytes = new Uint8Array(16)
+  if (typeof crypto !== 'undefined' && typeof crypto.getRandomValues === 'function') {
+    crypto.getRandomValues(bytes)
+  } else {
+    for (let i = 0; i < 16; i += 1) bytes[i] = Math.floor(Math.random() * 256)
+  }
+  bytes[6] = (bytes[6] & 0x0f) | 0x40 // version 4
+  bytes[8] = (bytes[8] & 0x3f) | 0x80 // variant 1
+  const hex = [...bytes].map((b) => b.toString(16).padStart(2, '0')).join('')
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`
+}
+
 export function emptyItem(vatRate: number): InvoiceItemInput {
   return { description: '', quantity: 1, unit: 'Std', unitPrice: 0, vatRate }
 }
@@ -2432,7 +2453,7 @@ export function emptyInvoice(args: {
     // twice in quick succession updates one row instead of creating two — with
     // a null id each click mints its own UUID, `on conflict (id)` never fires,
     // and nothing else in the schema stops the duplicate.
-    id: crypto.randomUUID(),
+    id: newInvoiceId(),
     status: 'draft',
     invoiceNumber: null,
     proposedNumber: args.proposedNumber,
@@ -3648,13 +3669,17 @@ Inside the component (props now include `invoices: InvoiceSummary[]`):
       ...loaded,
       // A fresh id: a copy is a NEW invoice, and minting it here keeps the
       // double-click protection that `emptyInvoice` relies on.
-      id: crypto.randomUUID(),
+      id: newInvoiceId(),
       status: 'draft',
       invoiceNumber: null,
       // Asked of the server, not derived from the client's archive copy.
       proposedNumber: await nextNumberAction(),
       invoiceDate: todayIso(),
     })
+    // A copy inherits the original's payment terms, which may have been edited
+    // by hand. Without this, a later Zahlungsziel change in Stammdaten would
+    // silently overwrite them.
+    setTermsTouched(true)
     setTab('invoice')
     setNotice('Kopie erstellt.')
   }
@@ -3664,14 +3689,28 @@ Inside the component (props now include `invoices: InvoiceSummary[]`):
     const result = await deleteDraftAction(id)
     if (!result.ok) return setNotice(result.error ?? 'Fehler.')
     await refreshArchive()
-    if (invoice.id === id) setInvoice({ ...invoice, id: null })
+    // A fresh id, not null: null would reopen the double-click duplication that
+    // client-minted ids exist to prevent.
+    if (invoice.id === id) setInvoice({ ...invoice, id: newInvoiceId() })
     setNotice('Entwurf gelöscht.')
   }
 ```
 
 Imports for this step: `ArchiveTable`, `todayIso` (already imported in Task 13), and from the actions module `deleteDraftAction`, `listInvoicesAction`, `loadInvoiceAction`, `saveDraftAction`, `nextNumberAction`. `nextInvoiceNumber` is **not** imported here — numbering lives on the server.
 
-Render, above the sheet in the invoice tab:
+Render the notice **above the tab content, outside every tab branch** — deleting a draft happens on
+the archive tab and does not switch tabs, so a notice rendered only inside the invoice tab would never
+be seen for the action that most needs confirming:
+
+```tsx
+      {notice && (
+        <p className="admin-no-print mx-auto max-w-[840px] px-6 pt-4 text-sm text-gray-600" role="status">
+          {notice}
+        </p>
+      )}
+```
+
+Then, in the invoice tab, the button row and the sheet:
 
 ```tsx
       {tab === 'invoice' && (
@@ -3685,7 +3724,6 @@ Render, above the sheet in the invoice tab:
             >
               {busy ? 'Speichere …' : 'Ins Archiv legen'}
             </button>
-            {notice && <span className="text-sm text-gray-600">{notice}</span>}
           </div>
           <InvoiceSheet
             invoice={invoice}
