@@ -5519,6 +5519,47 @@ export async function cleanupE2eRows(): Promise<void> {
 
 Call `clearLoginAttempts()` at the start of `auth.setup.ts`, before the login.
 
+- [ ] **Step 1b: Protect the owner's real master data from a crashed test run**
+
+The snapshot test edits `master_data` and restores it inline. If any test throws between those two points,
+the owner's row is left holding test values — and once they have entered their real IBAN and tax numbers,
+that is destructive. Inline restoration is not enough; the backup must be taken before the run and replayed
+unconditionally at the end.
+
+Add to `tests/e2e/db.ts`:
+
+```ts
+import type { MasterData } from '../../lib/db/masterData.ts'
+import { loadMasterData, saveMasterData } from '../../lib/db/masterData.ts'
+
+const BACKUP = new URL('./.auth/master-data-backup.json', import.meta.url)
+
+/** Snapshot the owner's real master data before the suite touches it. */
+export async function backupMasterData(): Promise<void> {
+  const { writeFile } = await import('node:fs/promises')
+  await writeFile(BACKUP, JSON.stringify(await loadMasterData()), 'utf8')
+}
+
+/** Replay it unconditionally, even if a test threw mid-edit. */
+export async function restoreMasterData(): Promise<void> {
+  const { readFile, unlink } = await import('node:fs/promises')
+  try {
+    const saved = JSON.parse(await readFile(BACKUP, 'utf8')) as MasterData
+    await saveMasterData(saved)
+    await unlink(BACKUP)
+  } catch {
+    // No backup means the suite never got far enough to edit anything.
+  }
+}
+```
+
+`tests/e2e/.auth/` is already gitignored, so the backup never reaches the repository — which matters,
+because it contains the owner's real tax numbers and IBAN.
+
+Call `backupMasterData()` in `auth.setup.ts` (after clearing attempts, before logging in) and
+`restoreMasterData()` in the teardown from step 2. Then verify the guarantee: set a recognisable fake
+value, make a test throw deliberately mid-run, and confirm the teardown still restores the original.
+
 - [ ] **Step 2: Clean up automatically, not by hand**
 
 `tests/e2e/global.teardown.ts`:
@@ -5631,6 +5672,186 @@ Adds an automatic teardown that removes only E2E- prefixed rows and
 asserts both immutability triggers end up enabled, clears the attempt
 ledger before login, and rewrites the weak assertions to check the
 behaviour rather than a placeholder attribute or a zero match."
+```
+
+---
+
+## Task 27: Make a reprint byte-for-byte what was issued
+
+**Files:**
+- Modify: `app/admin/(protected)/actions.ts`, `lib/invoice/types.ts`, `lib/db/invoices.ts`, `components/admin/AdminApp.tsx`, `components/admin/TotalsBlock.tsx` (props only), `tests/e2e/invoice.spec.ts`
+
+**Why.** Task 25 stopped an issued invoice following later Stammdaten edits, and Task 25's own review then
+found two narrower paths by which a printed invoice can still differ from the record the customer received.
+Both have the same shape as the original defect: the stored row stays correct, so nothing looks broken, and
+only the paper is wrong.
+
+**Path 1 — the client's idea of the snapshot, not the server's.** `AdminApp` sets `senderSnapshot` from its
+own `masterData.invoiceVisible`, while the database freezes what `loadMasterData()` returns — the last
+**saved** value. The Stammdaten form updates client state on every keystroke, independent of the save
+button (and an existing test documents unsaved edits surviving a tab switch as normal). So editing an
+address without saving, switching tabs, and issuing an invoice prints the unsaved edit while the record
+holds the saved one.
+
+**Path 2 — totals recomputed instead of read.** The sheet always calls `computeTotals(invoice.items)`.
+Today that agrees with the stored `net_total` / `vat_total` / `gross_total`, because issued items are
+immutable and the function has not changed. But `round2` **was** changed during this project (to round
+symmetrically for negative amounts); had that landed after invoices were issued, every historical reprint
+would have shifted by a cent, with no cross-check to notice.
+
+**Run after Task 26** — both edit `tests/e2e/invoice.spec.ts`.
+
+- [ ] **Step 1: Have the server report what it froze**
+
+In `app/admin/(protected)/actions.ts`, widen the success result so the client never has to guess:
+
+```ts
+export async function issueInvoiceAction(
+  id: string,
+  proposedNumber: string
+): Promise<
+  | { ok: true; invoiceNumber: string; senderSnapshot: MasterDataInvoiceVisible }
+  | { ok: false; error: string }
+> {
+```
+
+and, on success, return the same object that was written:
+
+```ts
+  refresh()
+  // The snapshot the DATABASE froze, so the client cannot render a sender that
+  // differs from the record — an unsaved Stammdaten edit lives only in client
+  // state and must not reach the printed document.
+  return { ok: true, invoiceNumber: number, senderSnapshot: masterData.invoiceVisible }
+```
+
+- [ ] **Step 2: Carry the stored totals on the draft**
+
+In `lib/invoice/types.ts`, add to `InvoiceDraft`:
+
+```ts
+  /**
+   * Totals as stored when the invoice was issued. Null for drafts, which
+   * recompute live. An issued invoice MUST print these rather than recomputing:
+   * a future change to the rounding rules would otherwise silently restate
+   * documents already sent.
+   */
+  storedTotals: InvoiceTotals | null
+```
+
+`emptyInvoice()` sets `storedTotals: null`. Import `InvoiceTotals` from `./totals.ts`.
+
+- [ ] **Step 3: Select them in `loadInvoice`**
+
+Add `net_total`, `vat_total`, `gross_total` and `vat_breakdown` to the enumerated columns, and map them —
+remembering that `numeric` arrives as a **string** and `jsonb` arrives already parsed:
+
+```ts
+    storedTotals: {
+      // lineNets are not stored; the items carry their own net_amount, and the
+      // sheet only needs the per-row value it already renders.
+      lineNets: items.map((i) => Number(i.net_amount)),
+      groups: (r.vat_breakdown as VatGroup[] | null) ?? [],
+      netTotal: Number(r.net_total),
+      vatTotal: Number(r.vat_total),
+      grossTotal: Number(r.gross_total),
+    },
+```
+
+Set `storedTotals` to `null` when `status === 'draft'`, so a loaded draft still recomputes as the owner
+edits it.
+
+- [ ] **Step 4: Render stored totals for an issued invoice**
+
+In `AdminApp`:
+
+```tsx
+  const liveTotals = useMemo(() => computeTotals(invoice.items), [invoice.items])
+  // An issued invoice prints the figures it was issued with; a draft recomputes.
+  const totals = invoice.status === 'issued' && invoice.storedTotals ? invoice.storedTotals : liveTotals
+```
+
+and set both fields from the server's answer when issuing succeeds:
+
+```tsx
+        setInvoice({
+          ...invoice,
+          id: saved.id,
+          status: 'issued',
+          invoiceNumber: issued.invoiceNumber,
+          senderSnapshot: issued.senderSnapshot,
+          storedTotals: liveTotals,
+        })
+```
+
+`storedTotals: liveTotals` is correct here: the same values were just written by `saveDraft`, which computed
+them with this very function moments earlier.
+
+- [ ] **Step 5: Add the regression test**
+
+```ts
+test('an unsaved Stammdaten edit never reaches an issued invoice', async ({ page }) => {
+  await page.goto('/admin')
+
+  // Save a known sender.
+  await page.getByRole('button', { name: 'Stammdaten' }).click()
+  await page.getByLabel('Name / Firmenbezeichnung').fill('SNAPSHOT Gespeichert')
+  await page.getByRole('button', { name: 'Stammdaten speichern' }).click()
+  await expect(page.getByText('Gespeichert.')).toBeVisible()
+
+  // Type a different one WITHOUT saving, then leave the tab.
+  await page.getByLabel('Name / Firmenbezeichnung').fill('SNAPSHOT Ungespeichert')
+  await page.getByRole('button', { name: 'Rechnung erstellen' }).click()
+
+  await fillInvoice(page, 'Testkunde Unsaved')
+  const number = `E2E-UNSAVED-${Date.now()}`
+  await page.getByLabel('Rechnungsnummer').fill(number)
+  page.once('dialog', (dialog) => dialog.accept())
+  await page.getByRole('button', { name: 'Drucken / PDF' }).click()
+  await expect(page.getByText(new RegExp(`Festgeschrieben als ${number}`))).toBeVisible()
+
+  // The printed sender must match what the database froze — the SAVED value.
+  const sheet = page.locator('article')
+  await expect(sheet).toContainText('SNAPSHOT Gespeichert')
+  await expect(sheet).not.toContainText('SNAPSHOT Ungespeichert')
+})
+```
+
+- [ ] **Step 6: Verify, and prove both fixes have teeth**
+
+```bash
+npm test && npx tsc --noEmit && npm run build && npm run lint
+npm run test:e2e
+```
+
+Then, restoring after each:
+
+1. Revert step 1/4 so `senderSnapshot` comes from `masterData.invoiceVisible` again → the new test must fail.
+2. Change `round2` to truncate instead of round (e.g. `Math.trunc`) in a scratch edit, issue an invoice,
+   reload it from the archive, and confirm the reprint still shows the **originally issued** gross — proving
+   stored totals are being read. Restore `round2` immediately; do not commit it.
+
+Report both.
+
+- [ ] **Step 7: Commit**
+
+```bash
+git add app/admin lib/invoice/types.ts lib/db/invoices.ts components/admin tests/e2e/invoice.spec.ts
+git commit -m "fix(invoice): reprint exactly what was issued, not what is current
+
+Two paths could still make a printed invoice differ from the record the
+customer received.
+
+The sender snapshot was taken from client state, but the Stammdaten form
+updates that on every keystroke, independent of the save button — so an
+unsaved edit reached the printed document while the database froze the last
+saved value. The action now returns the snapshot it actually wrote.
+
+Totals were always recomputed from the line items. That agreed with the
+stored columns only because computeTotals had not changed; round2 was in
+fact changed during this project, and had that landed after invoices were
+issued, every historical reprint would have shifted by a cent. An issued
+invoice now prints its stored totals."
 ```
 
 ---
