@@ -4938,6 +4938,93 @@ Also records that row triggers do not fire for TRUNCATE."
 
 ---
 
+## Task 23: Close the issuing race in the line-item guard
+
+**Files:**
+- Modify: `db/schema.sql` (two `select` statements inside `forbid_issued_invoice_item_changes`)
+
+**Interfaces:** none change. The schema statement count stays at 13.
+
+**Why.** Task 22's review found that the line-item guard reads the parent's status with a plain,
+non-locking `select`. Under `READ COMMITTED` — Postgres's default — this interleaving is possible:
+
+1. Transaction A updates `invoice_items`; the trigger reads the parent and sees `status = 'draft'`, so it
+   allows the change.
+2. Transaction B issues that same invoice (`update invoices set status = 'issued' …`) and commits.
+3. Transaction A commits.
+
+The result is an issued invoice whose line items were altered after issuing — the exact outcome the guard
+exists to prevent. Writes to the parent row serialise against each other through the row lock that an
+`UPDATE` takes, but the item guard's lookup never locks, so item writes do not participate.
+
+This is reachable in this application: the print flow saves the draft and then issues it as **two**
+separate Server Action calls, so a double-click or a retry can overlap them.
+
+`for share` makes the trigger take a shared lock on the parent row. A concurrent issuing `UPDATE` needs an
+exclusive row lock, so it waits until the item transaction finishes — and then sees the final state.
+
+- [ ] **Step 1: Add `for share` to both parent lookups**
+
+In `db/schema.sql`, inside `forbid_issued_invoice_item_changes`, both `select status into parent_status`
+statements gain `for share`:
+
+```sql
+  if tg_op in ('UPDATE','DELETE') then
+    -- `for share` is load-bearing: without it this read does not serialise
+    -- against a concurrent `update invoices set status = 'issued'`, so an item
+    -- change could commit against an invoice that has just been issued.
+    select status into parent_status from invoices where id = old.invoice_id for share;
+    if parent_status = 'issued' then
+      raise exception 'invoice % is issued; its line items are immutable', old.invoice_id;
+    end if;
+  end if;
+  if tg_op in ('INSERT','UPDATE') then
+    select status into parent_status from invoices where id = new.invoice_id for share;
+    if parent_status = 'issued' then
+      raise exception 'invoice % is issued; its line items are immutable', new.invoice_id;
+    end if;
+  end if;
+```
+
+Change nothing else in the function — the `case when tg_op = 'DELETE' then old else new end` return and the
+fall-through on a missing parent both stay exactly as they are.
+
+- [ ] **Step 2: Confirm the existing guarantees still hold**
+
+```bash
+npm run test:schema
+```
+
+Expected: all 9 tests still pass. In particular the draft cascade-delete test must still pass — a lock
+taken on a parent row that is being deleted in the same transaction is held by that same transaction, so
+it does not block itself.
+
+**Note on what this step does and does not prove.** PGlite is a single-connection, in-process Postgres, so
+it cannot exercise two concurrent transactions and therefore cannot demonstrate the race or its fix. These
+tests confirm only that `for share` breaks nothing. The race itself is argued from Postgres locking
+semantics, and the fix is standard practice for exactly this pattern. Record that limitation plainly in
+the report rather than implying the race was reproduced.
+
+- [ ] **Step 3: Commit**
+
+```bash
+git add db/schema.sql
+git commit -m "fix(db): lock the parent row when checking issued status
+
+The line-item guard read the parent invoice's status without locking, so
+under READ COMMITTED an item change could be validated against a draft
+while a concurrent transaction issued that same invoice — both commit,
+and an issued invoice ends up with items altered afterwards.
+
+Reachable here: the print flow saves the draft and issues it as two
+separate Server Action calls, so a double-click can overlap them.
+
+`for share` makes the check serialise against the issuing UPDATE, which
+needs an exclusive row lock and therefore waits."
+```
+
+---
+
 ## Self-Review
 
 **Spec coverage** — every spec section maps to a task:
