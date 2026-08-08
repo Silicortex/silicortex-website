@@ -7,6 +7,7 @@ import { todayIso } from '@/lib/invoice/format.ts'
 import {
   defaultPaymentTerms,
   emptyInvoice,
+  newInvoiceId,
   type InvoiceDraft,
   type InvoiceSummary,
 } from '@/lib/invoice/types.ts'
@@ -102,13 +103,17 @@ export function AdminApp({
       ...loaded,
       // A fresh id: a copy is a NEW invoice, and minting it here keeps the
       // double-click protection that `emptyInvoice` relies on.
-      id: crypto.randomUUID(),
+      id: newInvoiceId(),
       status: 'draft',
       invoiceNumber: null,
       // Asked of the server, not derived from the client's archive copy.
       proposedNumber: await nextNumberAction(),
       invoiceDate: todayIso(),
     })
+    // A copy inherits the original's payment terms, which may have been edited
+    // by hand. Without this, a later Zahlungsziel change in Stammdaten would
+    // silently overwrite them.
+    setTermsTouched(true)
     setTab('invoice')
     setNotice('Kopie erstellt.')
   }
@@ -118,7 +123,9 @@ export function AdminApp({
     const result = await deleteDraftAction(id)
     if (!result.ok) return setNotice(result.error ?? 'Fehler.')
     await refreshArchive()
-    if (invoice.id === id) setInvoice({ ...invoice, id: null })
+    // A fresh id, not null: null would reopen the double-click duplication that
+    // client-minted ids exist to prevent.
+    if (invoice.id === id) setInvoice({ ...invoice, id: newInvoiceId() })
     setNotice('Entwurf gelöscht.')
   }
 
@@ -142,6 +149,12 @@ export function AdminApp({
         ))}
       </nav>
 
+      {notice && (
+        <p className="admin-no-print mx-auto max-w-[840px] px-6 pt-4 text-sm text-gray-600" role="status">
+          {notice}
+        </p>
+      )}
+
       {tab === 'invoice' && (
         <>
           <div className="admin-no-print mx-auto flex max-w-[840px] items-center gap-3 px-6 pt-6">
@@ -153,7 +166,6 @@ export function AdminApp({
             >
               {busy ? 'Speichere …' : 'Ins Archiv legen'}
             </button>
-            {notice && <span className="text-sm text-gray-600">{notice}</span>}
           </div>
           <InvoiceSheet
             invoice={invoice}
