@@ -17,7 +17,8 @@
 - **`requireSession()` is the first statement of every Server Action.** Server Actions are POST endpoints reachable directly; a layout gate does not protect them.
 - **`requireSession()` must never sit inside a `try`/`catch`.** `redirect()` works by throwing a `NEXT_REDIRECT` error, and the shipped Next docs warn it must be called outside `try`/`catch`. An action written as `try { await requireSession(); … } catch { return { ok: false } }` would swallow the redirect and **continue executing unauthenticated** — the gate would appear to work while protecting nothing. Every action in this plan therefore calls `requireSession()` as a bare first statement, with the `try` opening only afterwards. Do not "tidy" an action by wrapping the whole body.
 - **Never `<input type="number">` for money or quantity.** German decimal input (`80,50`) is discarded by that control. Always `type="text" inputmode="decimal"` + `parseNum`.
-- **Money is `numeric` in Postgres and never a float in arithmetic.** The Neon driver returns `numeric` columns as **strings** — every read parses explicitly.
+- **Money is `numeric` in Postgres and never a float in arithmetic.** The Neon driver returns `numeric` columns as **strings** — every read parses explicitly. Verified against the live database: `quantity` came back as `"2.000"` and `unit_price` as `"80.50"`.
+- **Every `date` column must be selected as `::text`.** Verified against the live database: the driver parses a `date` into a `Date` at **local** midnight, so a stored `2026-08-08` arrives as `2026-08-07T22:00:00.000Z` in CEST. Both obvious readings are wrong — `String(value).slice(0, 10)` gives `"Sat Aug 08"`, and `value.toISOString().slice(0, 10)` gives `"2026-08-07"`, one day early on a legally dated document. `select invoice_date::text` returns `"2026-08-08"` correctly. `timestamptz` columns (`created_at`, `issued_at`) may stay as `Date` objects; `jsonb` arrives already parsed.
 - **VAT is computed per rate group, never per line:** round each line net to 2 decimals, group by rate, `round2(groupNet × rate / 100)`.
 - **UI text is German. Code, comments, commit messages, test names are English.** Admin strings are hard-coded German and must NOT be added to `lib/dictionaries/`.
 - **Admin is light-only.** No `next-themes`, no Framer Motion, no marketing navbar or footer under `/admin`.
@@ -3098,14 +3099,28 @@ import { todayIso } from '@/lib/invoice/format.ts'
 import type { InvoiceDraft, InvoiceStatus, InvoiceSummary } from '@/lib/invoice/types.ts'
 import type { MasterDataInvoiceVisible } from './masterData.ts'
 
-// The driver returns `date` as a string and `numeric` as a string.
+// Verified against the live database: the driver parses a `date` column into a
+// Date at LOCAL midnight, so a stored 2026-08-08 arrives as
+// 2026-08-07T22:00:00.000Z in CEST. Both naive readings are wrong —
+// String(value).slice(0,10) gives "Sat Aug 08", and toISOString().slice(0,10)
+// gives "2026-08-07", one day early on a legally dated document.
+//
+// Every query therefore selects `invoice_date::text`. This guard exists so a
+// future query that forgets the cast fails loudly instead of silently shifting
+// every invoice date by a day.
 function isoDate(value: unknown): string {
-  return String(value ?? '').slice(0, 10)
+  if (typeof value !== 'string') {
+    throw new Error(
+      `invoice_date must be selected as ::text — got ${Object.prototype.toString.call(value)}`
+    )
+  }
+  return value.slice(0, 10)
 }
 
 export async function listInvoices(): Promise<InvoiceSummary[]> {
   const rows = await sql`
-    select id, status, invoice_number, proposed_number, invoice_date,
+    select id, status, invoice_number, proposed_number,
+           invoice_date::text as invoice_date,
            customer_name, net_total, vat_total, gross_total
     from invoices
   `
@@ -3130,7 +3145,15 @@ export async function listInvoices(): Promise<InvoiceSummary[]> {
 }
 
 export async function loadInvoice(id: string): Promise<InvoiceDraft | null> {
-  const rows = await sql`select * from invoices where id = ${id}`
+  // Columns are enumerated rather than `select *` so the date cast cannot be
+  // lost, and so adding a column later does not silently change this shape.
+  const rows = await sql`
+    select id, status, invoice_number, proposed_number,
+           invoice_date::text as invoice_date,
+           service_date, customer_number, customer_name, customer_street,
+           customer_zip_city, customer_country, customer_vat_id, payment_terms
+    from invoices where id = ${id}
+  `
   const r = rows[0]
   if (!r) return null
 
@@ -3369,6 +3392,9 @@ const id = await saveDraft({
 });
 const loaded = await loadInvoice(id);
 console.log('items:', loaded.items.length, 'qty type:', typeof loaded.items[0].quantity);
+// The date must survive the round trip EXACTLY — not one day early.
+console.log('invoiceDate:', JSON.stringify(loaded.invoiceDate), 'type:', typeof loaded.invoiceDate);
+if (loaded.invoiceDate !== '2026-08-08') throw new Error('invoice_date shifted: ' + loaded.invoiceDate);
 console.log('summary:', (await listInvoices()).find(i => i.id === id));
 console.log('highest issued:', await highestIssuedNumber());
 await deleteDraft(id);
