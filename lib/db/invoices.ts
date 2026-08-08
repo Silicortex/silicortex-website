@@ -63,7 +63,8 @@ export async function loadInvoice(id: string): Promise<InvoiceDraft | null> {
     select id, status, invoice_number, proposed_number,
            invoice_date::text as invoice_date,
            service_date, customer_number, customer_name, customer_street,
-           customer_zip_city, customer_country, customer_vat_id, payment_terms
+           customer_zip_city, customer_country, customer_vat_id, payment_terms,
+           sender_snapshot
     from invoices where id = ${id}
   `
   const r = rows[0]
@@ -88,6 +89,8 @@ export async function loadInvoice(id: string): Promise<InvoiceDraft | null> {
     customerCountry: r.customer_country as string,
     customerVatId: r.customer_vat_id as string,
     paymentTerms: r.payment_terms as string,
+    // jsonb arrives already parsed by the driver.
+    senderSnapshot: (r.sender_snapshot as MasterDataInvoiceVisible | null) ?? null,
     items: items.map((i) => ({
       description: i.description as string,
       quantity: Number(i.quantity),

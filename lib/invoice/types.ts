@@ -1,4 +1,5 @@
 import type { InvoiceItemInput } from './totals.ts'
+import type { MasterDataInvoiceVisible } from '../db/masterData.ts'
 
 export type InvoiceStatus = 'draft' | 'issued'
 
@@ -17,6 +18,12 @@ export type InvoiceDraft = {
   customerVatId: string
   paymentTerms: string
   items: InvoiceItemInput[]
+  /**
+   * The sender block as frozen when the invoice was issued. Null for drafts,
+   * which render live master data. An issued invoice MUST print from this, or
+   * a later Stammdaten edit would silently rewrite documents already sent.
+   */
+  senderSnapshot: MasterDataInvoiceVisible | null
 }
 
 export type InvoiceSummary = {
@@ -88,5 +95,6 @@ export function emptyInvoice(args: {
     customerVatId: '',
     paymentTerms: args.paymentTerms,
     items: [emptyItem(args.vatRate)],
+    senderSnapshot: null,
   }
 }

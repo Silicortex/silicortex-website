@@ -104,3 +104,41 @@ test('incomplete invoices are refused before printing', async ({ page }) => {
   await expect(page.getByText('Kundenname fehlt.')).toBeVisible()
   await expect(page.getByText('Mindestens eine Position', { exact: false })).toBeVisible()
 })
+
+test('an issued invoice keeps printing its frozen sender after Stammdaten changes', async ({ page }) => {
+  // Neutralise window.print() so a real print dialog can never hang the run
+  // (standing project convention — see the other tests in this file).
+  await page.addInitScript(() => {
+    window.print = () => {}
+  })
+
+  await page.goto('/admin')
+
+  // Set a sender, then issue an invoice carrying it.
+  await page.getByRole('button', { name: 'Stammdaten' }).click()
+  await page.getByLabel('Name / Firmenbezeichnung').fill('SNAPSHOT Sender Alt')
+  await page.getByRole('button', { name: 'Stammdaten speichern' }).click()
+  await expect(page.getByText('Gespeichert.')).toBeVisible()
+
+  await page.getByRole('button', { name: 'Rechnung erstellen' }).click()
+  await fillInvoice(page, 'Testkunde Snapshot')
+  const number = `E2E-SNAP-${Date.now()}`
+  await page.getByLabel('Rechnungsnummer').fill(number)
+  page.once('dialog', (dialog) => dialog.accept())
+  await page.getByRole('button', { name: 'Drucken / PDF' }).click()
+  await expect(page.getByText(new RegExp(`Festgeschrieben als ${number}`))).toBeVisible()
+
+  // Now change the sender. The issued invoice must not follow.
+  await page.getByRole('button', { name: 'Stammdaten' }).click()
+  await page.getByLabel('Name / Firmenbezeichnung').fill('SNAPSHOT Sender Neu')
+  await page.getByRole('button', { name: 'Stammdaten speichern' }).click()
+  await expect(page.getByText('Gespeichert.')).toBeVisible()
+
+  // Reload it from the archive, so it comes back through loadInvoice.
+  await page.getByRole('button', { name: 'Meine Rechnungen' }).click()
+  await page.getByRole('row', { name: /Testkunde Snapshot/ }).getByRole('button', { name: 'Laden' }).click()
+
+  const sheet = page.locator('article')
+  await expect(sheet).toContainText('SNAPSHOT Sender Alt')
+  await expect(sheet).not.toContainText('SNAPSHOT Sender Neu')
+})

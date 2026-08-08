@@ -62,6 +62,7 @@ export function AdminApp({
 
   function updateInvoice(next: InvoiceDraft) {
     if (next.paymentTerms !== invoice.paymentTerms) setTermsTouched(true)
+    if (printErrors.length) setPrintErrors([])
     setInvoice(next)
   }
 
@@ -138,30 +139,38 @@ export function AdminApp({
     if (errors.length) return
 
     if (invoice.status === 'draft') {
-      const ok = confirm(
+      const confirmed = confirm(
         'Rechnung festschreiben? Danach ist sie nicht mehr änderbar. ' +
           'Eine Korrektur erfolgt später über eine neue Rechnung.'
       )
-      if (!ok) return
+      if (!confirmed) return
 
       setBusy(true)
-      const saved = await saveDraftAction(invoice)
-      if (!saved.ok) {
-        setBusy(false)
-        return setNotice(saved.error)
-      }
-      const issued = await issueInvoiceAction(saved.id, invoice.proposedNumber)
-      setBusy(false)
-      if (!issued.ok) return setNotice(issued.error)
+      try {
+        const saved = await saveDraftAction(invoice)
+        if (!saved.ok) return setNotice(saved.error)
 
-      setInvoice({
-        ...invoice,
-        id: saved.id,
-        status: 'issued',
-        invoiceNumber: issued.invoiceNumber,
-      })
-      await refreshArchive()
-      setNotice(`Festgeschrieben als ${issued.invoiceNumber}.`)
+        const issued = await issueInvoiceAction(saved.id, invoice.proposedNumber)
+        if (!issued.ok) {
+          await refreshArchive() // the draft was saved, so the archive changed
+          return setNotice(issued.error)
+        }
+
+        setInvoice({
+          ...invoice,
+          id: saved.id,
+          status: 'issued',
+          invoiceNumber: issued.invoiceNumber,
+          senderSnapshot: masterData.invoiceVisible,
+        })
+        await refreshArchive()
+        setNotice(`Festgeschrieben als ${issued.invoiceNumber}.`)
+      } catch {
+        setNotice('Festschreiben fehlgeschlagen. Bitte Verbindung prüfen und erneut versuchen.')
+        return
+      } finally {
+        setBusy(false)
+      }
     }
 
     window.print()
@@ -228,7 +237,13 @@ export function AdminApp({
           )}
           <InvoiceSheet
             invoice={invoice}
-            sender={masterData.invoiceVisible}
+            // An issued invoice prints the sender frozen into it; a draft
+            // follows live master data so Stammdaten edits show up immediately.
+            sender={
+              invoice.status === 'issued' && invoice.senderSnapshot
+                ? invoice.senderSnapshot
+                : masterData.invoiceVisible
+            }
             totals={totals}
             readOnly={invoice.status === 'issued'}
             onChange={updateInvoice}
