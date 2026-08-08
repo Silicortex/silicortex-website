@@ -2044,6 +2044,15 @@ test('rounds half away from zero despite float representation', () => {
   assert.equal(round2(161), 161)
 })
 
+// A NaN here would silently poison every total on the invoice, so the
+// guards must hold for values that stringify in exponential notation.
+test('round2 never returns NaN', () => {
+  assert.equal(round2(1e-7), 0)
+  assert.equal(round2(Number.NaN), 0)
+  assert.equal(round2(Number.POSITIVE_INFINITY), 0)
+  assert.equal(round2(0), 0)
+})
+
 test('computes a single-rate invoice', () => {
   // 2 × 80,50 = 161,00 net; 19 % of 161,00 = 30,59; gross 191,59
   const totals = computeTotals([item({ quantity: 2, unitPrice: 80.5, vatRate: 19 })])
@@ -2135,8 +2144,17 @@ export type InvoiceTotals = {
 
 // Decimal-string shift: Math.round(2.675 * 100) gives 267 because 2.675 is
 // really 2.67499..., while Number('2.675e+2') is exactly 267.5.
+//
+// The two guards are not decoration. A value JavaScript stringifies in
+// exponential form (1e-7, or anything >= 1e21) would make the template
+// literal read "1e-7e+2", which is NaN — and a NaN silently poisons every
+// total downstream. Non-finite input returns 0; exponential input falls back
+// to plain multiplication, which is accurate enough at that magnitude.
 export function round2(value: number): number {
-  return Number(`${Math.round(Number(`${value}e+2`))}e-2`)
+  if (!Number.isFinite(value)) return 0
+  const shifted = Number(`${value}e+2`)
+  if (!Number.isFinite(shifted)) return Math.round(value * 100) / 100
+  return Number(`${Math.round(shifted)}e-2`)
 }
 
 // VAT is computed per rate group, never per line: § 14 UStG requires the
