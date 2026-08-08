@@ -1407,6 +1407,7 @@ import type {
   MasterDataInvoiceVisible,
 } from '@/lib/db/masterData.ts'
 import { saveMasterDataAction } from '@/app/admin/(protected)/actions.ts'
+import { parseNum } from '@/lib/invoice/parseNum.ts'
 
 type TextKey = Exclude<keyof MasterDataInvoiceVisible, 'defaultVatRate' | 'paymentTermsDays'>
 
@@ -1452,6 +1453,9 @@ export function MasterDataForm({
 }) {
   const [status, setStatus] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
+  // Raw text for the two numeric fields while they are being typed.
+  const [rawVatRate, setRawVatRate] = useState<string | null>(null)
+  const [rawTermsDays, setRawTermsDays] = useState<string | null>(null)
 
   function setVisible(key: TextKey, value: string) {
     onChange({
@@ -1467,9 +1471,19 @@ export function MasterDataForm({
   async function save() {
     setSaving(true)
     setStatus(null)
-    const result = await saveMasterDataAction(masterData)
-    setSaving(false)
-    setStatus(result.ok ? 'Gespeichert.' : (result.error ?? 'Fehler.'))
+    try {
+      const result = await saveMasterDataAction(masterData)
+      setStatus(result.ok ? 'Gespeichert.' : (result.error ?? 'Fehler.'))
+    } catch {
+      // A transport-level failure (dropped connection, function timeout) rejects
+      // the action call itself. Without this catch the rejection is unhandled,
+      // `saving` stays true, the button sits on "Speichere …" forever, and the
+      // only escape — reloading — discards everything the owner just typed into
+      // 26 fields.
+      setStatus('Speichern fehlgeschlagen. Bitte Verbindung prüfen und erneut versuchen.')
+    } finally {
+      setSaving(false)
+    }
   }
 
   const row = 'flex flex-col gap-1 sm:flex-row sm:items-center'
@@ -1495,20 +1509,26 @@ export function MasterDataForm({
         ))}
         <div className={row}>
           <label className={labelCls} htmlFor="md-vatRate">Standard-Steuersatz (%)</label>
+          {/* Raw text is held while typing, so an in-progress "7," is not
+              re-rendered as "7" — which would make a decimal rate impossible to
+              enter one keystroke at a time. parseNum accepts both "7,7" and
+              "7.7". The raw draft is dropped on blur. */}
           <input
             id="md-vatRate"
             className={inputCls}
             inputMode="decimal"
-            value={String(masterData.invoiceVisible.defaultVatRate)}
-            onChange={(e) =>
+            value={rawVatRate ?? String(masterData.invoiceVisible.defaultVatRate)}
+            onChange={(e) => {
+              setRawVatRate(e.target.value)
               onChange({
                 ...masterData,
                 invoiceVisible: {
                   ...masterData.invoiceVisible,
-                  defaultVatRate: Number(e.target.value.replace(',', '.')) || 0,
+                  defaultVatRate: parseNum(e.target.value),
                 },
               })
-            }
+            }}
+            onBlur={() => setRawVatRate(null)}
           />
         </div>
         <div className={row}>
@@ -1517,16 +1537,19 @@ export function MasterDataForm({
             id="md-terms"
             className={inputCls}
             inputMode="numeric"
-            value={String(masterData.invoiceVisible.paymentTermsDays)}
-            onChange={(e) =>
+            value={rawTermsDays ?? String(masterData.invoiceVisible.paymentTermsDays)}
+            onChange={(e) => {
+              setRawTermsDays(e.target.value)
               onChange({
                 ...masterData,
                 invoiceVisible: {
                   ...masterData.invoiceVisible,
-                  paymentTermsDays: parseInt(e.target.value, 10) || 0,
+                  // Days are whole numbers; never negative.
+                  paymentTermsDays: Math.max(0, Math.trunc(parseNum(e.target.value))),
                 },
               })
-            }
+            }}
+            onBlur={() => setRawTermsDays(null)}
           />
         </div>
       </fieldset>
