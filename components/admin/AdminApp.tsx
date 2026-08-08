@@ -10,6 +10,14 @@ import {
   type InvoiceDraft,
   type InvoiceSummary,
 } from '@/lib/invoice/types.ts'
+import {
+  deleteDraftAction,
+  listInvoicesAction,
+  loadInvoiceAction,
+  nextNumberAction,
+  saveDraftAction,
+} from '@/app/admin/(protected)/actions.ts'
+import { ArchiveTable } from './ArchiveTable.tsx'
 import { InvoiceSheet } from './InvoiceSheet.tsx'
 import { MasterDataForm } from './MasterDataForm.tsx'
 
@@ -44,6 +52,10 @@ export function AdminApp({
 
   const totals = useMemo(() => computeTotals(invoice.items), [invoice.items])
 
+  const [archive, setArchive] = useState(invoices)
+  const [notice, setNotice] = useState<string | null>(null)
+  const [busy, setBusy] = useState(false)
+
   function updateInvoice(next: InvoiceDraft) {
     if (next.paymentTerms !== invoice.paymentTerms) setTermsTouched(true)
     setInvoice(next)
@@ -58,6 +70,56 @@ export function AdminApp({
         paymentTerms: defaultPaymentTerms(next.invoiceVisible.paymentTermsDays),
       }))
     }
+  }
+
+  async function refreshArchive() {
+    setArchive(await listInvoicesAction())
+  }
+
+  async function saveToArchive() {
+    setBusy(true)
+    const result = await saveDraftAction(invoice)
+    setBusy(false)
+    if (!result.ok) return setNotice(result.error)
+    setInvoice({ ...invoice, id: result.id })
+    await refreshArchive()
+    setNotice('Ins Archiv gelegt.')
+  }
+
+  async function loadFromArchive(id: string) {
+    const loaded = await loadInvoiceAction(id)
+    if (!loaded) return setNotice('Rechnung nicht gefunden.')
+    setInvoice(loaded)
+    setTermsTouched(true) // never overwrite the terms of a stored invoice
+    setTab('invoice')
+    setNotice(loaded.status === 'issued' ? 'Festgeschriebene Rechnung — nur Ansicht.' : null)
+  }
+
+  async function copyFromArchive(id: string) {
+    const loaded = await loadInvoiceAction(id)
+    if (!loaded) return setNotice('Rechnung nicht gefunden.')
+    setInvoice({
+      ...loaded,
+      // A fresh id: a copy is a NEW invoice, and minting it here keeps the
+      // double-click protection that `emptyInvoice` relies on.
+      id: crypto.randomUUID(),
+      status: 'draft',
+      invoiceNumber: null,
+      // Asked of the server, not derived from the client's archive copy.
+      proposedNumber: await nextNumberAction(),
+      invoiceDate: todayIso(),
+    })
+    setTab('invoice')
+    setNotice('Kopie erstellt.')
+  }
+
+  async function deleteFromArchive(id: string) {
+    if (!confirm('Diesen Entwurf wirklich löschen?')) return
+    const result = await deleteDraftAction(id)
+    if (!result.ok) return setNotice(result.error ?? 'Fehler.')
+    await refreshArchive()
+    if (invoice.id === id) setInvoice({ ...invoice, id: null })
+    setNotice('Entwurf gelöscht.')
   }
 
   return (
@@ -81,16 +143,34 @@ export function AdminApp({
       </nav>
 
       {tab === 'invoice' && (
-        <InvoiceSheet
-          invoice={invoice}
-          sender={masterData.invoiceVisible}
-          totals={totals}
-          readOnly={invoice.status === 'issued'}
-          onChange={updateInvoice}
-        />
+        <>
+          <div className="admin-no-print mx-auto flex max-w-[840px] items-center gap-3 px-6 pt-6">
+            <button
+              type="button"
+              onClick={saveToArchive}
+              disabled={busy || invoice.status === 'issued'}
+              className="rounded bg-[#1f5f4f] px-4 py-2 text-sm font-medium text-white disabled:opacity-60"
+            >
+              {busy ? 'Speichere …' : 'Ins Archiv legen'}
+            </button>
+            {notice && <span className="text-sm text-gray-600">{notice}</span>}
+          </div>
+          <InvoiceSheet
+            invoice={invoice}
+            sender={masterData.invoiceVisible}
+            totals={totals}
+            readOnly={invoice.status === 'issued'}
+            onChange={updateInvoice}
+          />
+        </>
       )}
       {tab === 'archive' && (
-        <p className="p-6 text-sm text-gray-500">Wird in einem späteren Schritt ergänzt.</p>
+        <ArchiveTable
+          invoices={archive}
+          onLoad={loadFromArchive}
+          onCopy={copyFromArchive}
+          onDelete={deleteFromArchive}
+        />
       )}
       {tab === 'master' && (
         <MasterDataForm masterData={masterData} onChange={updateMasterData} />

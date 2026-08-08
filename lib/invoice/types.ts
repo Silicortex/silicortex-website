@@ -46,7 +46,11 @@ export function emptyInvoice(args: {
   vatRate: number
 }): InvoiceDraft {
   return {
-    id: null,
+    // Minted client-side, not left `null`: the id is what `saveDraft`'s
+    // `on conflict (id)` upsert keys on, so clicking "Ins Archiv legen"
+    // twice in a row updates one row instead of minting two identical
+    // drafts server-side (proposed_number has no unique constraint).
+    id: crypto.randomUUID(),
     status: 'draft',
     invoiceNumber: null,
     proposedNumber: args.proposedNumber,
