@@ -5431,6 +5431,46 @@ test('an issued invoice keeps printing its frozen sender after Stammdaten change
 The suite's existing cleanup removes `E2E-`-prefixed invoices; this test's number carries that prefix, and
 its master-data changes must be restored by the suite's own teardown.
 
+- [ ] **Step 6b: Strengthen two assertions Task 17 reported as weak**
+
+Task 17's implementer flagged both, correctly, rather than leaving them to look like coverage.
+
+**The "empty optional fields print nothing" assertion passes trivially.** `optional` is a *placeholder
+attribute*, never rendered text, so `not.toContainText('optional')` would hold even if the fix were
+reverted. The real behaviour is that the whole row disappears, via
+`.admin-optional:has(.admin-print-only:empty) { display: none }`. Assert that instead:
+
+```ts
+  test('empty optional rows are removed entirely, not left with a label', async ({ page }) => {
+    // Kundennummer and the customer's USt-IdNr were left blank, so their rows
+    // must not print at all — a printed label with no value looks like an error
+    // on a customer's invoice.
+    await expect(page.getByText('Kundennummer')).toBeHidden()
+    await expect(page.locator('.admin-optional:visible')).toHaveCount(0)
+  })
+```
+
+**The unauthenticated Server-Action probe only asserts a non-200 response**, which a malformed request
+satisfies whether or not the auth boundary works. Assert the boundary's *effect* — that no data changed:
+
+```ts
+  test('a Server Action without a session changes nothing', async ({ request }) => {
+    // A non-200 alone proves little: a malformed body gives that too. What
+    // matters is that the unauthenticated call had no effect.
+    const before = await countInvoices()
+    const response = await request.post('/admin', {
+      headers: { 'Next-Action': 'probe', 'Content-Type': 'text/plain;charset=UTF-8' },
+      data: '[]',
+      maxRedirects: 0,
+    })
+    expect(response.status()).not.toBe(200)
+    expect(await countInvoices()).toBe(before)
+  })
+```
+
+`countInvoices()` is a small helper that queries the database directly (import `lib/db/client.ts` by
+**relative** path — the `@/` alias does not resolve outside Next).
+
 - [ ] **Step 7: Verify**
 
 ```bash
