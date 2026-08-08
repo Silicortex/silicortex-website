@@ -3,9 +3,10 @@
 import { refresh } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { clearSessionCookie, requireSession } from '@/lib/admin/session.ts'
-import { saveMasterData, type MasterData } from '@/lib/db/masterData.ts'
+import { loadMasterData, saveMasterData, type MasterData } from '@/lib/db/masterData.ts'
 import {
   deleteDraft,
+  issueInvoice,
   lastIssuedNumber,
   listInvoices,
   loadInvoice,
@@ -77,4 +78,35 @@ export async function listInvoicesAction(): Promise<InvoiceSummary[]> {
 export async function nextNumberAction(): Promise<string> {
   await requireSession()
   return nextInvoiceNumber(await lastIssuedNumber(), new Date().getFullYear())
+}
+
+export async function issueInvoiceAction(
+  id: string,
+  proposedNumber: string
+): Promise<{ ok: true; invoiceNumber: string } | { ok: false; error: string }> {
+  await requireSession()
+
+  // The number is claimed here, never by a draft: that is what keeps the
+  // sequence gapless when a draft is deleted.
+  const number =
+    proposedNumber.trim() ||
+    nextInvoiceNumber(await lastIssuedNumber(), new Date().getFullYear())
+
+  const masterData = await loadMasterData()
+  // Only the invoice-visible half is frozen into the snapshot.
+  const result = await issueInvoice(id, number, masterData.invoiceVisible)
+
+  if (!result.ok) {
+    refresh()
+    return {
+      ok: false,
+      error:
+        result.error === 'number_taken'
+          ? `Die Rechnungsnummer ${number} ist bereits vergeben. Bitte eine andere Nummer wählen.`
+          : 'Diese Rechnung ist bereits festgeschrieben.',
+    }
+  }
+
+  refresh()
+  return { ok: true, invoiceNumber: number }
 }

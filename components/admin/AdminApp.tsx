@@ -13,11 +13,13 @@ import {
 } from '@/lib/invoice/types.ts'
 import {
   deleteDraftAction,
+  issueInvoiceAction,
   listInvoicesAction,
   loadInvoiceAction,
   nextNumberAction,
   saveDraftAction,
 } from '@/app/admin/(protected)/actions.ts'
+import { validateForPrint } from '@/lib/invoice/validate.ts'
 import { ArchiveTable } from './ArchiveTable.tsx'
 import { InvoiceSheet } from './InvoiceSheet.tsx'
 import { MasterDataForm } from './MasterDataForm.tsx'
@@ -56,6 +58,7 @@ export function AdminApp({
   const [archive, setArchive] = useState(invoices)
   const [notice, setNotice] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
+  const [printErrors, setPrintErrors] = useState<string[]>([])
 
   function updateInvoice(next: InvoiceDraft) {
     if (next.paymentTerms !== invoice.paymentTerms) setTermsTouched(true)
@@ -129,6 +132,41 @@ export function AdminApp({
     setNotice('Entwurf gelöscht.')
   }
 
+  async function printInvoice() {
+    const errors = validateForPrint(invoice)
+    setPrintErrors(errors)
+    if (errors.length) return
+
+    if (invoice.status === 'draft') {
+      const ok = confirm(
+        'Rechnung festschreiben? Danach ist sie nicht mehr änderbar. ' +
+          'Eine Korrektur erfolgt später über eine neue Rechnung.'
+      )
+      if (!ok) return
+
+      setBusy(true)
+      const saved = await saveDraftAction(invoice)
+      if (!saved.ok) {
+        setBusy(false)
+        return setNotice(saved.error)
+      }
+      const issued = await issueInvoiceAction(saved.id, invoice.proposedNumber)
+      setBusy(false)
+      if (!issued.ok) return setNotice(issued.error)
+
+      setInvoice({
+        ...invoice,
+        id: saved.id,
+        status: 'issued',
+        invoiceNumber: issued.invoiceNumber,
+      })
+      await refreshArchive()
+      setNotice(`Festgeschrieben als ${issued.invoiceNumber}.`)
+    }
+
+    window.print()
+  }
+
   return (
     <>
       <nav className="admin-no-print flex gap-1 border-b border-gray-200 bg-white px-6">
@@ -166,7 +204,28 @@ export function AdminApp({
             >
               {busy ? 'Speichere …' : 'Ins Archiv legen'}
             </button>
+            <button
+              type="button"
+              onClick={printInvoice}
+              disabled={busy}
+              className="rounded border border-[#1f5f4f] px-4 py-2 text-sm font-medium text-[#1f5f4f] disabled:opacity-60"
+            >
+              Drucken / PDF
+            </button>
           </div>
+          {printErrors.length > 0 && (
+            <div
+              role="alert"
+              className="admin-no-print mx-auto mt-3 max-w-[840px] rounded border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-800"
+            >
+              <p className="mb-1 font-semibold">Die Rechnung ist noch nicht vollständig:</p>
+              <ul className="list-inside list-disc">
+                {printErrors.map((error) => (
+                  <li key={error}>{error}</li>
+                ))}
+              </ul>
+            </div>
+          )}
           <InvoiceSheet
             invoice={invoice}
             sender={masterData.invoiceVisible}
