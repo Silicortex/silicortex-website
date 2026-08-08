@@ -77,7 +77,9 @@ export function ItemsTable({
           <tr className="border-b border-gray-300 text-left text-xs uppercase text-gray-500">
             <th className="w-10 py-1 font-medium">Pos.</th>
             <th className="py-1 font-medium">Beschreibung</th>
-            <th className="w-20 py-1 text-right font-medium">Menge</th>
+            {/* pr-3: right-aligned "Menge" otherwise butts straight against
+                left-aligned "Einheit" and the header reads "MENGEEINHEIT". */}
+            <th className="w-20 py-1 pr-3 text-right font-medium">Menge</th>
             <th className="w-20 py-1 font-medium">Einheit</th>
             <th className="w-28 py-1 text-right font-medium">Einzelpreis</th>
             <th className="w-20 py-1 text-right font-medium">USt.</th>
@@ -101,7 +103,7 @@ export function ItemsTable({
                   onChange={(value) => update(index, { description: value })}
                 />
               </td>
-              <td className="py-1">{numericCell(index, 'quantity', formatQuantity)}</td>
+              <td className="py-1 pr-3">{numericCell(index, 'quantity', formatQuantity)}</td>
               <td className="py-1">
                 <EditableField
                   ariaLabel={`Einheit Position ${index + 1}`}
