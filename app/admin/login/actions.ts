@@ -9,6 +9,9 @@ import { isLockedOut, recordAttempt, WINDOW_MINUTES } from '@/lib/db/loginAttemp
 export type LoginState = { error: string | null }
 
 async function clientIp(): Promise<string> {
+  // Vercel overwrites x-forwarded-for and does not forward external IPs, so
+  // the leftmost value is trustworthy here. Revisit only if another proxy
+  // (e.g. Cloudflare) is ever put in front of Vercel.
   const forwarded = (await headers()).get('x-forwarded-for')
   return forwarded?.split(',')[0]?.trim() || 'unknown'
 }
