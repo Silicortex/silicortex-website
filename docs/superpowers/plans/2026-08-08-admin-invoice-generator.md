@@ -4519,6 +4519,219 @@ share one copy, and adds app/not-found.tsx using it."
 
 ---
 
+## Task 21: Permanent schema-guarantee test (PGlite)
+
+**Files:**
+- Create: `db/schema.test.mjs`
+- Modify: `package.json` (add `@electric-sql/pglite` as a devDependency and a `test:schema` script)
+
+**Interfaces:**
+- Consumes: `db/schema.sql`.
+- Produces: `npm run test:schema` — applies the real schema to an in-process Postgres and asserts the guarantees the invoicing design depends on.
+
+**Why this exists.** The immutability of an issued invoice, and the gapless-numbering design that rests on
+`invoice_number` being nullable, are *database* guarantees. Nothing in the test suite proves they hold —
+and a future migration could drop the trigger with every test still green. `@electric-sql/pglite` is
+PostgreSQL 18.3 compiled to WASM, running in-process with `plpgsql` available, so these properties can be
+tested with no provisioning, no credentials and no network. Verified working in this environment before
+this task was written.
+
+This complements the live smoke test in Task 2 step 9; it does not replace it. PGlite is not the Neon HTTP
+driver, so driver-level behaviour still needs the real database.
+
+- [ ] **Step 1: Install PGlite as a devDependency**
+
+```bash
+npm install -D @electric-sql/pglite
+```
+
+- [ ] **Step 2: Write `db/schema.test.mjs`**
+
+Plain `.mjs` (no type stripping needed), run directly by Node. It reads the real `db/schema.sql` — never
+a copy — so drift between the test and the shipped schema is impossible.
+
+```js
+// Applies db/schema.sql to an in-process Postgres (PGlite, PostgreSQL 18 in
+// WASM) and asserts the guarantees the invoicing design rests on:
+//   - an issued invoice cannot be updated or deleted, at the DATABASE level
+//   - a draft holds no invoice number, so deleting one leaves no gap
+//   - invoice numbers are unique once issued
+//   - the whole schema is idempotent
+// No provisioning, credentials or network needed.
+import { readFile } from 'node:fs/promises'
+import { test } from 'node:test'
+import assert from 'node:assert/strict'
+import { PGlite } from '@electric-sql/pglite'
+
+const schema = await readFile(new URL('./schema.sql', import.meta.url), 'utf8')
+const statements = schema
+  .split(/^-- @@$/m)
+  .map((s) => s.trim())
+  .filter(Boolean)
+
+async function freshDb() {
+  const db = await PGlite.create()
+  for (const statement of statements) await db.exec(statement)
+  return db
+}
+
+test('the schema applies, and applies again unchanged', async () => {
+  const db = await freshDb()
+  for (const statement of statements) await db.exec(statement)
+  const tables = await db.query(
+    `select table_name from information_schema.tables
+     where table_schema = 'public' order by 1`
+  )
+  assert.deepEqual(
+    tables.rows.map((r) => r.table_name),
+    ['invoice_items', 'invoices', 'login_attempts', 'master_data']
+  )
+  const seeded = await db.query('select count(*)::int as n from master_data')
+  assert.equal(seeded.rows[0].n, 1)
+})
+
+test('drafts hold no invoice number, so two may share a proposed number', async () => {
+  const db = await freshDb()
+  await db.query(
+    `insert into invoices (proposed_number, invoice_date, customer_name)
+     values ('2026-001', '2026-08-08', 'A')`
+  )
+  await db.query(
+    `insert into invoices (proposed_number, invoice_date, customer_name)
+     values ('2026-001', '2026-08-08', 'B')`
+  )
+  const drafts = await db.query(
+    `select count(*)::int as n from invoices where invoice_number is null`
+  )
+  assert.equal(drafts.rows[0].n, 2)
+})
+
+test('an issued invoice cannot be updated or deleted', async () => {
+  const db = await freshDb()
+  const inserted = await db.query(
+    `insert into invoices (proposed_number, invoice_date, customer_name)
+     values ('2026-001', '2026-08-08', 'Kundin') returning id`
+  )
+  const id = inserted.rows[0].id
+
+  // The one transition the trigger must permit: OLD.status is still 'draft'.
+  await db.query(
+    `update invoices set status = 'issued', invoice_number = '2026-001',
+     issued_at = now() where id = $1 and status = 'draft'`,
+    [id]
+  )
+
+  await assert.rejects(
+    () => db.query(`update invoices set customer_name = 'TAMPERED' where id = $1`, [id]),
+    /issued and immutable/
+  )
+  await assert.rejects(
+    () => db.query(`delete from invoices where id = $1`, [id]),
+    /issued and immutable/
+  )
+
+  const row = await db.query(`select customer_name from invoices where id = $1`, [id])
+  assert.equal(row.rows[0].customer_name, 'Kundin')
+})
+
+test('an issued invoice number cannot be reused', async () => {
+  const db = await freshDb()
+  const a = await db.query(
+    `insert into invoices (proposed_number, invoice_date, customer_name)
+     values ('2026-001', '2026-08-08', 'A') returning id`
+  )
+  const b = await db.query(
+    `insert into invoices (proposed_number, invoice_date, customer_name)
+     values ('2026-001', '2026-08-08', 'B') returning id`
+  )
+  await db.query(
+    `update invoices set status = 'issued', invoice_number = '2026-001'
+     where id = $1 and status = 'draft'`,
+    [a.rows[0].id]
+  )
+  await assert.rejects(
+    () =>
+      db.query(
+        `update invoices set status = 'issued', invoice_number = '2026-001'
+         where id = $1 and status = 'draft'`,
+        [b.rows[0].id]
+      ),
+    /duplicate key|unique/i
+  )
+})
+
+test('deleting a draft cascades to its line items', async () => {
+  const db = await freshDb()
+  const draft = await db.query(
+    `insert into invoices (proposed_number, invoice_date, customer_name)
+     values ('2026-002', '2026-08-08', 'A') returning id`
+  )
+  const id = draft.rows[0].id
+  await db.query(
+    `insert into invoice_items (invoice_id, line_no, description, unit_price, net_amount)
+     values ($1, 1, 'Entwicklung', 80.50, 80.50)`,
+    [id]
+  )
+  await db.query(`delete from invoices where id = $1 and status = 'draft'`, [id])
+  const items = await db.query(
+    `select count(*)::int as n from invoice_items where invoice_id = $1`,
+    [id]
+  )
+  assert.equal(items.rows[0].n, 0)
+})
+
+// Documents the driver behaviour the repository modules must handle: money
+// arrives as a STRING, so arithmetic on a raw column value would concatenate.
+test('numeric columns are returned as strings, not numbers', async () => {
+  const db = await freshDb()
+  const invoice = await db.query(
+    `insert into invoices (proposed_number, invoice_date, customer_name)
+     values ('2026-003', '2026-08-08', 'A') returning id`
+  )
+  await db.query(
+    `insert into invoice_items (invoice_id, line_no, description, quantity, unit_price, net_amount)
+     values ($1, 1, 'Entwicklung', 2, 80.50, 161.00)`,
+    [invoice.rows[0].id]
+  )
+  const items = await db.query(`select quantity, unit_price from invoice_items`)
+  assert.equal(typeof items.rows[0].quantity, 'string')
+  assert.equal(typeof items.rows[0].unit_price, 'string')
+})
+```
+
+- [ ] **Step 3: Add the script to `package.json`**
+
+```json
+"test:schema": "node --test db/schema.test.mjs"
+```
+
+- [ ] **Step 4: Run it**
+
+```bash
+npm run test:schema
+```
+
+Expected: 6 tests pass. Then prove the immutability test has teeth: comment out the
+`create trigger invoices_immutable_when_issued` statement in a **copy** of `db/schema.sql` under `/tmp`,
+point a scratch script at that copy, and confirm the "cannot be updated or deleted" test fails. Restore
+nothing in the repo — the copy is in `/tmp`. Report both outcomes.
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add db/schema.test.mjs package.json package-lock.json
+git commit -m "test(db): assert schema guarantees against in-process Postgres
+
+Immutability of issued invoices and the nullable invoice_number that
+keeps numbering gapless are database guarantees, and nothing tested
+them — a migration could drop the trigger with every test still green.
+PGlite runs PostgreSQL 18 in WASM, so these hold without provisioning,
+credentials or network. Also pins the driver behaviour that numeric
+columns come back as strings."
+```
+
+---
+
 ## Self-Review
 
 **Spec coverage** — every spec section maps to a task:
