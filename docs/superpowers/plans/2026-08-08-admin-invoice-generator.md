@@ -5431,45 +5431,7 @@ test('an issued invoice keeps printing its frozen sender after Stammdaten change
 The suite's existing cleanup removes `E2E-`-prefixed invoices; this test's number carries that prefix, and
 its master-data changes must be restored by the suite's own teardown.
 
-- [ ] **Step 6b: Strengthen two assertions Task 17 reported as weak**
-
-Task 17's implementer flagged both, correctly, rather than leaving them to look like coverage.
-
-**The "empty optional fields print nothing" assertion passes trivially.** `optional` is a *placeholder
-attribute*, never rendered text, so `not.toContainText('optional')` would hold even if the fix were
-reverted. The real behaviour is that the whole row disappears, via
-`.admin-optional:has(.admin-print-only:empty) { display: none }`. Assert that instead:
-
-```ts
-  test('empty optional rows are removed entirely, not left with a label', async ({ page }) => {
-    // Kundennummer and the customer's USt-IdNr were left blank, so their rows
-    // must not print at all — a printed label with no value looks like an error
-    // on a customer's invoice.
-    await expect(page.getByText('Kundennummer')).toBeHidden()
-    await expect(page.locator('.admin-optional:visible')).toHaveCount(0)
-  })
-```
-
-**The unauthenticated Server-Action probe only asserts a non-200 response**, which a malformed request
-satisfies whether or not the auth boundary works. Assert the boundary's *effect* — that no data changed:
-
-```ts
-  test('a Server Action without a session changes nothing', async ({ request }) => {
-    // A non-200 alone proves little: a malformed body gives that too. What
-    // matters is that the unauthenticated call had no effect.
-    const before = await countInvoices()
-    const response = await request.post('/admin', {
-      headers: { 'Next-Action': 'probe', 'Content-Type': 'text/plain;charset=UTF-8' },
-      data: '[]',
-      maxRedirects: 0,
-    })
-    expect(response.status()).not.toBe(200)
-    expect(await countInvoices()).toBe(before)
-  })
-```
-
-`countInvoices()` is a small helper that queries the database directly (import `lib/db/client.ts` by
-**relative** path — the `@/` alias does not resolve outside Next).
+Task 17's other reported weaknesses are **not** part of this task — they are Task 26.
 
 - [ ] **Step 7: Verify**
 
@@ -5497,6 +5459,178 @@ Also stops the print flow wedging the UI when the master-data load throws
 (busy stayed true forever with no message), refreshes the archive when
 issuing fails after a successful save, and clears the validation panel
 once the owner fixes the fields."
+```
+
+---
+
+## Task 26: Harden the end-to-end suite
+
+**Files:**
+- Create: `tests/e2e/global.teardown.ts`, `tests/e2e/db.ts`
+- Modify: `playwright.config.ts`, `tests/e2e/auth.setup.ts`, `tests/e2e/auth.spec.ts`, `tests/e2e/invoice.spec.ts`, `tests/e2e/print.spec.ts`
+
+**Why.** Task 17's review found five assertions that cannot fail, a cleanup step that only exists as a
+manual script, and a way for the suite to lock itself out. A suite with tautologies is worse than none: it
+manufactures confidence. Every change below either makes a test able to fail, or stops the suite
+sabotaging itself.
+
+**Run Task 25 first** — both tasks edit `tests/e2e/invoice.spec.ts`.
+
+- [ ] **Step 1: Stop the suite locking itself out**
+
+The login gate rejects an IP after 8 failed attempts in 15 minutes, checked **before** the password. Locally
+every request shares one IP, and `auth.spec.ts`'s wrong-password test contributes one failure per run — so
+the eighth `npm run test:e2e` inside 15 minutes locks the *real* login used by `auth.setup.ts`, and the
+whole project fails with an error that looks nothing like its cause.
+
+Create `tests/e2e/db.ts` — a tiny helper the suite can use, importing by **relative** path because the
+`@/` alias does not resolve outside Next:
+
+```ts
+import { sql } from '../../lib/db/client.ts'
+
+/** Attempt records are a rate-limit ledger with 24h retention; clearing them in
+ *  a test environment is harmless, and leaving them lets the suite lock itself
+ *  out after eight runs in fifteen minutes. */
+export async function clearLoginAttempts(): Promise<void> {
+  await sql`delete from login_attempts`
+}
+
+export async function countInvoices(): Promise<number> {
+  const rows = await sql`select count(*)::int as n from invoices`
+  return rows[0].n as number
+}
+
+/** Removes only rows this suite created. Every issued E2E invoice carries the
+ *  `E2E-` prefix, so this can never touch a real invoice. Issued rows need both
+ *  immutability triggers stood down, which is re-enabled in a finally. */
+export async function cleanupE2eRows(): Promise<void> {
+  await sql`delete from invoices where status = 'draft' and customer_name like 'Testkunde%'`
+  await sql`alter table invoices disable trigger invoices_immutable_when_issued`
+  await sql`alter table invoice_items disable trigger invoice_items_immutable_when_issued`
+  try {
+    await sql`delete from invoices where status = 'issued' and invoice_number like 'E2E-%'`
+  } finally {
+    await sql`alter table invoices enable trigger invoices_immutable_when_issued`
+    await sql`alter table invoice_items enable trigger invoice_items_immutable_when_issued`
+  }
+}
+```
+
+Call `clearLoginAttempts()` at the start of `auth.setup.ts`, before the login.
+
+- [ ] **Step 2: Clean up automatically, not by hand**
+
+`tests/e2e/global.teardown.ts`:
+
+```ts
+import { test as teardown, expect } from '@playwright/test'
+import { cleanupE2eRows, clearLoginAttempts } from './db.ts'
+import { sql } from '../../lib/db/client.ts'
+
+teardown('remove rows this suite created', async () => {
+  await cleanupE2eRows()
+  await clearLoginAttempts()
+
+  // Leaving a trigger disabled would silently remove the immutability
+  // guarantee for real invoices, so assert both are back on.
+  const triggers = await sql`
+    select tgname, tgenabled from pg_trigger where not tgisinternal order by 1
+  `
+  for (const row of triggers) expect(row.tgenabled).toBe('O')
+})
+```
+
+Register it in `playwright.config.ts` as a project with `teardown` wired to the chromium project, so it
+runs even when tests fail.
+
+- [ ] **Step 3: Make the five weak assertions able to fail**
+
+Each of these currently passes with the feature removed.
+
+**(a) `print.spec.ts` — "empty optional fields print nothing".** `optional` is a placeholder *attribute*,
+never rendered text, so the assertion holds regardless. The real behaviour is that the whole row
+disappears:
+
+```ts
+  test('empty optional rows are removed entirely, not left with a bare label', async ({ page }) => {
+    // A printed label with no value reads as an error on a customer's invoice.
+    await expect(page.getByText('Kundennummer')).toBeHidden()
+    await expect(page.locator('.admin-optional:visible')).toHaveCount(0)
+  })
+```
+
+**(b) `auth.spec.ts` — the unauthenticated Server-Action probe.** A non-200 is also what a malformed
+request returns, so it proves nothing about the boundary. Assert the *effect*:
+
+```ts
+  test('a Server Action without a session changes nothing', async ({ request }) => {
+    const before = await countInvoices()
+    const response = await request.post('/admin', {
+      headers: { 'Next-Action': 'probe', 'Content-Type': 'text/plain;charset=UTF-8' },
+      data: '[]',
+      maxRedirects: 0,
+    })
+    expect(response.status()).not.toBe(200)
+    expect(await countInvoices()).toBe(before)
+  })
+```
+
+**(c) `invoice.spec.ts` — the issued row's missing delete button.** `toHaveCount(0)` also passes if the row
+itself vanished. Assert the row exists first:
+
+```ts
+    const row = page.getByRole('row', { name: /Testkunde Festschreiben/ })
+    await expect(row).toBeVisible()
+    await expect(row.getByRole('button', { name: /löschen/ })).toHaveCount(0)
+```
+
+**(d) `print.spec.ts` — the hidden empty line row.** `toBeHidden()` is satisfied by zero matches, so
+deleting the `data-empty` attribute would not fail it. Assert the row exists and is hidden:
+
+```ts
+    const emptyRow = page.locator('tr[data-empty="true"]')
+    await expect(emptyRow).toHaveCount(1) // the attribute must still be produced
+    await expect(emptyRow).toBeHidden()   // and print CSS must still hide it
+```
+
+**(e) `invoice.spec.ts` — the issued-invoice counter.** `Festgeschriebene Rechnungen: [1-9]` is satisfied by
+a leftover row from an earlier run. Read the count before issuing and assert it incremented by exactly one.
+
+- [ ] **Step 4: Verify, then prove the suite has teeth**
+
+```bash
+npm run test:e2e
+```
+
+Then, one at a time and restoring after each, revert these three production changes and confirm a test
+fails. Report which test failed in each case:
+
+1. `data-empty` on the line-item row (`components/admin/ItemsTable.tsx`) → (d) must fail.
+2. The `sender` expression added by Task 25 (`components/admin/AdminApp.tsx`) → Task 25's snapshot test
+   must fail.
+3. The `.admin-optional:has(.admin-print-only:empty)` rule (`app/admin/admin.css`) → (a) must fail.
+
+If any of them leaves the suite green, that assertion is still a tautology — fix it and re-check.
+
+Finally, run the suite **twice in a row** and confirm the second run passes, proving the teardown works and
+the lockout no longer accumulates.
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add tests playwright.config.ts
+git commit -m "test(e2e): make five assertions able to fail, and clean up automatically
+
+Task 17's review found five assertions that pass with the feature removed,
+a cleanup step that existed only as a manual script, and a way for the
+suite to lock itself out: the wrong-password test adds a failed attempt
+per run, so the eighth run within fifteen minutes locked the real login.
+
+Adds an automatic teardown that removes only E2E- prefixed rows and
+asserts both immutability triggers end up enabled, clears the attempt
+ledger before login, and rewrites the weak assertions to check the
+behaviour rather than a placeholder attribute or a zero match."
 ```
 
 ---
