@@ -2427,7 +2427,12 @@ export function emptyInvoice(args: {
   vatRate: number
 }): InvoiceDraft {
   return {
-    id: null,
+    // The id is minted here, on the client, rather than left null until the
+    // first save. `saveDraft` upserts on it, so clicking "Ins Archiv legen"
+    // twice in quick succession updates one row instead of creating two — with
+    // a null id each click mints its own UUID, `on conflict (id)` never fires,
+    // and nothing else in the schema stops the duplicate.
+    id: crypto.randomUUID(),
     status: 'draft',
     invoiceNumber: null,
     proposedNumber: args.proposedNumber,
@@ -3108,7 +3113,7 @@ follow master data until manually edited."
   - `loadInvoice(id: string): Promise<InvoiceDraft | null>`
   - `saveDraft(draft: InvoiceDraft): Promise<string>`
   - `deleteDraft(id: string): Promise<void>`
-  - `highestIssuedNumber(): Promise<string | null>`
+  - `lastIssuedNumber(): Promise<string | null>`
   - `issueInvoice(id, invoiceNumber, snapshot): Promise<{ ok: true } | { ok: false; error: 'number_taken' | 'not_draft' }>`
   - Actions: `saveDraftAction`, `loadInvoiceAction`, `deleteDraftAction`
 
@@ -3274,11 +3279,24 @@ export async function deleteDraft(id: string): Promise<void> {
   await sql`delete from invoices where id = ${id} and status = 'draft'`
 }
 
-export async function highestIssuedNumber(): Promise<string | null> {
-  const rows = await sql`select invoice_number from invoices where status = 'issued'`
-  const numbers = rows.map((r) => r.invoice_number as string).filter(Boolean)
-  if (numbers.length === 0) return null
-  return numbers.sort(compareInvoiceNumbers).at(-1) ?? null
+// The number to continue from is the one on the invoice most recently ISSUED —
+// not the "highest" by any string ordering.
+//
+// Sorting the numbers was verified to be wrong: with `2026-050` and
+// `RE-2026-001` in the table, German collation ranks the letter-prefixed one
+// last, so it was treated as the highest and the next number came out as
+// `RE-2026-002` — BELOW the true `2026-050`, with no error raised. Because the
+// number is a free-text field the owner may edit, no string ordering can be
+// trusted across a change of prefix. `issued_at` always can: invoices are
+// issued one at a time, in time order.
+export async function lastIssuedNumber(): Promise<string | null> {
+  const rows = await sql`
+    select invoice_number from invoices
+    where status = 'issued' and invoice_number is not null
+    order by issued_at desc
+    limit 1
+  `
+  return (rows[0]?.invoice_number as string | undefined) ?? null
 }
 
 export async function issueInvoice(
@@ -3316,7 +3334,7 @@ export async function issueInvoice(
 ```ts
 import {
   deleteDraft,
-  highestIssuedNumber,
+  lastIssuedNumber,
   listInvoices,
   loadInvoice,
   saveDraft,
@@ -3365,14 +3383,14 @@ export async function listInvoicesAction(): Promise<InvoiceSummary[]> {
 // number from its own copy of the archive.
 export async function nextNumberAction(): Promise<string> {
   await requireSession()
-  return nextInvoiceNumber(await highestIssuedNumber(), new Date().getFullYear())
+  return nextInvoiceNumber(await lastIssuedNumber(), new Date().getFullYear())
 }
 ```
 
-`nextNumberAction` needs `highestIssuedNumber` and `nextInvoiceNumber`, which Task 16 also imports — add both imports now:
+`nextNumberAction` needs `lastIssuedNumber` and `nextInvoiceNumber`, which Task 16 also imports — add both imports now:
 
 ```ts
-import { highestIssuedNumber } from '@/lib/db/invoices.ts'
+import { lastIssuedNumber } from '@/lib/db/invoices.ts'
 import { nextInvoiceNumber } from '@/lib/invoice/numbering.ts'
 ```
 
@@ -3381,7 +3399,7 @@ import { nextInvoiceNumber } from '@/lib/invoice/numbering.ts'
 ```tsx
 import { requireSession } from '@/lib/admin/session.ts'
 import { loadMasterData } from '@/lib/db/masterData.ts'
-import { highestIssuedNumber, listInvoices } from '@/lib/db/invoices.ts'
+import { lastIssuedNumber, listInvoices } from '@/lib/db/invoices.ts'
 import { nextInvoiceNumber } from '@/lib/invoice/numbering.ts'
 import { AdminApp } from '@/components/admin/AdminApp.tsx'
 
@@ -3390,7 +3408,7 @@ export default async function AdminHomePage() {
   const [masterData, invoices, highest] = await Promise.all([
     loadMasterData(),
     listInvoices(),
-    highestIssuedNumber(),
+    lastIssuedNumber(),
   ])
   return (
     <AdminApp
@@ -3408,7 +3426,7 @@ export default async function AdminHomePage() {
 
 ```bash
 node --env-file=.env.local --conditions=react-server --experimental-strip-types -e "
-const { saveDraft, loadInvoice, listInvoices, deleteDraft, highestIssuedNumber } = await import('./lib/db/invoices.ts');
+const { saveDraft, loadInvoice, listInvoices, deleteDraft, lastIssuedNumber } = await import('./lib/db/invoices.ts');
 const id = await saveDraft({
   id: null, status: 'draft', invoiceNumber: null, proposedNumber: 'TEST-001',
   invoiceDate: '2026-08-08', serviceDate: 'Juli 2026', customerNumber: '',
@@ -3425,7 +3443,7 @@ console.log('items:', loaded.items.length, 'qty type:', typeof loaded.items[0].q
 console.log('invoiceDate:', JSON.stringify(loaded.invoiceDate), 'type:', typeof loaded.invoiceDate);
 if (loaded.invoiceDate !== '2026-08-08') throw new Error('invoice_date shifted: ' + loaded.invoiceDate);
 console.log('summary:', (await listInvoices()).find(i => i.id === id));
-console.log('highest issued:', await highestIssuedNumber());
+console.log('highest issued:', await lastIssuedNumber());
 await deleteDraft(id);
 console.log('deleted:', (await loadInvoice(id)) === null);
 "
@@ -3628,7 +3646,9 @@ Inside the component (props now include `invoices: InvoiceSummary[]`):
     if (!loaded) return setNotice('Rechnung nicht gefunden.')
     setInvoice({
       ...loaded,
-      id: null,
+      // A fresh id: a copy is a NEW invoice, and minting it here keeps the
+      // double-click protection that `emptyInvoice` relies on.
+      id: crypto.randomUUID(),
       status: 'draft',
       invoiceNumber: null,
       // Asked of the server, not derived from the client's archive copy.
@@ -3724,7 +3744,7 @@ excluded, and only drafts can be deleted."
 - Modify: `app/admin/(protected)/actions.ts` (add `issueInvoiceAction`), `components/admin/AdminApp.tsx` (print button flow), `package.json` (add `validate.test.ts` to the `test` script)
 
 **Interfaces:**
-- Consumes: `InvoiceDraft`, `computeTotals`, `issueInvoice`, `highestIssuedNumber`, `nextInvoiceNumber`, `loadMasterData`.
+- Consumes: `InvoiceDraft`, `computeTotals`, `issueInvoice`, `lastIssuedNumber`, `nextInvoiceNumber`, `loadMasterData`.
 - Produces:
   - `validateForPrint(invoice: InvoiceDraft): string[]` — German messages, empty when valid
   - `issueInvoiceAction(id: string, proposedNumber: string): Promise<{ ok: true; invoiceNumber: string } | { ok: false; error: string }>`
@@ -3848,7 +3868,7 @@ Expected: `# pass 6`, `# fail 0`. Then append `lib/invoice/validate.test.ts` to 
 - [ ] **Step 5: Add `issueInvoiceAction` to `app/admin/(protected)/actions.ts`**
 
 ```ts
-import { highestIssuedNumber, issueInvoice } from '@/lib/db/invoices.ts'
+import { lastIssuedNumber, issueInvoice } from '@/lib/db/invoices.ts'
 import { nextInvoiceNumber } from '@/lib/invoice/numbering.ts'
 import { loadMasterData } from '@/lib/db/masterData.ts'
 
@@ -3862,7 +3882,7 @@ export async function issueInvoiceAction(
   // sequence gapless when a draft is deleted.
   const number =
     proposedNumber.trim() ||
-    nextInvoiceNumber(await highestIssuedNumber(), new Date().getFullYear())
+    nextInvoiceNumber(await lastIssuedNumber(), new Date().getFullYear())
 
   const masterData = await loadMasterData()
   // Only the invoice-visible half is frozen into the snapshot.
@@ -4336,7 +4356,7 @@ try {
 
 Expected: a draft count, the deleted `E2E-…` numbers, and `trigger re-enabled`. Re-run step 9b afterwards to confirm the protection is back on.
 
-**Alternative if you prefer never to disable the trigger:** leave the E2E invoices in the database and start your real numbering above them (e.g. `2026-001` while the test rows are all `E2E-…`). The prefixes do not collide, so nothing forces their removal — the numbering sequence derived from `highestIssuedNumber()` would then continue from an `E2E-` number, so set the first real number by hand.
+**Alternative if you prefer never to disable the trigger:** leave the E2E invoices in the database and start your real numbering above them (e.g. `2026-001` while the test rows are all `E2E-…`). The prefixes do not collide, so nothing forces their removal — the numbering sequence derived from `lastIssuedNumber()` would then continue from an `E2E-` number, so set the first real number by hand.
 
 - [ ] **Step 10: Commit**
 
@@ -5218,4 +5238,4 @@ const results = await sql.transaction([
 
 It runs the array as one non-interactive HTTP transaction, which is what item replacement needs. If a future version changes this, the fallback is a `Pool` client with explicit `BEGIN`/`COMMIT`/`ROLLBACK`.
 
-**Numbering has one source of truth:** `highestIssuedNumber()` on the server, reached through `nextNumberAction()`. No client component derives an invoice number from its own copy of the archive.
+**Numbering has one source of truth:** `lastIssuedNumber()` on the server, reached through `nextNumberAction()`. No client component derives an invoice number from its own copy of the archive.
