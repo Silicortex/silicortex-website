@@ -21,6 +21,7 @@
 - **UI text is German. Code, comments, commit messages, test names are English.** Admin strings are hard-coded German and must NOT be added to `lib/dictionaries/`.
 - **Admin is light-only.** No `next-themes`, no Framer Motion, no marketing navbar or footer under `/admin`.
 - **Ordering note:** this plan swaps spec §9 phases 2 and 3. Login's attempt-limiting table requires the database, so Postgres is provisioned first.
+- **`server-only` and bare-Node scripts.** Server modules are marked with `import 'server-only'` so a stray client import can never bundle database credentials into the browser. Next resolves that specifier through its own alias, but **bare Node throws by design** ("This module cannot be imported from a Client Component module"), which would break every verification script in this plan. Two consequences, both verified here: `server-only` is an explicit dependency in `package.json` (it is otherwise absent from `node_modules`, since Next uses a compiled copy), and every bare-Node command that imports a repository module runs with **`--conditions=react-server`**, which resolves the specifier to its empty stub. Do not "fix" a script by deleting the `server-only` import — the flag is the fix.
 - Every task ends with `npm run build` and `npm run lint` clean unless the task says otherwise.
 
 ## File Structure
@@ -411,7 +412,7 @@ export const sql = neon(databaseUrl())
 - [ ] **Step 9: Smoke-test the client against the real database**
 
 ```bash
-node --env-file=.env.local --experimental-strip-types -e "
+node --env-file=.env.local --conditions=react-server --experimental-strip-types -e "
 const { sql } = await import('./lib/db/client.ts');
 const rows = await sql\`select id, name from master_data\`;
 console.log(rows);
@@ -811,7 +812,7 @@ export async function recordAttempt(ip: string, success: boolean): Promise<void>
 - [ ] **Step 2: Verify against the real database**
 
 ```bash
-node --env-file=.env.local --experimental-strip-types -e "
+node --env-file=.env.local --conditions=react-server --experimental-strip-types -e "
 const { isLockedOut, recordAttempt, MAX_FAILURES } = await import('./lib/db/loginAttempts.ts');
 const ip = 'test-' + process.pid;
 console.log('locked before:', await isLockedOut(ip));
@@ -1317,7 +1318,7 @@ export async function saveMasterData(data: MasterData): Promise<void> {
 Uses obviously fake values — never real master data in a shell command that lands in shell history.
 
 ```bash
-node --env-file=.env.local --experimental-strip-types -e "
+node --env-file=.env.local --conditions=react-server --experimental-strip-types -e "
 const { loadMasterData, saveMasterData } = await import('./lib/db/masterData.ts');
 const before = await loadMasterData();
 await saveMasterData({
@@ -3148,7 +3149,7 @@ export default async function AdminHomePage() {
 - [ ] **Step 4: Verify against the real database**
 
 ```bash
-node --env-file=.env.local --experimental-strip-types -e "
+node --env-file=.env.local --conditions=react-server --experimental-strip-types -e "
 const { saveDraft, loadInvoice, listInvoices, deleteDraft, highestIssuedNumber } = await import('./lib/db/invoices.ts');
 const id = await saveDraft({
   id: null, status: 'draft', invoiceNumber: null, proposedNumber: 'TEST-001',
@@ -4037,7 +4038,7 @@ set -a && . ./.env.local && set +a && npx playwright test
 The suite issues invoices, and issued rows are protected — so first prove the protection is real, because the next step deliberately works around it.
 
 ```bash
-node --env-file=.env.local --experimental-strip-types -e "
+node --env-file=.env.local --conditions=react-server --experimental-strip-types -e "
 const { sql } = await import('./lib/db/client.ts');
 try {
   await sql\`delete from invoices where status = 'issued' and invoice_number like 'E2E-%'\`;
@@ -4055,7 +4056,7 @@ Expected: `expected block: … is issued and immutable`. If it prints `UNEXPECTE
 Drafts delete normally. Issued E2E rows need the trigger disabled for the duration — safe **only** because every E2E invoice number carries the `E2E-` prefix, so this can never touch a real invoice.
 
 ```bash
-node --env-file=.env.local --experimental-strip-types -e "
+node --env-file=.env.local --conditions=react-server --experimental-strip-types -e "
 const { sql } = await import('./lib/db/client.ts');
 // Drafts first — no trigger involved.
 const drafts = await sql\`delete from invoices where status = 'draft' and (customer_name like 'Testkunde%' or customer_name like 'Druck Testkunde%') returning id\`;
