@@ -5051,6 +5051,112 @@ needs an exclusive row lock and therefore waits."
 
 ---
 
+## Task 24: Keep `/admin/*` 404s out of the marketing chrome
+
+**Files:**
+- Create: `app/admin/not-found.tsx`, `app/admin/[...adminNotFound]/page.tsx`
+
+**Interfaces:** none change.
+
+**Why.** Task 7's verification found that an unmatched path under `/admin` — say `/admin/nonexistent` —
+renders the **root** `app/not-found.tsx`, which Task 19 deliberately gave the full marketing navbar and
+footer. Confirmed by curl: `HTTP 404` with one `<nav>` and one `<footer>` in the body. That contradicts the
+plan's constraint that no marketing chrome appears under `/admin`. It leaks no data, but it is visibly
+wrong.
+
+**The approach was determined experimentally, because the obvious one does not work.** In Next 16 an
+unmatched URL renders the root `not-found`, so an `app/admin/not-found.tsx` alone is never reached —
+verified: the marker never appeared and `<nav>` was still present. A catch-all route under `/admin` that
+calls `notFound()` *does* route into the admin-scoped boundary. Verified with both files in place:
+`/admin/nonexistent` → 404 with `nav: 0` and the admin marker rendered, while `/admin/login` stayed 200
+with `nav: 0`, `/admin` still redirected 307, and the public `/typo` kept its navbar and footer.
+
+- [ ] **Step 1: Create `app/admin/not-found.tsx`**
+
+It renders inside `app/admin/layout.tsx`, so it inherits the bare, light-only admin shell and the
+`robots: noindex` metadata. German, like the rest of the admin UI.
+
+```tsx
+import Link from 'next/link'
+
+export default function AdminNotFound() {
+  return (
+    <main className="mx-auto flex min-h-[60vh] max-w-md flex-col items-center justify-center px-6 text-center">
+      <p className="mb-2 font-mono text-sm text-gray-400">404</p>
+      <h1 className="mb-3 text-xl font-semibold">Seite nicht gefunden</h1>
+      <p className="mb-8 text-sm text-gray-500">
+        Diese Seite existiert in der Verwaltung nicht.
+      </p>
+      <Link
+        href="/admin"
+        className="rounded border border-[#1f5f4f] px-4 py-2 text-sm font-medium text-[#1f5f4f]"
+      >
+        Zur Verwaltung
+      </Link>
+    </main>
+  )
+}
+```
+
+- [ ] **Step 2: Create `app/admin/[...adminNotFound]/page.tsx`**
+
+```tsx
+import { notFound } from 'next/navigation'
+
+// An unmatched URL renders the ROOT not-found page, which carries the marketing
+// chrome by design (Task 19). This catch-all exists so that /admin/* misses
+// throw into the admin-scoped not-found boundary instead, keeping the admin
+// area free of the site navbar and footer. A segment-level not-found.tsx alone
+// does not achieve this — unmatched paths never reach it.
+export default function AdminCatchAll() {
+  notFound()
+}
+```
+
+More specific routes take precedence over a catch-all, so `/admin` and `/admin/login` are unaffected —
+confirmed by the verification below.
+
+- [ ] **Step 3: Verify all four behaviours**
+
+```bash
+npm run build && npm run lint
+npm run dev &
+sleep 15
+```
+
+```bash
+curl -s -o /dev/null -w "admin 404: HTTP %{http_code}\n" http://localhost:3000/admin/nonexistent
+curl -s http://localhost:3000/admin/nonexistent | grep -c "<nav"
+curl -s http://localhost:3000/admin/nonexistent | grep -c "Seite nicht gefunden"
+curl -s -o /dev/null -w "login: HTTP %{http_code}\n" http://localhost:3000/admin/login
+curl -s http://localhost:3000/admin/login | grep -c "<nav"
+curl -s -o /dev/null -w "gate: HTTP %{http_code}\n" http://localhost:3000/admin
+curl -s http://localhost:3000/typo | grep -c "<nav"
+```
+
+Expected in order: `404`, `0`, `1`, `200`, `0`, `307`, `1`. The last one matters — the **public** 404 must
+keep its chrome, which the owner explicitly chose.
+
+Stop the dev server by PID rather than `pkill -f "next dev"`: that pattern also matches the shell running
+it and will kill your own session.
+
+- [ ] **Step 4: Commit**
+
+```bash
+git add app/admin/not-found.tsx "app/admin/[...adminNotFound]"
+git commit -m "fix(admin): scope /admin 404s to the admin layout
+
+An unmatched path under /admin rendered the root not-found page, which
+carries the marketing navbar and footer by design, contradicting the rule
+that no site chrome appears under /admin.
+
+A segment-level not-found.tsx alone is not reached for unmatched URLs, so
+a catch-all route calling notFound() routes /admin/* misses into the
+admin-scoped boundary. The public 404 keeps its chrome unchanged."
+```
+
+---
+
 ## Self-Review
 
 **Spec coverage** — every spec section maps to a task:
