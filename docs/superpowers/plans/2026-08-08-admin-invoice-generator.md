@@ -15,6 +15,7 @@
 - **This repository is PUBLIC.** No tax number, IBAN, USt-IdNr, Steuer-IdNr, Sozialversicherungsnummer, birth date, password or connection string may appear in any committed file, including tests and fixtures. Master data is typed into the UI by the owner and lives only in the database.
 - **Next.js 16 APIs, verified against `node_modules/next/dist/docs/`:** `cookies()` must be awaited. `middleware.ts` no longer exists — it is `proxy.ts`, and this plan deliberately does not use it. Post-mutation refresh is `refresh()` from `next/cache`.
 - **`requireSession()` is the first statement of every Server Action.** Server Actions are POST endpoints reachable directly; a layout gate does not protect them.
+- **`requireSession()` must never sit inside a `try`/`catch`.** `redirect()` works by throwing a `NEXT_REDIRECT` error, and the shipped Next docs warn it must be called outside `try`/`catch`. An action written as `try { await requireSession(); … } catch { return { ok: false } }` would swallow the redirect and **continue executing unauthenticated** — the gate would appear to work while protecting nothing. Every action in this plan therefore calls `requireSession()` as a bare first statement, with the `try` opening only afterwards. Do not "tidy" an action by wrapping the whole body.
 - **Never `<input type="number">` for money or quantity.** German decimal input (`80,50`) is discarded by that control. Always `type="text" inputmode="decimal"` + `parseNum`.
 - **Money is `numeric` in Postgres and never a float in arithmetic.** The Neon driver returns `numeric` columns as **strings** — every read parses explicitly.
 - **VAT is computed per rate group, never per line:** round each line net to 2 decimals, group by rate, `round2(groupNet × rate / 100)`.
@@ -700,7 +701,7 @@ Algorithm is pinned so alg:none and confusion attacks are rejected."
   - `createSessionCookie(): Promise<void>`
   - `clearSessionCookie(): Promise<void>`
 
-Not unit-testable — it depends on the request scope. Task 12's Playwright specs cover it.
+Not unit-testable — it depends on the request scope. Task 17's Playwright specs cover it.
 
 - [ ] **Step 1: Write `lib/admin/session.ts`**
 
