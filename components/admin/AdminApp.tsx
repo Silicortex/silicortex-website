@@ -1,7 +1,11 @@
 'use client'
 
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import type { MasterData } from '@/lib/db/masterData.ts'
+import { computeTotals } from '@/lib/invoice/totals.ts'
+import { todayIso } from '@/lib/invoice/format.ts'
+import { defaultPaymentTerms, emptyInvoice, type InvoiceDraft } from '@/lib/invoice/types.ts'
+import { InvoiceSheet } from './InvoiceSheet.tsx'
 import { MasterDataForm } from './MasterDataForm.tsx'
 
 type Tab = 'invoice' | 'archive' | 'master'
@@ -12,9 +16,42 @@ const TABS: { id: Tab; label: string }[] = [
   { id: 'master', label: 'Stammdaten' },
 ]
 
-export function AdminApp({ masterData: initial }: { masterData: MasterData }) {
+export function AdminApp({
+  masterData: initialMasterData,
+  nextNumber,
+}: {
+  masterData: MasterData
+  nextNumber: string
+}) {
   const [tab, setTab] = useState<Tab>('invoice')
-  const [masterData, setMasterData] = useState(initial)
+  const [masterData, setMasterData] = useState(initialMasterData)
+  const [termsTouched, setTermsTouched] = useState(false)
+  const [invoice, setInvoice] = useState<InvoiceDraft>(() =>
+    emptyInvoice({
+      proposedNumber: nextNumber,
+      invoiceDate: todayIso(),
+      paymentTerms: defaultPaymentTerms(initialMasterData.invoiceVisible.paymentTermsDays),
+      vatRate: initialMasterData.invoiceVisible.defaultVatRate,
+    })
+  )
+
+  const totals = useMemo(() => computeTotals(invoice.items), [invoice.items])
+
+  function updateInvoice(next: InvoiceDraft) {
+    if (next.paymentTerms !== invoice.paymentTerms) setTermsTouched(true)
+    setInvoice(next)
+  }
+
+  // Master data drives payment terms until the owner edits them by hand.
+  function updateMasterData(next: MasterData) {
+    setMasterData(next)
+    if (!termsTouched) {
+      setInvoice((current) => ({
+        ...current,
+        paymentTerms: defaultPaymentTerms(next.invoiceVisible.paymentTermsDays),
+      }))
+    }
+  }
 
   return (
     <>
@@ -36,11 +73,20 @@ export function AdminApp({ masterData: initial }: { masterData: MasterData }) {
         ))}
       </nav>
 
-      {tab === 'master' && (
-        <MasterDataForm masterData={masterData} onChange={setMasterData} />
+      {tab === 'invoice' && (
+        <InvoiceSheet
+          invoice={invoice}
+          sender={masterData.invoiceVisible}
+          totals={totals}
+          readOnly={invoice.status === 'issued'}
+          onChange={updateInvoice}
+        />
       )}
-      {tab !== 'master' && (
+      {tab === 'archive' && (
         <p className="p-6 text-sm text-gray-500">Wird in einem späteren Schritt ergänzt.</p>
+      )}
+      {tab === 'master' && (
+        <MasterDataForm masterData={masterData} onChange={updateMasterData} />
       )}
     </>
   )
