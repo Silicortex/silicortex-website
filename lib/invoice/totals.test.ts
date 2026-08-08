@@ -22,6 +22,27 @@ test('round2 never returns NaN', () => {
   assert.equal(round2(0), 0)
 })
 
+// Discount lines ("Nachlass -50,00") are ordinary on a German invoice, so
+// negative amounts must round like their positive mirror image.
+test('rounds half away from zero for negative amounts too', () => {
+  assert.equal(round2(-0.145), -0.15)
+  assert.equal(round2(-2.675), -2.68)
+  assert.equal(round2(-1.005), -1.01)
+})
+
+test('a discount line exactly cancels the line it reverses', () => {
+  // With asymmetric rounding these two lines would print 0,15 and -0,14 and
+  // leave a cent of VAT on a net-zero transaction.
+  const totals = computeTotals([
+    item({ quantity: 1, unitPrice: 0.145, vatRate: 19 }),
+    item({ quantity: 1, unitPrice: -0.145, vatRate: 19 }),
+  ])
+  assert.deepEqual(totals.lineNets, [0.15, -0.15])
+  assert.equal(totals.groups[0].net, 0)
+  assert.equal(totals.groups[0].vat, 0)
+  assert.equal(totals.grossTotal, 0)
+})
+
 test('computes a single-rate invoice', () => {
   // 2 × 80,50 = 161,00 net; 19 % of 161,00 = 30,59; gross 191,59
   const totals = computeTotals([item({ quantity: 2, unitPrice: 80.5, vatRate: 19 })])

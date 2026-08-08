@@ -26,9 +26,16 @@ export type InvoiceTotals = {
 // to plain multiplication, which is accurate enough at that magnitude.
 export function round2(value: number): number {
   if (!Number.isFinite(value)) return 0
+
+  // Half away from zero in BOTH directions. Math.round(-14.5) is -14, so a
+  // naive implementation rounds +0,145 to 0,15 but -0,145 to -0,14 — and a
+  // discount line would then not cancel the line it reverses. German
+  // commercial rounding (kaufmännisches Runden) is symmetric.
+  const away = (n: number) => (n < 0 ? -Math.round(-n) : Math.round(n))
+
   const shifted = Number(`${value}e+2`)
-  if (!Number.isFinite(shifted)) return Math.round(value * 100) / 100
-  return Number(`${Math.round(shifted)}e-2`)
+  if (!Number.isFinite(shifted)) return away(value * 100) / 100
+  return Number(`${away(shifted)}e-2`)
 }
 
 // VAT is computed per rate group, never per line: § 14 UStG requires the
