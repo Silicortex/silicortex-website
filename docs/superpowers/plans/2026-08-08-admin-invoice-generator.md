@@ -2053,6 +2053,27 @@ test('round2 never returns NaN', () => {
   assert.equal(round2(0), 0)
 })
 
+// Discount lines ("Nachlass -50,00") are ordinary on a German invoice, so
+// negative amounts must round like their positive mirror image.
+test('rounds half away from zero for negative amounts too', () => {
+  assert.equal(round2(-0.145), -0.15)
+  assert.equal(round2(-2.675), -2.68)
+  assert.equal(round2(-1.005), -1.01)
+})
+
+test('a discount line exactly cancels the line it reverses', () => {
+  // With asymmetric rounding these two lines would print 0,15 and -0,14 and
+  // leave a cent of VAT on a net-zero transaction.
+  const totals = computeTotals([
+    item({ quantity: 1, unitPrice: 0.145, vatRate: 19 }),
+    item({ quantity: 1, unitPrice: -0.145, vatRate: 19 }),
+  ])
+  assert.deepEqual(totals.lineNets, [0.15, -0.15])
+  assert.equal(totals.groups[0].net, 0)
+  assert.equal(totals.groups[0].vat, 0)
+  assert.equal(totals.grossTotal, 0)
+})
+
 test('computes a single-rate invoice', () => {
   // 2 × 80,50 = 161,00 net; 19 % of 161,00 = 30,59; gross 191,59
   const totals = computeTotals([item({ quantity: 2, unitPrice: 80.5, vatRate: 19 })])
@@ -2172,9 +2193,16 @@ export type InvoiceTotals = {
 // to plain multiplication, which is accurate enough at that magnitude.
 export function round2(value: number): number {
   if (!Number.isFinite(value)) return 0
+
+  // Half away from zero in BOTH directions. Math.round(-14.5) is -14, so a
+  // naive implementation rounds +0,145 to 0,15 but -0,145 to -0,14 — and a
+  // discount line would then not cancel the line it reverses. German
+  // commercial rounding (kaufmännisches Runden) is symmetric.
+  const away = (n: number) => (n < 0 ? -Math.round(-n) : Math.round(n))
+
   const shifted = Number(`${value}e+2`)
-  if (!Number.isFinite(shifted)) return Math.round(value * 100) / 100
-  return Number(`${Math.round(shifted)}e-2`)
+  if (!Number.isFinite(shifted)) return away(value * 100) / 100
+  return Number(`${away(shifted)}e-2`)
 }
 
 // VAT is computed per rate group, never per line: § 14 UStG requires the
