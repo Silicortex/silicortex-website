@@ -4364,6 +4364,143 @@ Expected: clean, or only intended files. Nothing in `.env*`.
 
 ---
 
+## Task 19: Restore the marketing chrome on the public 404
+
+**Files:**
+- Create: `components/SiteChrome.tsx`, `app/not-found.tsx`
+- Modify: `app/(site)/layout.tsx` (delegate to `SiteChrome`)
+
+**Interfaces:**
+- Consumes: `NavbarClient`, `ThemeProvider`, `LangProvider`, `siteConfig`, `SpeedInsights`, `Analytics`.
+- Produces: `<SiteChrome>` — the marketing shell, shared by the `(site)` layout and the 404 page.
+
+**Why this task exists.** Task 1 moved the chrome out of the root layout so `/admin` could be bare. An
+unmatched URL renders `app/not-found.tsx` inside the **root** layout, not inside `(site)`, so the public
+404 lost its navbar and footer — a visible regression from before the refactor. The owner ruled it gets
+full chrome back. Extracting `SiteChrome` keeps one copy of the chrome instead of two.
+
+- [ ] **Step 1: Create `components/SiteChrome.tsx`, moving the markup out of the `(site)` layout**
+
+```tsx
+import { LangProvider } from "@/components/providers/LangProvider"
+import { ThemeProvider } from "@/components/providers/ThemeProvider"
+import { NavbarClient } from "@/components/NavbarClient"
+import { siteConfig } from "@/lib/siteConfig"
+import { SpeedInsights } from "@vercel/speed-insights/next"
+import { Analytics } from "@vercel/analytics/next"
+
+// The marketing shell, shared by the (site) layout and the root not-found
+// page. Unmatched URLs render app/not-found.tsx inside the ROOT layout, which
+// stays deliberately bare so /admin inherits nothing — so the 404 page has to
+// bring the chrome with it instead of inheriting it.
+export function SiteChrome({
+  children,
+}: Readonly<{ children: React.ReactNode }>) {
+  return (
+    <>
+      <ThemeProvider>
+        <LangProvider>
+          <NavbarClient />
+          {children}
+          <footer className="border-t border-black/5 bg-white px-6 py-8 text-center dark:border-white/5 dark:bg-slate-950">
+            <p className="mb-1 text-xs text-slate-400 dark:text-slate-600">
+              {siteConfig.name} — {siteConfig.slogan}
+            </p>
+            <p className="text-xs text-slate-300 dark:text-slate-700">
+              © 2026 {siteConfig.name}. All rights reserved.
+            </p>
+          </footer>
+        </LangProvider>
+      </ThemeProvider>
+      <SpeedInsights />
+      <Analytics />
+    </>
+  )
+}
+```
+
+- [ ] **Step 2: Reduce `app/(site)/layout.tsx` to a delegation**
+
+The footer markup and provider nesting must exist in exactly one place.
+
+```tsx
+import { SiteChrome } from "@/components/SiteChrome"
+
+export default function SiteLayout({
+  children,
+}: Readonly<{ children: React.ReactNode }>) {
+  return <SiteChrome>{children}</SiteChrome>
+}
+```
+
+- [ ] **Step 3: Create `app/not-found.tsx`**
+
+English text, matching the site's `html lang="en"`. The admin area is unaffected — it has its own
+layout and never renders this page.
+
+```tsx
+import type { Metadata } from "next"
+import Link from "next/link"
+import { SiteChrome } from "@/components/SiteChrome"
+
+export const metadata: Metadata = {
+  title: "Page not found",
+}
+
+export default function NotFound() {
+  return (
+    <SiteChrome>
+      <main className="mx-auto flex min-h-[60vh] max-w-2xl flex-col items-center justify-center px-6 text-center">
+        <p className="mb-2 font-mono text-sm text-slate-400 dark:text-slate-500">404</p>
+        <h1 className="mb-3 text-2xl font-semibold">This page does not exist</h1>
+        <p className="mb-8 text-sm text-slate-500 dark:text-slate-400">
+          The link may be outdated, or the address slightly off.
+        </p>
+        <Link
+          href="/"
+          className="rounded-full border border-black/10 px-5 py-2 text-sm font-medium transition hover:bg-black/5 dark:border-white/15 dark:hover:bg-white/5"
+        >
+          Back to home
+        </Link>
+      </main>
+    </SiteChrome>
+  )
+}
+```
+
+- [ ] **Step 4: Verify the 404 has chrome and `/admin` still does not**
+
+```bash
+npm run build && npm run lint
+npm run dev
+```
+
+With the dev server running:
+
+```bash
+curl -s -o /dev/null -w "%{http_code}\n" http://localhost:3000/definitely-not-a-page
+curl -s http://localhost:3000/definitely-not-a-page | grep -c "All rights reserved"
+curl -s http://localhost:3000/definitely-not-a-page | grep -c "<nav"
+curl -s http://localhost:3000/admin/login | grep -c "All rights reserved"
+```
+
+Expected: `404`, then `1` and `1` (chrome present on the 404), then `0` — the admin login must stay
+bare. Also re-check that `/` and one other public route still render their navbar and footer.
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add components/SiteChrome.tsx app/not-found.tsx "app/(site)/layout.tsx"
+git commit -m "fix: restore marketing chrome on the public 404 page
+
+Task 1 moved the chrome into the (site) route group so /admin could be
+bare, which left unmatched URLs rendering a chromeless 404 inside the
+root layout. Extracts SiteChrome so the (site) layout and the 404 page
+share one copy, and adds app/not-found.tsx using it."
+```
+
+---
+
 ## Self-Review
 
 **Spec coverage** — every spec section maps to a task:
