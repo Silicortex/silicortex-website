@@ -4732,6 +4732,212 @@ columns come back as strings."
 
 ---
 
+## Task 22: Close two immutability gaps in the schema
+
+**Files:**
+- Modify: `db/schema.sql` (three new `-- @@` statements plus one comment), `db/schema.test.mjs` (three new tests)
+
+**Interfaces:**
+- Consumes: the existing schema from Task 2 and the PGlite harness from Task 21.
+- Produces: no new exports. The schema goes from 9 statements to 13.
+
+**Why.** Task 2's review found that the immutability trigger guards the `invoices` row but **not
+`invoice_items`**. An issued invoice's line items could therefore be updated, deleted, or added to —
+prices, quantities and descriptions altered — while the parent row still read `status = 'issued'`. The
+invoice would appear frozen while its contents were not, which defeats the reason this design was chosen
+over storing JSON files. The same review noted nothing forces an issued row to actually *have* its number,
+`issued_at` and `sender_snapshot`, so a row could be frozen in an incomplete state and then be unfixable
+by the very trigger protecting it.
+
+Both fixes below were prototyped against PGlite before this task was written: the item guard blocks
+UPDATE, DELETE and INSERT on an issued invoice's items, still allows editing a draft's items, and still
+allows a draft's cascade delete.
+
+- [ ] **Step 1: Add the line-item guard to `db/schema.sql`**
+
+Append these as three new `-- @@`-separated statements, after the existing trigger.
+
+```sql
+-- @@
+-- The invoices trigger alone is not enough: without this, an issued invoice's
+-- line items could still be edited, deleted or added to, leaving a row that
+-- says 'issued' above contents that changed.
+create or replace function forbid_issued_invoice_item_changes() returns trigger as $$
+declare
+  parent_status text;
+begin
+  if tg_op in ('UPDATE','DELETE') then
+    select status into parent_status from invoices where id = old.invoice_id;
+    if parent_status = 'issued' then
+      raise exception 'invoice % is issued; its line items are immutable', old.invoice_id;
+    end if;
+  end if;
+  if tg_op in ('INSERT','UPDATE') then
+    select status into parent_status from invoices where id = new.invoice_id;
+    if parent_status = 'issued' then
+      raise exception 'invoice % is issued; its line items are immutable', new.invoice_id;
+    end if;
+  end if;
+  -- A missing parent means the invoice is being deleted in this same
+  -- transaction (a draft's cascade), which is legitimate and falls through.
+  return case when tg_op = 'DELETE' then old else new end;
+end;
+$$ language plpgsql
+-- @@
+drop trigger if exists invoice_items_immutable_when_issued on invoice_items
+-- @@
+create trigger invoice_items_immutable_when_issued
+  before insert or update or delete on invoice_items
+  for each row execute function forbid_issued_invoice_item_changes()
+```
+
+- [ ] **Step 2: Add the issued-completeness constraint to `db/schema.sql`**
+
+One more `-- @@` statement. Wrapped in a `do` block because `alter table ... add constraint` has no
+`if not exists`, and every statement in this file must be re-runnable.
+
+```sql
+-- @@
+-- An issued invoice must be complete, or the trigger above would freeze a row
+-- that is missing its own number, timestamp or sender snapshot — unfixable
+-- afterwards without DDL.
+do $$
+begin
+  if not exists (select 1 from pg_constraint where conname = 'invoices_issued_complete') then
+    alter table invoices add constraint invoices_issued_complete check (
+      status = 'draft'
+      or (invoice_number is not null and issued_at is not null and sender_snapshot is not null)
+    );
+  end if;
+end $$
+```
+
+- [ ] **Step 3: Note the one bypass that remains**
+
+Add this comment directly above the `invoices` trigger definition, so the guarantee is not overstated:
+
+```sql
+-- Note: row-level triggers do not fire for TRUNCATE. That is not reachable
+-- through the application's SQL, but a manual TRUNCATE would bypass both
+-- guards.
+```
+
+- [ ] **Step 4: Add three tests to `db/schema.test.mjs`**
+
+```js
+test('an issued invoice\'s line items cannot be changed, deleted or added to', async () => {
+  const db = await freshDb()
+  const invoice = await db.query(
+    `insert into invoices (proposed_number, invoice_date, customer_name)
+     values ('2026-010', '2026-08-08', 'Kundin') returning id`
+  )
+  const id = invoice.rows[0].id
+  await db.query(
+    `insert into invoice_items (invoice_id, line_no, description, quantity, unit_price, vat_rate, net_amount)
+     values ($1, 1, 'Entwicklung', 2, 80.50, 19, 161.00)`,
+    [id]
+  )
+  // Editable while the invoice is still a draft.
+  await db.query(`update invoice_items set unit_price = 90.00 where invoice_id = $1`, [id])
+
+  await db.query(
+    `update invoices set status = 'issued', invoice_number = '2026-010',
+     issued_at = now(), sender_snapshot = '{"name":"X"}'::jsonb
+     where id = $1 and status = 'draft'`,
+    [id]
+  )
+
+  await assert.rejects(
+    () => db.query(`update invoice_items set unit_price = 1 where invoice_id = $1`, [id]),
+    /line items are immutable/
+  )
+  await assert.rejects(
+    () => db.query(`delete from invoice_items where invoice_id = $1`, [id]),
+    /line items are immutable/
+  )
+  await assert.rejects(
+    () =>
+      db.query(
+        `insert into invoice_items (invoice_id, line_no, description, unit_price, net_amount)
+         values ($1, 2, 'Zusatz', 999, 999)`,
+        [id]
+      ),
+    /line items are immutable/
+  )
+
+  const items = await db.query(
+    `select unit_price from invoice_items where invoice_id = $1`,
+    [id]
+  )
+  assert.equal(items.rows.length, 1)
+  assert.equal(items.rows[0].unit_price, '90.00')
+})
+
+test('an invoice cannot be issued without a number, timestamp and snapshot', async () => {
+  const db = await freshDb()
+  const invoice = await db.query(
+    `insert into invoices (proposed_number, invoice_date, customer_name)
+     values ('2026-011', '2026-08-08', 'A') returning id`
+  )
+  await assert.rejects(
+    () => db.query(`update invoices set status = 'issued' where id = $1`, [invoice.rows[0].id]),
+    /invoices_issued_complete|check constraint/i
+  )
+})
+
+test('the line-item guard does not block a draft cascade delete', async () => {
+  const db = await freshDb()
+  const draft = await db.query(
+    `insert into invoices (proposed_number, invoice_date, customer_name)
+     values ('2026-012', '2026-08-08', 'A') returning id`
+  )
+  const id = draft.rows[0].id
+  await db.query(
+    `insert into invoice_items (invoice_id, line_no, description, unit_price, net_amount)
+     values ($1, 1, 'Entwicklung', 5, 5)`,
+    [id]
+  )
+  await db.query(`delete from invoices where id = $1 and status = 'draft'`, [id])
+  const items = await db.query(
+    `select count(*)::int as n from invoice_items where invoice_id = $1`,
+    [id]
+  )
+  assert.equal(items.rows[0].n, 0)
+})
+```
+
+- [ ] **Step 5: Run the suite and prove the new guard has teeth**
+
+```bash
+npm run test:schema
+```
+
+Expected: 9 tests pass. Then copy `db/schema.sql` and `db/schema.test.mjs` to `/tmp`, comment out
+`create trigger invoice_items_immutable_when_issued` in the **copy**, and confirm the line-item test
+fails there. Report both runs. Never modify the repository's schema for this check.
+
+- [ ] **Step 6: Commit**
+
+```bash
+git add db/schema.sql db/schema.test.mjs
+git commit -m "fix(db): make an issued invoice's line items immutable too
+
+The invoices trigger guarded only the parent row, so an issued invoice's
+line items could still be updated, deleted or added to — prices and
+descriptions changed under a row that read 'issued'. That defeated the
+reason this schema was chosen over JSON files.
+
+Adds a matching guard on invoice_items covering INSERT, UPDATE and
+DELETE, which still allows editing a draft's items and still allows a
+draft's cascade delete. Adds a check constraint so an invoice cannot be
+issued without its number, issued_at and sender_snapshot — otherwise the
+trigger would freeze an incomplete row that nothing could then repair.
+
+Also records that row triggers do not fire for TRUNCATE."
+```
+
+---
+
 ## Self-Review
 
 **Spec coverage** — every spec section maps to a task:
