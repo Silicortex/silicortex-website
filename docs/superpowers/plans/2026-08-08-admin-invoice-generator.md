@@ -1710,8 +1710,51 @@ for (const [input, expected] of CASES) {
   })
 }
 
-test('treats a three-digit group after a comma as a thousands separator', () => {
-  assert.equal(parseNum('1,234'), 1234)
+// A comma is always the decimal separator — never thousands.
+test('treats any comma as the decimal separator', () => {
+  assert.equal(parseNum('1,234'), 1.234)
+  assert.equal(parseNum('0,005'), 0.005)
+  assert.equal(parseNum('80,505'), 80.505)
+})
+
+// Regression: "1.234" previously parsed as 1.234, printing 1,23 € for an
+// invoice line the owner meant as 1.234,00 € — a 1000x undercharge.
+test('treats a lone dot grouping three digits as thousands', () => {
+  assert.equal(parseNum('1.234'), 1234)
+  assert.equal(parseNum('1.500'), 1500)
+  assert.equal(parseNum('1.234.567'), 1234567)
+})
+
+// A grouping never starts with 0, so these stay decimals.
+test('treats other lone dots as decimal points', () => {
+  assert.equal(parseNum('0.005'), 0.005)
+  assert.equal(parseNum('1.2345'), 1.2345)
+  assert.equal(parseNum('0.5'), 0.5)
+})
+
+test('round-trips what formatQuantity prints', () => {
+  // formatQuantity(0.005) renders "0,005"; re-parsing it must not change it.
+  assert.equal(parseNum('0,005'), 0.005)
+})
+
+// Regression: a stray letter used to be stripped, fusing digits into a
+// plausible but wrong price (8O,50 -> 8.5). It must be rejected instead.
+test('rejects input containing unexpected characters', () => {
+  assert.equal(parseNum('8O,50'), 0)
+  assert.equal(parseNum('1e3'), 0)
+  assert.equal(parseNum('NaN'), 0)
+  assert.equal(parseNum('Infinity'), 0)
+  assert.equal(parseNum('1.2.3'), 0)
+  assert.equal(parseNum('80,50,60'), 0)
+  assert.equal(parseNum('-'), 0)
+})
+
+test('strips currency noise only at the edges', () => {
+  assert.equal(parseNum('€80,50'), 80.5)
+  assert.equal(parseNum('80.50 EUR'), 80.5)
+  assert.equal(parseNum('  80,50  '), 80.5)
+  assert.equal(parseNum('1 234,56'), 1234.56)
+  assert.equal(parseNum('8eur0'), 0)
 })
 
 test('handles null and undefined', () => {
@@ -1721,10 +1764,17 @@ test('handles null and undefined', () => {
 
 test('handles a number passed straight through', () => {
   assert.equal(parseNum(80.5), 80.5)
+  assert.equal(parseNum(Number.NaN), 0)
+  assert.equal(parseNum(Number.POSITIVE_INFINITY), 0)
 })
 
 test('keeps a leading minus', () => {
   assert.equal(parseNum('-80,50'), -80.5)
+})
+
+test('tolerates a trailing or leading separator', () => {
+  assert.equal(parseNum('80,'), 80)
+  assert.equal(parseNum(',50'), 0.5)
 })
 ```
 
@@ -1739,38 +1789,66 @@ Expected: FAIL — cannot find module `./parseNum.ts`.
 - [ ] **Step 3: Write `lib/invoice/parseNum.ts`**
 
 ```ts
-// Parses both German ("1.234,56") and English ("1,234.56") number input.
+// Parses money and quantity input for a German-first invoicing tool.
 //
 // NEVER use <input type="number"> for these values: it accepts only "." as
 // the decimal separator, so a German "80,50" makes .value return an empty
 // string and the amount silently becomes 0.
+//
+// Rules, in order of precedence:
+//   1. A comma is ALWAYS the decimal separator ("0,005" -> 0.005). German
+//      users do not write commas as thousands separators.
+//   2. A lone dot is a THOUSANDS separator when it groups exactly three
+//      digits and the leading group does not start with "0" ("1.234" ->
+//      1234); otherwise it is a decimal point ("80.50" -> 80.5).
+//   3. With both present, whichever appears last is the decimal separator.
+//   4. Anything else is rejected as 0 rather than silently reinterpreted:
+//      "8O,50" (letter O) must not become 8.5 on a customer's invoice.
 export function parseNum(value: unknown): number {
   if (value === null || value === undefined) return 0
-  let s = String(value).trim()
+  if (typeof value === 'number') return Number.isFinite(value) ? value : 0
+
+  // Strip currency noise only at the edges, never in the middle: removing a
+  // stray character between digits would fuse groups into a wrong number.
+  let s = String(value).replace(/[\s ]/g, '')
+  s = s.replace(/^(?:€|\$|eur)/i, '').replace(/(?:€|\$|eur)$/i, '')
   if (!s) return 0
 
-  s = s.replace(/[^\d.,\-]/g, '') // "95 €" -> "95"
+  if (!/^-?[\d.,]+$/.test(s)) return 0
 
-  const lastComma = s.lastIndexOf(',')
-  const lastDot = s.lastIndexOf('.')
+  const negative = s.startsWith('-')
+  if (negative) s = s.slice(1)
+  if (s.includes('-')) return 0
 
-  if (lastComma > -1 && lastDot > -1) {
-    // Both present: whichever comes last is the decimal separator.
-    if (lastComma > lastDot) {
-      s = s.replace(/\./g, '').replace(',', '.') // 1.234,56
-    } else {
-      s = s.replace(/,/g, '') // 1,234.56
-    }
-  } else if (lastComma > -1) {
-    const digitsAfter = s.length - lastComma - 1
-    s =
-      digitsAfter > 0 && digitsAfter <= 2
-        ? s.replace(',', '.') // 80,50 -> decimal
-        : s.replace(/,/g, '') // 1,234 -> thousands
+  const commas = (s.match(/,/g) ?? []).length
+  const dots = (s.match(/\./g) ?? []).length
+  if (commas > 1) return 0 // "80,50,60" is not a number
+
+  let normalised: string
+  if (commas === 1 && dots > 0) {
+    normalised =
+      s.lastIndexOf(',') > s.lastIndexOf('.')
+        ? s.replace(/\./g, '').replace(',', '.') // 1.234,56
+        : s.replace(/,/g, '') // 1,234.56
+  } else if (commas === 1) {
+    normalised = s.replace(',', '.') // 80,50 and 0,005
+  } else if (dots > 0 && isThousandsGrouping(s)) {
+    normalised = s.replace(/\./g, '') // 1.234 and 1.234.567
+  } else if (dots > 1) {
+    return 0 // "1.2.3" is neither a grouping nor a decimal
+  } else {
+    normalised = s // 80.50 and 0.005
   }
 
-  const n = parseFloat(s)
-  return Number.isNaN(n) ? 0 : n
+  const n = parseFloat(normalised)
+  if (!Number.isFinite(n)) return 0
+  return negative ? -n : n
+}
+
+// True for "1.234" and "1.234.567"; false for "80.50" and "0.005".
+// A thousands grouping never starts with 0 and every later group is 3 digits.
+function isThousandsGrouping(s: string): boolean {
+  return /^[1-9]\d{0,2}(\.\d{3})+$/.test(s)
 }
 ```
 
@@ -1818,6 +1896,29 @@ test('returns an empty string for empty or malformed dates', () => {
   assert.equal(formatDateDe(''), '')
   assert.equal(formatDateDe('nonsense'), '')
 })
+
+// Regression: shape-only validation printed impossible dates on invoices.
+test('rejects dates that match the shape but do not exist', () => {
+  assert.equal(formatDateDe('2026-02-30'), '')
+  assert.equal(formatDateDe('2026-13-01'), '')
+  assert.equal(formatDateDe('2026-00-10'), '')
+  assert.equal(formatDateDe('2026-04-31'), '')
+})
+
+test('accepts a real leap day', () => {
+  assert.equal(formatDateDe('2028-02-29'), '29.02.2028')
+})
+
+// Regression: the invoice date must follow Europe/Berlin, not the server's
+// clock. On Vercel (UTC) a naive date is a day behind just after midnight.
+test('todayIso follows the German calendar date, not UTC', () => {
+  // 22:30 UTC in August is 00:30 the next day in Berlin (UTC+2).
+  assert.equal(todayIso(new Date('2026-08-08T22:30:00Z')), '2026-08-09')
+  // 23:30 UTC on New Year's Eve is 00:30 on 1 January in Berlin (UTC+1).
+  assert.equal(todayIso(new Date('2025-12-31T23:30:00Z')), '2026-01-01')
+  // Midday is unambiguous in either zone.
+  assert.equal(todayIso(new Date('2026-08-08T12:00:00Z')), '2026-08-08')
+})
 ```
 
 - [ ] **Step 6: Run the test to verify it fails**
@@ -1855,14 +1956,35 @@ export function formatDateDe(iso: string): string {
   const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso)
   if (!match) return ''
   const [, year, month, day] = match
+
+  // Shape alone is not enough: "2026-02-30" matches the pattern but is not a
+  // date, and must not print as 30.02.2026 on an invoice.
+  const date = new Date(`${year}-${month}-${day}T00:00:00Z`)
+  if (
+    Number.isNaN(date.getTime()) ||
+    date.getUTCFullYear() !== Number(year) ||
+    date.getUTCMonth() + 1 !== Number(month) ||
+    date.getUTCDate() !== Number(day)
+  ) {
+    return ''
+  }
+
   return `${day}.${month}.${year}`
 }
 
-export function todayIso(): string {
-  const now = new Date()
-  const month = String(now.getMonth() + 1).padStart(2, '0')
-  const day = String(now.getDate()).padStart(2, '0')
-  return `${now.getFullYear()}-${month}-${day}`
+// The invoice date must be the German calendar date. Vercel Functions run in
+// UTC, so a naive local-time date would be one day behind for the first one
+// to two hours after midnight in Germany — on a legally dated document.
+// The `now` parameter exists so this is testable.
+export function todayIso(now: Date = new Date()): string {
+  const parts = new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'Europe/Berlin',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(now)
+  const part = (type: string) => parts.find((p) => p.type === type)?.value ?? ''
+  return `${part('year')}-${part('month')}-${part('day')}`
 }
 ```
 

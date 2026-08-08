@@ -257,10 +257,23 @@ German decimal input is the single most common bug in tools of this kind. `<inpu
 **forbidden** for quantity and price: it accepts only `.` as a decimal separator, so typing `80,50`
 makes `.value` return an empty string and the price silently becomes 0.
 
-Instead: `<input type="text" inputmode="decimal">` with a parser that handles both conventions —
-strips non-numeric characters, and when both `,` and `.` are present treats whichever appears **last**
-as the decimal separator. A trailing group of 1–2 digits after a comma is decimal; 3 digits is a
-thousands separator.
+Instead: `<input type="text" inputmode="decimal">` with a **German-first** parser:
+
+| Input shape | Rule | Example |
+|-------------|------|---------|
+| Comma present | A comma is **always** the decimal separator | `0,005` → 0.005, `80,505` → 80.505 |
+| Lone dot grouping exactly 3 digits, leading group not starting with `0` | Thousands separator | `1.234` → 1234, `1.234.567` → 1234567 |
+| Any other lone dot | Decimal point | `80.50` → 80.5, `0.005` → 0.005 |
+| Both present | Whichever appears **last** is the decimal separator | `1.234,56` → 1234.56, `1,234.56` → 1234.56 |
+| Unexpected characters, or two commas | Rejected as `0` — never silently reinterpreted | `8O,50` → 0, `80,50,60` → 0 |
+
+Currency noise (`€`, `$`, `EUR`, whitespace) is stripped only at the start or end of the input.
+
+This replaces the original artefact rule ("1–2 digits after a comma is decimal, 3 digits is thousands"),
+which was verified to produce three silent money errors: `1.234` became 1.23 €, quantity `0,005` became
+5 (a 1000× error, and inconsistent with `formatQuantity`, which prints three decimals), and `8O,50`
+with a letter O became 8.50 € instead of being rejected. All nine of the originally specified cases
+still hold under the new rule.
 
 Required behaviour, each a unit test:
 
