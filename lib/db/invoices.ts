@@ -1,10 +1,14 @@
 import 'server-only'
 import { randomUUID } from 'node:crypto'
 import { sql } from './client.ts'
-import { computeTotals } from '@/lib/invoice/totals.ts'
-import { compareInvoiceNumbers } from '@/lib/invoice/numbering.ts'
-import { todayIso } from '@/lib/invoice/format.ts'
-import type { InvoiceDraft, InvoiceStatus, InvoiceSummary } from '@/lib/invoice/types.ts'
+// Relative, not `@/…`: plain Node ESM cannot resolve the tsconfig path alias,
+// so an `@/` import here breaks every bare-Node verification script in this
+// plan (it reads `@/lib/…` as an invalid bare package name). The rest of
+// `lib/` already imports relatively for the same reason.
+import { computeTotals } from '../invoice/totals.ts'
+import { compareInvoiceNumbers } from '../invoice/numbering.ts'
+import { todayIso } from '../invoice/format.ts'
+import type { InvoiceDraft, InvoiceStatus, InvoiceSummary } from '../invoice/types.ts'
 import type { MasterDataInvoiceVisible } from './masterData.ts'
 
 // Verified against the live database: the driver parses a `date` column into a
@@ -153,11 +157,24 @@ export async function deleteDraft(id: string): Promise<void> {
   await sql`delete from invoices where id = ${id} and status = 'draft'`
 }
 
-export async function highestIssuedNumber(): Promise<string | null> {
-  const rows = await sql`select invoice_number from invoices where status = 'issued'`
-  const numbers = rows.map((r) => r.invoice_number as string).filter(Boolean)
-  if (numbers.length === 0) return null
-  return numbers.sort(compareInvoiceNumbers).at(-1) ?? null
+// The number to continue from is the one on the invoice most recently ISSUED —
+// not the "highest" by any string ordering.
+//
+// Sorting the numbers was verified to be wrong: with `2026-050` and
+// `RE-2026-001` in the table, German collation ranks the letter-prefixed one
+// last, so it was treated as the highest and the next number came out as
+// `RE-2026-002` — BELOW the true `2026-050`, with no error raised. Because the
+// number is a free-text field the owner may edit, no string ordering can be
+// trusted across a change of prefix. `issued_at` always can: invoices are
+// issued one at a time, in time order.
+export async function lastIssuedNumber(): Promise<string | null> {
+  const rows = await sql`
+    select invoice_number from invoices
+    where status = 'issued' and invoice_number is not null
+    order by issued_at desc
+    limit 1
+  `
+  return (rows[0]?.invoice_number as string | undefined) ?? null
 }
 
 export async function issueInvoice(

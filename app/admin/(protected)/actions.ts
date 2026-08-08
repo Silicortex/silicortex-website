@@ -6,7 +6,7 @@ import { clearSessionCookie, requireSession } from '@/lib/admin/session.ts'
 import { saveMasterData, type MasterData } from '@/lib/db/masterData.ts'
 import {
   deleteDraft,
-  highestIssuedNumber,
+  lastIssuedNumber,
   listInvoices,
   loadInvoice,
   saveDraft,
@@ -76,5 +76,5 @@ export async function listInvoicesAction(): Promise<InvoiceSummary[]> {
 // number from its own copy of the archive.
 export async function nextNumberAction(): Promise<string> {
   await requireSession()
-  return nextInvoiceNumber(await highestIssuedNumber(), new Date().getFullYear())
+  return nextInvoiceNumber(await lastIssuedNumber(), new Date().getFullYear())
 }

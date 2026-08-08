@@ -1,6 +1,6 @@
 import { requireSession } from '@/lib/admin/session.ts'
 import { loadMasterData } from '@/lib/db/masterData.ts'
-import { highestIssuedNumber, listInvoices } from '@/lib/db/invoices.ts'
+import { lastIssuedNumber, listInvoices } from '@/lib/db/invoices.ts'
 import { nextInvoiceNumber } from '@/lib/invoice/numbering.ts'
 import { AdminApp } from '@/components/admin/AdminApp.tsx'
 
@@ -9,7 +9,7 @@ export default async function AdminHomePage() {
   const [masterData, invoices, highest] = await Promise.all([
     loadMasterData(),
     listInvoices(),
-    highestIssuedNumber(),
+    lastIssuedNumber(),
   ])
   return (
     <AdminApp
