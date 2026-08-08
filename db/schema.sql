@@ -104,13 +104,16 @@ declare
   parent_status text;
 begin
   if tg_op in ('UPDATE','DELETE') then
-    select status into parent_status from invoices where id = old.invoice_id;
+    -- `for share` is load-bearing: without it this read does not serialise
+    -- against a concurrent `update invoices set status = 'issued'`, so an item
+    -- change could commit against an invoice that has just been issued.
+    select status into parent_status from invoices where id = old.invoice_id for share;
     if parent_status = 'issued' then
       raise exception 'invoice % is issued; its line items are immutable', old.invoice_id;
     end if;
   end if;
   if tg_op in ('INSERT','UPDATE') then
-    select status into parent_status from invoices where id = new.invoice_id;
+    select status into parent_status from invoices where id = new.invoice_id for share;
     if parent_status = 'issued' then
       raise exception 'invoice % is issued; its line items are immutable', new.invoice_id;
     end if;
