@@ -4,7 +4,12 @@ import { useMemo, useState } from 'react'
 import type { MasterData } from '@/lib/db/masterData.ts'
 import { computeTotals } from '@/lib/invoice/totals.ts'
 import { todayIso } from '@/lib/invoice/format.ts'
-import { defaultPaymentTerms, emptyInvoice, type InvoiceDraft } from '@/lib/invoice/types.ts'
+import {
+  defaultPaymentTerms,
+  emptyInvoice,
+  type InvoiceDraft,
+  type InvoiceSummary,
+} from '@/lib/invoice/types.ts'
 import { InvoiceSheet } from './InvoiceSheet.tsx'
 import { MasterDataForm } from './MasterDataForm.tsx'
 
@@ -18,9 +23,11 @@ const TABS: { id: Tab; label: string }[] = [
 
 export function AdminApp({
   masterData: initialMasterData,
+  invoices,
   nextNumber,
 }: {
   masterData: MasterData
+  invoices: InvoiceSummary[]
   nextNumber: string
 }) {
   const [tab, setTab] = useState<Tab>('invoice')
