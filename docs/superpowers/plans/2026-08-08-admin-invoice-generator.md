@@ -5244,6 +5244,223 @@ admin-scoped boundary. The public 404 keeps its chrome unchanged."
 
 ---
 
+## Task 25: Print an issued invoice from its frozen sender snapshot
+
+**Files:**
+- Modify: `lib/invoice/types.ts` (add `senderSnapshot` to `InvoiceDraft`), `lib/db/invoices.ts` (select and map it), `components/admin/AdminApp.tsx` (use it when issued; harden the print flow), `tests/e2e/invoice.spec.ts` (add the regression test)
+
+**Interfaces:**
+- Produces: `InvoiceDraft.senderSnapshot: MasterDataInvoiceVisible | null` — the sender block as frozen at issuing.
+
+**Why.** Task 16's review found `sender_snapshot` is **write-only**: `issueInvoice` stores it, but `loadInvoice`
+never selects it and `AdminApp` passes live `masterData.invoiceVisible` to `InvoiceSheet` regardless of
+status. So issuing an invoice, later changing an address or bank detail in Stammdaten, then reprinting
+that invoice renders the **current** sender — not the one the customer received. The spec's stated reason
+for the column ("Change your address next year and old invoices still print correctly — legally they
+must") is therefore not delivered, and the database's immutability guarantees hide the problem: the stored
+row is correct while the printed document is wrong.
+
+The same review found two further defects, fixed here because they sit in the same flow.
+
+- [ ] **Step 1: Add `senderSnapshot` to `InvoiceDraft` in `lib/invoice/types.ts`**
+
+```ts
+import type { MasterDataInvoiceVisible } from '../db/masterData.ts'
+```
+
+and, in the `InvoiceDraft` type:
+
+```ts
+  /**
+   * The sender block as frozen when the invoice was issued. Null for drafts,
+   * which render live master data. An issued invoice MUST print from this, or
+   * a later Stammdaten edit would silently rewrite documents already sent.
+   */
+  senderSnapshot: MasterDataInvoiceVisible | null
+```
+
+`emptyInvoice()` sets `senderSnapshot: null`.
+
+**Note on the import:** it is `import type`, so it is erased at compile time and does not pull
+`masterData.ts`'s `server-only` marker into the client bundle. `npm run build` is the check — if it
+complains about a server-only module reaching client code, stop and instead extract the two master-data
+types into a new pure module (`lib/masterDataTypes.ts`) that both `masterData.ts` and `types.ts` import,
+and report the change.
+
+- [ ] **Step 2: Select and map it in `loadInvoice` (`lib/db/invoices.ts`)**
+
+Add `sender_snapshot` to the enumerated column list, and to the returned object:
+
+```ts
+    // jsonb arrives already parsed by the driver.
+    senderSnapshot: (r.sender_snapshot as MasterDataInvoiceVisible | null) ?? null,
+```
+
+`listInvoices` does not need it — the archive table shows no sender.
+
+- [ ] **Step 3: Render from the snapshot when issued (`components/admin/AdminApp.tsx`)**
+
+```tsx
+          <InvoiceSheet
+            invoice={invoice}
+            // An issued invoice prints the sender frozen into it; a draft
+            // follows live master data so Stammdaten edits show up immediately.
+            sender={
+              invoice.status === 'issued' && invoice.senderSnapshot
+                ? invoice.senderSnapshot
+                : masterData.invoiceVisible
+            }
+            totals={totals}
+            readOnly={invoice.status === 'issued'}
+            onChange={updateInvoice}
+          />
+```
+
+And when issuing succeeds, record locally what was frozen, so an immediate reprint already uses it:
+
+```tsx
+      setInvoice({
+        ...invoice,
+        id: saved.id,
+        status: 'issued',
+        invoiceNumber: issued.invoiceNumber,
+        senderSnapshot: masterData.invoiceVisible,
+      })
+```
+
+- [ ] **Step 4: Stop the print flow from wedging the UI**
+
+`issueInvoiceAction` calls `loadMasterData()` unguarded, and `setBusy(false)` sits after the awaited call.
+If that throws — database hiccup at exactly the wrong moment — `busy` stays `true` forever: both buttons
+stay disabled, the label sticks on "Speichere …", no message appears, and only a page reload recovers.
+Wrap the whole draft branch so the flag is always released:
+
+```tsx
+    if (invoice.status === 'draft') {
+      const confirmed = confirm(
+        'Rechnung festschreiben? Danach ist sie nicht mehr änderbar. ' +
+          'Eine Korrektur erfolgt später über eine neue Rechnung.'
+      )
+      if (!confirmed) return
+
+      setBusy(true)
+      try {
+        const saved = await saveDraftAction(invoice)
+        if (!saved.ok) return setNotice(saved.error)
+
+        const issued = await issueInvoiceAction(saved.id, invoice.proposedNumber)
+        if (!issued.ok) {
+          await refreshArchive() // the draft was saved, so the archive changed
+          return setNotice(issued.error)
+        }
+
+        setInvoice({
+          ...invoice,
+          id: saved.id,
+          status: 'issued',
+          invoiceNumber: issued.invoiceNumber,
+          senderSnapshot: masterData.invoiceVisible,
+        })
+        await refreshArchive()
+        setNotice(`Festgeschrieben als ${issued.invoiceNumber}.`)
+      } catch {
+        setNotice('Festschreiben fehlgeschlagen. Bitte Verbindung prüfen und erneut versuchen.')
+        return
+      } finally {
+        setBusy(false)
+      }
+    }
+
+    window.print()
+```
+
+Note the `return` inside `catch`: a failure must not fall through to `window.print()`, or a document would
+reach paper with no record of having been issued.
+
+- [ ] **Step 5: Clear the validation panel when the invoice changes**
+
+`printErrors` persists after the owner fixes the missing fields, so the red panel keeps accusing them
+until they click again. In `updateInvoice`, clear it:
+
+```tsx
+  function updateInvoice(next: InvoiceDraft) {
+    if (next.paymentTerms !== invoice.paymentTerms) setTermsTouched(true)
+    if (printErrors.length) setPrintErrors([])
+    setInvoice(next)
+  }
+```
+
+- [ ] **Step 6: Add the regression test to `tests/e2e/invoice.spec.ts`**
+
+This is the test that would have caught the write-only snapshot. It must fail if step 3 is reverted.
+
+```ts
+test('an issued invoice keeps printing its frozen sender after Stammdaten changes', async ({ page }) => {
+  await page.goto('/admin')
+
+  // Set a sender, then issue an invoice carrying it.
+  await page.getByRole('button', { name: 'Stammdaten' }).click()
+  await page.getByLabel('Name / Firmenbezeichnung').fill('SNAPSHOT Sender Alt')
+  await page.getByRole('button', { name: 'Stammdaten speichern' }).click()
+  await expect(page.getByText('Gespeichert.')).toBeVisible()
+
+  await page.getByRole('button', { name: 'Rechnung erstellen' }).click()
+  await fillInvoice(page, 'Testkunde Snapshot')
+  const number = `E2E-SNAP-${Date.now()}`
+  await page.getByLabel('Rechnungsnummer').fill(number)
+  page.once('dialog', (dialog) => dialog.accept())
+  await page.getByRole('button', { name: 'Drucken / PDF' }).click()
+  await expect(page.getByText(new RegExp(`Festgeschrieben als ${number}`))).toBeVisible()
+
+  // Now change the sender. The issued invoice must not follow.
+  await page.getByRole('button', { name: 'Stammdaten' }).click()
+  await page.getByLabel('Name / Firmenbezeichnung').fill('SNAPSHOT Sender Neu')
+  await page.getByRole('button', { name: 'Stammdaten speichern' }).click()
+  await expect(page.getByText('Gespeichert.')).toBeVisible()
+
+  // Reload it from the archive, so it comes back through loadInvoice.
+  await page.getByRole('button', { name: 'Meine Rechnungen' }).click()
+  await page.getByRole('row', { name: /Testkunde Snapshot/ }).getByRole('button', { name: 'Laden' }).click()
+
+  const sheet = page.locator('article')
+  await expect(sheet).toContainText('SNAPSHOT Sender Alt')
+  await expect(sheet).not.toContainText('SNAPSHOT Sender Neu')
+})
+```
+
+The suite's existing cleanup removes `E2E-`-prefixed invoices; this test's number carries that prefix, and
+its master-data changes must be restored by the suite's own teardown.
+
+- [ ] **Step 7: Verify**
+
+```bash
+npm test && npx tsc --noEmit && npm run build && npm run lint
+npm run test:e2e
+```
+
+Then prove the new test has teeth: revert step 3's `sender` expression to plain
+`masterData.invoiceVisible` in a scratch copy of the working tree (or temporarily, restoring
+immediately), confirm the new test FAILS, and restore. Report both runs.
+
+- [ ] **Step 8: Commit**
+
+```bash
+git add lib/invoice/types.ts lib/db/invoices.ts components/admin/AdminApp.tsx tests/e2e/invoice.spec.ts
+git commit -m "fix(invoice): print issued invoices from their frozen sender snapshot
+
+sender_snapshot was written at issuing but never read: loadInvoice did
+not select it and the sheet always rendered live master data. Changing an
+address in Stammdaten therefore rewrote the sender on invoices already
+sent — the exact retroactive change the column exists to prevent.
+
+Also stops the print flow wedging the UI when the master-data load throws
+(busy stayed true forever with no message), refreshes the archive when
+issuing fails after a successful save, and clears the validation panel
+once the owner fixes the fields."
+```
+
+---
+
 ## Self-Review
 
 **Spec coverage** — every spec section maps to a task:
