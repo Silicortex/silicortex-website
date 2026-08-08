@@ -89,6 +89,53 @@ $$ language plpgsql
 -- @@
 drop trigger if exists invoices_immutable_when_issued on invoices
 -- @@
+-- Note: row-level triggers do not fire for TRUNCATE. That is not reachable
+-- through the application's SQL, but a manual TRUNCATE would bypass both
+-- guards.
 create trigger invoices_immutable_when_issued
   before update or delete on invoices
   for each row execute function forbid_issued_invoice_changes()
+-- @@
+-- The invoices trigger alone is not enough: without this, an issued invoice's
+-- line items could still be edited, deleted or added to, leaving a row that
+-- says 'issued' above contents that changed.
+create or replace function forbid_issued_invoice_item_changes() returns trigger as $$
+declare
+  parent_status text;
+begin
+  if tg_op in ('UPDATE','DELETE') then
+    select status into parent_status from invoices where id = old.invoice_id;
+    if parent_status = 'issued' then
+      raise exception 'invoice % is issued; its line items are immutable', old.invoice_id;
+    end if;
+  end if;
+  if tg_op in ('INSERT','UPDATE') then
+    select status into parent_status from invoices where id = new.invoice_id;
+    if parent_status = 'issued' then
+      raise exception 'invoice % is issued; its line items are immutable', new.invoice_id;
+    end if;
+  end if;
+  -- A missing parent means the invoice is being deleted in this same
+  -- transaction (a draft's cascade), which is legitimate and falls through.
+  return case when tg_op = 'DELETE' then old else new end;
+end;
+$$ language plpgsql
+-- @@
+drop trigger if exists invoice_items_immutable_when_issued on invoice_items
+-- @@
+create trigger invoice_items_immutable_when_issued
+  before insert or update or delete on invoice_items
+  for each row execute function forbid_issued_invoice_item_changes()
+-- @@
+-- An issued invoice must be complete, or the trigger above would freeze a row
+-- that is missing its own number, timestamp or sender snapshot — unfixable
+-- afterwards without DDL.
+do $$
+begin
+  if not exists (select 1 from pg_constraint where conname = 'invoices_issued_complete') then
+    alter table invoices add constraint invoices_issued_complete check (
+      status = 'draft'
+      or (invoice_number is not null and issued_at is not null and sender_snapshot is not null)
+    );
+  end if;
+end $$

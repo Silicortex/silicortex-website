@@ -64,7 +64,8 @@ test('an issued invoice cannot be updated or deleted', async () => {
   // The one transition the trigger must permit: OLD.status is still 'draft'.
   await db.query(
     `update invoices set status = 'issued', invoice_number = '2026-001',
-     issued_at = now() where id = $1 and status = 'draft'`,
+     issued_at = now(), sender_snapshot = '{"name":"X"}'::jsonb
+     where id = $1 and status = 'draft'`,
     [id]
   )
 
@@ -92,14 +93,16 @@ test('an issued invoice number cannot be reused', async () => {
      values ('2026-001', '2026-08-08', 'B') returning id`
   )
   await db.query(
-    `update invoices set status = 'issued', invoice_number = '2026-001'
+    `update invoices set status = 'issued', invoice_number = '2026-001',
+     issued_at = now(), sender_snapshot = '{"name":"X"}'::jsonb
      where id = $1 and status = 'draft'`,
     [a.rows[0].id]
   )
   await assert.rejects(
     () =>
       db.query(
-        `update invoices set status = 'issued', invoice_number = '2026-001'
+        `update invoices set status = 'issued', invoice_number = '2026-001',
+         issued_at = now(), sender_snapshot = '{"name":"X"}'::jsonb
          where id = $1 and status = 'draft'`,
         [b.rows[0].id]
       ),
@@ -143,4 +146,84 @@ test('numeric columns are returned as strings, not numbers', async () => {
   const items = await db.query(`select quantity, unit_price from invoice_items`)
   assert.equal(typeof items.rows[0].quantity, 'string')
   assert.equal(typeof items.rows[0].unit_price, 'string')
+})
+
+test('an issued invoice\'s line items cannot be changed, deleted or added to', async () => {
+  const db = await freshDb()
+  const invoice = await db.query(
+    `insert into invoices (proposed_number, invoice_date, customer_name)
+     values ('2026-010', '2026-08-08', 'Kundin') returning id`
+  )
+  const id = invoice.rows[0].id
+  await db.query(
+    `insert into invoice_items (invoice_id, line_no, description, quantity, unit_price, vat_rate, net_amount)
+     values ($1, 1, 'Entwicklung', 2, 80.50, 19, 161.00)`,
+    [id]
+  )
+  // Editable while the invoice is still a draft.
+  await db.query(`update invoice_items set unit_price = 90.00 where invoice_id = $1`, [id])
+
+  await db.query(
+    `update invoices set status = 'issued', invoice_number = '2026-010',
+     issued_at = now(), sender_snapshot = '{"name":"X"}'::jsonb
+     where id = $1 and status = 'draft'`,
+    [id]
+  )
+
+  await assert.rejects(
+    () => db.query(`update invoice_items set unit_price = 1 where invoice_id = $1`, [id]),
+    /line items are immutable/
+  )
+  await assert.rejects(
+    () => db.query(`delete from invoice_items where invoice_id = $1`, [id]),
+    /line items are immutable/
+  )
+  await assert.rejects(
+    () =>
+      db.query(
+        `insert into invoice_items (invoice_id, line_no, description, unit_price, net_amount)
+         values ($1, 2, 'Zusatz', 999, 999)`,
+        [id]
+      ),
+    /line items are immutable/
+  )
+
+  const items = await db.query(
+    `select unit_price from invoice_items where invoice_id = $1`,
+    [id]
+  )
+  assert.equal(items.rows.length, 1)
+  assert.equal(items.rows[0].unit_price, '90.00')
+})
+
+test('an invoice cannot be issued without a number, timestamp and snapshot', async () => {
+  const db = await freshDb()
+  const invoice = await db.query(
+    `insert into invoices (proposed_number, invoice_date, customer_name)
+     values ('2026-011', '2026-08-08', 'A') returning id`
+  )
+  await assert.rejects(
+    () => db.query(`update invoices set status = 'issued' where id = $1`, [invoice.rows[0].id]),
+    /invoices_issued_complete|check constraint/i
+  )
+})
+
+test('the line-item guard does not block a draft cascade delete', async () => {
+  const db = await freshDb()
+  const draft = await db.query(
+    `insert into invoices (proposed_number, invoice_date, customer_name)
+     values ('2026-012', '2026-08-08', 'A') returning id`
+  )
+  const id = draft.rows[0].id
+  await db.query(
+    `insert into invoice_items (invoice_id, line_no, description, unit_price, net_amount)
+     values ($1, 1, 'Entwicklung', 5, 5)`,
+    [id]
+  )
+  await db.query(`delete from invoices where id = $1 and status = 'draft'`, [id])
+  const items = await db.query(
+    `select count(*)::int as n from invoice_items where invoice_id = $1`,
+    [id]
+  )
+  assert.equal(items.rows[0].n, 0)
 })
