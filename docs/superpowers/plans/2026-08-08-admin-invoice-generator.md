@@ -1143,6 +1143,18 @@ Check all five, in order:
 
 Then confirm the marketing site is untouched: open `/` and toggle dark mode.
 
+**Deferred check inherited from Task 19** — the admin area must not carry the marketing chrome. With the
+dev server running:
+
+```bash
+curl -s http://localhost:3000/admin/login | grep -c "All rights reserved"
+curl -s http://localhost:3000/admin/login | grep -c "<nav"
+curl -s -o /dev/null -w "%{http_code}\n" http://localhost:3000/admin/login
+```
+
+Expected: `0`, `0`, and `200`. A `404` means the login route is not being matched; a `1` on either grep
+means the bare root layout has been undone and `/admin` is inheriting the site chrome.
+
 - [ ] **Step 11: Verify the build**
 
 ```bash
@@ -4484,8 +4496,14 @@ curl -s http://localhost:3000/definitely-not-a-page | grep -c "<nav"
 curl -s http://localhost:3000/admin/login | grep -c "All rights reserved"
 ```
 
-Expected: `404`, then `1` and `1` (chrome present on the 404), then `0` — the admin login must stay
-bare. Also re-check that `/` and one other public route still render their navbar and footer.
+Expected: `404`, then `1` and `1` (chrome present on the 404). Also re-check that `/` and one other
+public route still render their navbar and footer.
+
+**The fourth check cannot pass yet, and that is correct.** If `app/admin/` does not exist at this point,
+`/admin/login` is itself an unmatched URL, so it returns HTTP 404 and renders this very page — chrome
+included. Confirm the status code is 404 to prove it is the not-found page rather than chrome leaking,
+then treat the check as deferred: it belongs to Task 7, which creates the bare admin layout. If Task 7
+has already run, the expectation is `0` and a non-zero result is a real defect.
 
 - [ ] **Step 5: Commit**
 
