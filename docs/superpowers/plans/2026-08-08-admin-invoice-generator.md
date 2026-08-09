@@ -5502,13 +5502,18 @@ export async function countInvoices(): Promise<number> {
 }
 
 /** Removes only rows this suite created. Every issued E2E invoice carries the
- *  `E2E-` prefix, so this can never touch a real invoice. Issued rows need both
- *  immutability triggers stood down, which is re-enabled in a finally. */
+ *  `E2E-` prefix, so this can never touch a real invoice. */
 export async function cleanupE2eRows(): Promise<void> {
   await sql`delete from invoices where status = 'draft' and customer_name like 'Testkunde%'`
-  await sql`alter table invoices disable trigger invoices_immutable_when_issued`
-  await sql`alter table invoice_items disable trigger invoice_items_immutable_when_issued`
+
+  // The disable statements sit INSIDE the try. Outside it, a failure on the
+  // second disable would leave the first trigger off with nothing to restore
+  // it — and a disabled trigger silently removes the immutability guarantee
+  // from the owner's real invoices. `enable trigger` on an already-enabled
+  // trigger is a harmless no-op, so an unconditional finally is safe.
   try {
+    await sql`alter table invoices disable trigger invoices_immutable_when_issued`
+    await sql`alter table invoice_items disable trigger invoice_items_immutable_when_issued`
     await sql`delete from invoices where status = 'issued' and invoice_number like 'E2E-%'`
   } finally {
     await sql`alter table invoices enable trigger invoices_immutable_when_issued`
@@ -5534,9 +5539,16 @@ import { loadMasterData, saveMasterData } from '../../lib/db/masterData.ts'
 
 const BACKUP = new URL('./.auth/master-data-backup.json', import.meta.url)
 
-/** Snapshot the owner's real master data before the suite touches it. */
+/** Snapshot the owner's real master data before the suite touches it.
+ *
+ *  A surviving backup file means a previous run failed to restore. Overwriting
+ *  it would replace the owner's real values with the polluted test state and
+ *  lose them permanently across two runs — so restore from it first, which
+ *  removes it, and only then take a fresh snapshot. */
 export async function backupMasterData(): Promise<void> {
   const { writeFile } = await import('node:fs/promises')
+  const { existsSync } = await import('node:fs')
+  if (existsSync(BACKUP)) await restoreMasterData()
   await writeFile(BACKUP, JSON.stringify(await loadMasterData()), 'utf8')
 }
 
@@ -5570,15 +5582,27 @@ import { cleanupE2eRows, clearLoginAttempts } from './db.ts'
 import { sql } from '../../lib/db/client.ts'
 
 teardown('remove rows this suite created', async () => {
-  await cleanupE2eRows()
-  await clearLoginAttempts()
+  // The restore MUST run even if cleanup throws. Without this finally, a
+  // failure above skips it, and the next run's backup overwrites the surviving
+  // file with the polluted state — losing the owner's real IBAN and tax numbers
+  // permanently, across two runs, with nothing to notice.
+  try {
+    await cleanupE2eRows()
+    await clearLoginAttempts()
+  } finally {
+    await restoreMasterData()
+  }
 
-  // Leaving a trigger disabled would silently remove the immutability
-  // guarantee for real invoices, so assert both are back on.
+  // Leaving a trigger disabled would silently remove the immutability guarantee
+  // for real invoices. Assert both by NAME and that they are enabled — a loop
+  // over the result set would pass vacuously if the query returned nothing,
+  // which is the same tautology this task exists to remove.
   const triggers = await sql`
     select tgname, tgenabled from pg_trigger where not tgisinternal order by 1
   `
-  for (const row of triggers) expect(row.tgenabled).toBe('O')
+  const state = new Map(triggers.map((r) => [r.tgname as string, r.tgenabled as string]))
+  expect(state.get('invoices_immutable_when_issued')).toBe('O')
+  expect(state.get('invoice_items_immutable_when_issued')).toBe('O')
 })
 ```
 
@@ -5596,8 +5620,14 @@ disappears:
 ```ts
   test('empty optional rows are removed entirely, not left with a bare label', async ({ page }) => {
     // A printed label with no value reads as an error on a customer's invoice.
-    await expect(page.getByText('Kundennummer')).toBeHidden()
+    //
+    // The count assertion comes FIRST and is not optional: `:visible` with
+    // `toHaveCount(0)` is satisfied by zero matches, so deleting the
+    // `.admin-optional` markup outright would pass too. Asserting the wrappers
+    // exist, then that none is visible, is what makes this able to fail.
+    await expect(page.locator('.admin-optional')).toHaveCount(2)
     await expect(page.locator('.admin-optional:visible')).toHaveCount(0)
+    await expect(page.getByText('Kundennummer')).toBeHidden()
   })
 ```
 
