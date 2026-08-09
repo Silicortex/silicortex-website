@@ -31,8 +31,14 @@ test.describe('print output', () => {
 
   test('empty optional rows are removed entirely, not left with a bare label', async ({ page }) => {
     // A printed label with no value reads as an error on a customer's invoice.
-    await expect(page.getByText('Kundennummer')).toBeHidden()
+    //
+    // The count assertion comes FIRST and is not optional: `:visible` with
+    // `toHaveCount(0)` is satisfied by zero matches, so deleting the
+    // `.admin-optional` markup outright would pass too. Asserting the wrappers
+    // exist, then that none is visible, is what makes this able to fail.
+    await expect(page.locator('.admin-optional')).toHaveCount(2)
     await expect(page.locator('.admin-optional:visible')).toHaveCount(0)
+    await expect(page.getByText('Kundennummer')).toBeHidden()
   })
 
   test('empty line items are hidden', async ({ page }) => {

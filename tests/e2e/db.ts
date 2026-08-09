@@ -15,13 +15,19 @@ export async function countInvoices(): Promise<number> {
 }
 
 /** Removes only rows this suite created. Every issued E2E invoice carries the
- *  `E2E-` prefix, so this can never touch a real invoice. Issued rows need both
- *  immutability triggers stood down, which is re-enabled in a finally. */
+ *  `E2E-` prefix, so this can never touch a real invoice.
+ *
+ *  The disable statements sit INSIDE the try. Outside it, a failure on the
+ *  second disable would leave the first trigger off with nothing to restore
+ *  it — and a disabled trigger silently removes the immutability guarantee
+ *  from the owner's real invoices. `enable trigger` on an already-enabled
+ *  trigger is a harmless no-op, so an unconditional finally is safe. */
 export async function cleanupE2eRows(): Promise<void> {
   await sql`delete from invoices where status = 'draft' and customer_name like 'Testkunde%'`
-  await sql`alter table invoices disable trigger invoices_immutable_when_issued`
-  await sql`alter table invoice_items disable trigger invoice_items_immutable_when_issued`
+
   try {
+    await sql`alter table invoices disable trigger invoices_immutable_when_issued`
+    await sql`alter table invoice_items disable trigger invoice_items_immutable_when_issued`
     await sql`delete from invoices where status = 'issued' and invoice_number like 'E2E-%'`
   } finally {
     await sql`alter table invoices enable trigger invoices_immutable_when_issued`
@@ -118,9 +124,16 @@ async function writeMasterDataRow(data: MasterData): Promise<void> {
   `
 }
 
-/** Snapshot the owner's real master data before the suite touches it. */
+/** Snapshot the owner's real master data before the suite touches it.
+ *
+ *  A surviving backup file means a previous run failed to restore. Overwriting
+ *  it would replace the owner's real values with the polluted test state and
+ *  lose them permanently across two runs — so restore from it first, which
+ *  removes it, and only then take a fresh snapshot. */
 export async function backupMasterData(): Promise<void> {
   const { writeFile } = await import('node:fs/promises')
+  const { existsSync } = await import('node:fs')
+  if (existsSync(BACKUP)) await restoreMasterData()
   await writeFile(BACKUP, JSON.stringify(await readMasterDataRow()), 'utf8')
 }
 
