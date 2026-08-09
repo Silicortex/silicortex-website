@@ -11,6 +11,16 @@ async function fillInvoice(page: import('@playwright/test').Page, customer: stri
   await page.getByLabel('Einzelpreis Position 1').blur()
 }
 
+// The archive strip's "Festgeschriebene Rechnungen" counter shows 0 with a
+// count() check first — a fresh table with no invoices yet renders a
+// different empty state with no counter at all, so this avoids waiting
+// forever on a locator that will never appear.
+async function issuedCount(page: import('@playwright/test').Page): Promise<number> {
+  const counter = page.getByText(/Festgeschriebene Rechnungen:/)
+  if ((await counter.count()) === 0) return 0
+  return Number((await counter.textContent())?.match(/\d+/)?.[0] ?? '0')
+}
+
 test('a German decimal price is not swallowed and totals compute per rate', async ({ page }) => {
   await page.goto('/admin')
   await fillInvoice(page, 'Testkunde Totals')
@@ -77,6 +87,12 @@ test('an issued invoice cannot be edited or deleted', async ({ page }) => {
   })
 
   await page.goto('/admin')
+  await page.getByRole('button', { name: 'Meine Rechnungen' }).click()
+  // A leftover row from an earlier run would already satisfy a bare "[1-9]"
+  // match, so read the count before issuing and assert it grows by exactly one.
+  const before = await issuedCount(page)
+
+  await page.getByRole('button', { name: 'Rechnung erstellen' }).click()
   await fillInvoice(page, 'Testkunde Festschreiben')
   // Every invoice number the suite issues must carry the E2E- prefix, so
   // cleanup can never touch a real invoice.
@@ -91,8 +107,11 @@ test('an issued invoice cannot be edited or deleted', async ({ page }) => {
 
   await page.getByRole('button', { name: 'Meine Rechnungen' }).click()
   const row = page.getByRole('row', { name: /Testkunde Festschreiben/ })
+  // toHaveCount(0) below also passes if the row itself vanished, so assert
+  // the row exists first.
+  await expect(row).toBeVisible()
   await expect(row.getByRole('button', { name: /löschen/ })).toHaveCount(0)
-  await expect(page.getByText(/Festgeschriebene Rechnungen: [1-9]/)).toBeVisible()
+  await expect(page.getByText(`Festgeschriebene Rechnungen: ${before + 1}`)).toBeVisible()
 })
 
 test('incomplete invoices are refused before printing', async ({ page }) => {

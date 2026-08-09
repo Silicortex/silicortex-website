@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test'
+import { countInvoices } from './db.ts'
 
 test.describe('unauthenticated', () => {
   test.use({ storageState: { cookies: [], origins: [] } })
@@ -20,15 +21,19 @@ test.describe('unauthenticated', () => {
     await expect(page).toHaveURL(/\/admin\/login$/)
   })
 
-  test('a Server Action is rejected without a session cookie', async ({ request }) => {
+  test('a Server Action without a session changes nothing', async ({ request }) => {
     // The boundary itself, not just the redirect: Server Actions are POST
-    // endpoints reachable without ever loading the page.
+    // endpoints reachable without ever loading the page. A non-200 alone
+    // proves nothing — a malformed request also returns one — so assert the
+    // effect: no invoice gets created.
+    const before = await countInvoices()
     const response = await request.post('/admin', {
       headers: { 'Next-Action': 'probe', 'Content-Type': 'text/plain;charset=UTF-8' },
       data: '[]',
       maxRedirects: 0,
     })
     expect(response.status()).not.toBe(200)
+    expect(await countInvoices()).toBe(before)
   })
 })
 

@@ -8,7 +8,8 @@ export default defineConfig({
   workers: 1,
   use: { baseURL },
   projects: [
-    { name: 'setup', testMatch: /auth\.setup\.ts/ },
+    { name: 'setup', testMatch: /auth\.setup\.ts/, teardown: 'cleanup' },
+    { name: 'cleanup', testMatch: /global\.teardown\.ts/ },
     {
       name: 'chromium',
       use: { ...devices['Desktop Chrome'], storageState: 'tests/e2e/.auth/owner.json' },

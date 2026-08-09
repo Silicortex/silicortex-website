@@ -29,16 +29,19 @@ test.describe('print output', () => {
     await expect(span).toHaveCSS('white-space', 'pre-wrap')
   })
 
-  test('empty optional fields print nothing at all', async ({ page }) => {
-    await expect(page.getByText('optional')).toHaveCount(0)
-    await expect(page.getByText('USt-IdNr. des Kunden (optional)')).toHaveCount(0)
+  test('empty optional rows are removed entirely, not left with a bare label', async ({ page }) => {
+    // A printed label with no value reads as an error on a customer's invoice.
+    await expect(page.getByText('Kundennummer')).toBeHidden()
+    await expect(page.locator('.admin-optional:visible')).toHaveCount(0)
   })
 
   test('empty line items are hidden', async ({ page }) => {
     await page.emulateMedia({ media: 'screen' })
     await page.getByRole('button', { name: '+ Position hinzufügen' }).click()
     await page.emulateMedia({ media: 'print' })
-    await expect(page.locator('tr[data-empty="true"]')).toBeHidden()
+    const emptyRow = page.locator('tr[data-empty="true"]')
+    await expect(emptyRow).toHaveCount(1) // the attribute must still be produced
+    await expect(emptyRow).toBeHidden() // and print CSS must still hide it
   })
 
   test('toolbar, tabs and inputs are hidden', async ({ page }) => {
