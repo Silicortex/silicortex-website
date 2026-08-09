@@ -20,6 +20,7 @@ function invoice(patch: Partial<InvoiceDraft> = {}): InvoiceDraft {
     paymentTerms: 'Zahlbar in 14 Tagen.',
     items: [{ description: 'Entwicklung', quantity: 2, unit: 'Std', unitPrice: 80.5, vatRate: 19 }],
     senderSnapshot: null,
+    storedTotals: null,
     ...patch,
   }
 }

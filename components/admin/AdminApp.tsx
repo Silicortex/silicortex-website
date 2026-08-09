@@ -53,7 +53,10 @@ export function AdminApp({
     })
   )
 
-  const totals = useMemo(() => computeTotals(invoice.items), [invoice.items])
+  const liveTotals = useMemo(() => computeTotals(invoice.items), [invoice.items])
+  // An issued invoice prints the figures it was issued with; a draft
+  // recomputes live so edits show up immediately.
+  const totals = invoice.status === 'issued' && invoice.storedTotals ? invoice.storedTotals : liveTotals
 
   const [archive, setArchive] = useState(invoices)
   const [notice, setNotice] = useState<string | null>(null)
@@ -161,7 +164,8 @@ export function AdminApp({
           id: saved.id,
           status: 'issued',
           invoiceNumber: issued.invoiceNumber,
-          senderSnapshot: masterData.invoiceVisible,
+          senderSnapshot: issued.senderSnapshot,
+          storedTotals: liveTotals,
         })
         await refreshArchive()
         setNotice(`Festgeschrieben als ${issued.invoiceNumber}.`)

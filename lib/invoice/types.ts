@@ -1,4 +1,4 @@
-import type { InvoiceItemInput } from './totals.ts'
+import type { InvoiceItemInput, InvoiceTotals } from './totals.ts'
 import type { MasterDataInvoiceVisible } from '../db/masterData.ts'
 
 export type InvoiceStatus = 'draft' | 'issued'
@@ -24,6 +24,13 @@ export type InvoiceDraft = {
    * a later Stammdaten edit would silently rewrite documents already sent.
    */
   senderSnapshot: MasterDataInvoiceVisible | null
+  /**
+   * Totals as stored when the invoice was issued. Null for drafts, which
+   * recompute live. An issued invoice MUST print these rather than recomputing:
+   * a future change to the rounding rules would otherwise silently restate
+   * documents already sent.
+   */
+  storedTotals: InvoiceTotals | null
 }
 
 export type InvoiceSummary = {
@@ -96,5 +103,6 @@ export function emptyInvoice(args: {
     paymentTerms: args.paymentTerms,
     items: [emptyItem(args.vatRate)],
     senderSnapshot: null,
+    storedTotals: null,
   }
 }

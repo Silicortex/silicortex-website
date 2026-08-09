@@ -160,4 +160,34 @@ test('an issued invoice keeps printing its frozen sender after Stammdaten change
   const sheet = page.locator('article')
   await expect(sheet).toContainText('SNAPSHOT Sender Alt')
   await expect(sheet).not.toContainText('SNAPSHOT Sender Neu')
+  // The VAT group line (2 x 80,50 at 19%) comes only from the stored
+  // vat_breakdown -> groups mapping on reload, not from lineNets or the
+  // gross total — this exercises that mapping specifically.
+  await expect(sheet).toContainText('30,59 €')
+})
+
+test('an unsaved Stammdaten edit never reaches an issued invoice', async ({ page }) => {
+  await page.goto('/admin')
+
+  // Save a known sender.
+  await page.getByRole('button', { name: 'Stammdaten' }).click()
+  await page.getByLabel('Name / Firmenbezeichnung').fill('SNAPSHOT Gespeichert')
+  await page.getByRole('button', { name: 'Stammdaten speichern' }).click()
+  await expect(page.getByText('Gespeichert.')).toBeVisible()
+
+  // Type a different one WITHOUT saving, then leave the tab.
+  await page.getByLabel('Name / Firmenbezeichnung').fill('SNAPSHOT Ungespeichert')
+  await page.getByRole('button', { name: 'Rechnung erstellen' }).click()
+
+  await fillInvoice(page, 'Testkunde Unsaved')
+  const number = `E2E-UNSAVED-${Date.now()}`
+  await page.getByLabel('Rechnungsnummer').fill(number)
+  page.once('dialog', (dialog) => dialog.accept())
+  await page.getByRole('button', { name: 'Drucken / PDF' }).click()
+  await expect(page.getByText(new RegExp(`Festgeschrieben als ${number}`))).toBeVisible()
+
+  // The printed sender must match what the database froze — the SAVED value.
+  const sheet = page.locator('article')
+  await expect(sheet).toContainText('SNAPSHOT Gespeichert')
+  await expect(sheet).not.toContainText('SNAPSHOT Ungespeichert')
 })

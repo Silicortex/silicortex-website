@@ -5,7 +5,7 @@ import { sql } from './client.ts'
 // so an `@/` import here breaks every bare-Node verification script in this
 // plan (it reads `@/lib/…` as an invalid bare package name). The rest of
 // `lib/` already imports relatively for the same reason.
-import { computeTotals } from '../invoice/totals.ts'
+import { computeTotals, type VatGroup } from '../invoice/totals.ts'
 import { compareInvoiceNumbers } from '../invoice/numbering.ts'
 import { todayIso } from '../invoice/format.ts'
 import type { InvoiceDraft, InvoiceStatus, InvoiceSummary } from '../invoice/types.ts'
@@ -64,14 +64,14 @@ export async function loadInvoice(id: string): Promise<InvoiceDraft | null> {
            invoice_date::text as invoice_date,
            service_date, customer_number, customer_name, customer_street,
            customer_zip_city, customer_country, customer_vat_id, payment_terms,
-           sender_snapshot
+           sender_snapshot, net_total, vat_total, gross_total, vat_breakdown
     from invoices where id = ${id}
   `
   const r = rows[0]
   if (!r) return null
 
   const items = await sql`
-    select line_no, description, quantity, unit, unit_price, vat_rate
+    select line_no, description, quantity, unit, unit_price, vat_rate, net_amount
     from invoice_items where invoice_id = ${id} order by line_no
   `
 
@@ -98,6 +98,20 @@ export async function loadInvoice(id: string): Promise<InvoiceDraft | null> {
       unitPrice: Number(i.unit_price),
       vatRate: Number(i.vat_rate),
     })),
+    // Null for a draft, so it keeps recomputing live as the owner edits it.
+    // Only an issued invoice prints the figures it was issued with.
+    storedTotals:
+      r.status === 'draft'
+        ? null
+        : {
+            // lineNets are not stored; the items carry their own net_amount, and
+            // the sheet only needs the per-row value it already renders.
+            lineNets: items.map((i) => Number(i.net_amount)),
+            groups: (r.vat_breakdown as VatGroup[] | null) ?? [],
+            netTotal: Number(r.net_total),
+            vatTotal: Number(r.vat_total),
+            grossTotal: Number(r.gross_total),
+          },
   }
 }
 

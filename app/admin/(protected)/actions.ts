@@ -3,7 +3,12 @@
 import { refresh } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { clearSessionCookie, requireSession } from '@/lib/admin/session.ts'
-import { loadMasterData, saveMasterData, type MasterData } from '@/lib/db/masterData.ts'
+import {
+  loadMasterData,
+  saveMasterData,
+  type MasterData,
+  type MasterDataInvoiceVisible,
+} from '@/lib/db/masterData.ts'
 import {
   deleteDraft,
   issueInvoice,
@@ -83,7 +88,10 @@ export async function nextNumberAction(): Promise<string> {
 export async function issueInvoiceAction(
   id: string,
   proposedNumber: string
-): Promise<{ ok: true; invoiceNumber: string } | { ok: false; error: string }> {
+): Promise<
+  | { ok: true; invoiceNumber: string; senderSnapshot: MasterDataInvoiceVisible }
+  | { ok: false; error: string }
+> {
   await requireSession()
 
   // The number is claimed here, never by a draft: that is what keeps the
@@ -108,5 +116,8 @@ export async function issueInvoiceAction(
   }
 
   refresh()
-  return { ok: true, invoiceNumber: number }
+  // The snapshot the DATABASE froze, so the client cannot render a sender that
+  // differs from the record — an unsaved Stammdaten edit lives only in client
+  // state and must not reach the printed document.
+  return { ok: true, invoiceNumber: number, senderSnapshot: masterData.invoiceVisible }
 }
