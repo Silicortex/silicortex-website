@@ -5886,6 +5886,194 @@ invoice now prints its stored totals."
 
 ---
 
+## Task 28: Quantize money and quantity at the input boundary
+
+**Files:** Modify `components/admin/ItemsTable.tsx`; add cases to `lib/invoice/totals.test.ts`
+
+**Why.** `parseNum` commits the raw parsed value into state at full precision, but three consumers
+quantize: the printed price span (`formatAmount`, 2 dp), the printed quantity (`formatQuantity`, 3 dp), and
+the columns `unit_price numeric(12,2)` / `quantity numeric(12,3)`. `computeTotals` then works from the
+unquantized value, so the printed line does not equal printed price × printed quantity. Verified:
+**8 × 0,125 € prints as "8 × 0,13 € = 1,00 €"** — it should read 1,04 €. The database stores the rounded
+price beside the unrounded net, so an issued invoice reprints that contradiction forever.
+
+Worse, a price typed as `0,004` stores as `0.00`, and `validateForPrint`'s `unitPrice > 0` runs again on
+every reprint — so the issued invoice can **never be printed again**.
+
+- [ ] **Step 1: Quantize in `numericCell`'s `onChange`**
+
+```tsx
+          onChange={(e) => {
+            setDrafts((d) => ({ ...d, [key]: e.target.value }))
+            // Quantize to the precision that will actually be printed and
+            // stored, so the printed line always equals printed price ×
+            // printed quantity. Committing full precision makes
+            // 8 × 0,125 € print as "8 × 0,13 € = 1,00 €".
+            const parsed = parseNum(e.target.value)
+            const value = field === 'unitPrice' ? round2(parsed) : round3(parsed)
+            update(index, { [field]: value })
+          }}
+```
+
+Import `round2` from `@/lib/invoice/totals.ts`, and add `round3` beside it, built the same way as
+`round2` so it inherits the same NaN guards and symmetric rounding:
+
+```ts
+/** Quantities are numeric(12,3); the same decimal-string shift as round2. */
+export function round3(value: number): number {
+  if (!Number.isFinite(value)) return 0
+  const away = (n: number) => (n < 0 ? -Math.round(-n) : Math.round(n))
+  const shifted = Number(`${value}e+3`)
+  if (!Number.isFinite(shifted)) return away(value * 1000) / 1000
+  return Number(`${away(shifted)}e-3`)
+}
+```
+
+- [ ] **Step 2: Add the cases that would have caught this**
+
+```ts
+test('round3 quantizes quantities to the stored scale', () => {
+  assert.equal(round3(0.0004), 0)
+  assert.equal(round3(1.23456), 1.235)
+  assert.equal(round3(-1.23456), -1.235)
+  assert.equal(round3(Number.NaN), 0)
+})
+
+// The printed line must equal printed price × printed quantity.
+test('a sub-cent price cannot make the printed line disagree', () => {
+  const totals = computeTotals([
+    { description: 'x', quantity: 8, unit: 'Std', unitPrice: round2(0.125), vatRate: 19 },
+  ])
+  // 0,125 quantizes to 0,13, and 8 × 0,13 = 1,04 — which is what prints.
+  assert.equal(totals.lineNets[0], 1.04)
+})
+```
+
+- [ ] **Step 3: Verify** — `npm test`, `npx tsc --noEmit`, `npm run build`, `npm run lint`. Then type
+`0,125` into a price with quantity 8 in the browser and confirm the field shows `0,13` on blur and the line
+reads `1,04 €`.
+
+---
+
+## Task 29: Validate the sender before an invoice can be issued
+
+**Files:** Modify `lib/invoice/validate.ts`, `lib/invoice/validate.test.ts`, `components/admin/AdminApp.tsx`
+
+**Why.** `validateForPrint` checks the customer, number, dates and line items but never the sender. With
+`master_data` empty — its state right now — issuing produces a permanently frozen invoice with a blank
+sender block and a footer reading `Steuernummer: · USt-IdNr.: ·`. That fails § 14 UStG, and the row is
+immutable by design, so the only remedy is voiding it with another invoice. The database cannot catch it:
+`invoices_issued_complete` only requires `sender_snapshot is not null`, and an all-empty object is non-null.
+Print-time validation is the only place this can be caught. The spec's own Section 7 list omitted the
+sender, so this is a spec defect that shaped the code.
+
+- [ ] **Step 1: Take the sender as a parameter and validate what will actually print**
+
+```ts
+export function validateForPrint(
+  invoice: InvoiceDraft,
+  sender: MasterDataInvoiceVisible,
+  /** Sender fields are enforced only on the draft→issued transition: an
+   *  invoice issued while Stammdaten were incomplete must stay reprintable,
+   *  or it becomes a legal document that can never be produced again. */
+  options: { enforceSender: boolean }
+): string[] {
+```
+
+Add, when `options.enforceSender`:
+
+```ts
+  if (!filled(sender.name)) errors.push('Stammdaten: Name fehlt.')
+  if (!filled(sender.street) || !filled(sender.zipCity)) {
+    errors.push('Stammdaten: eigene Adresse ist unvollständig.')
+  }
+  if (!filled(sender.taxNumber) && !filled(sender.vatId)) {
+    errors.push('Stammdaten: Steuernummer oder USt-IdNr. fehlt (§ 14 UStG).')
+  }
+```
+
+`taxNumber` **or** `vatId` satisfies § 14; requiring both would be wrong.
+
+- [ ] **Step 2: Call it with the sender that will print**
+
+In `AdminApp.printInvoice`:
+
+```tsx
+    const sender =
+      invoice.status === 'issued' && invoice.senderSnapshot
+        ? invoice.senderSnapshot
+        : masterData.invoiceVisible
+    const errors = validateForPrint(invoice, sender, {
+      enforceSender: invoice.status === 'draft',
+    })
+```
+
+- [ ] **Step 3: Tests** — add cases for a missing sender name, an incomplete sender address, neither tax
+number nor VAT ID (an error) and either one alone (no error), and that an **issued** invoice with an empty
+sender still validates, so it stays reprintable. Update the existing fixtures for the new signature.
+
+- [ ] **Step 4: Verify** — `npm test`, `npx tsc --noEmit`, `npm run build`, `npm run lint`,
+`npm run test:e2e`. Then confirm in the browser that issuing with empty Stammdaten is refused with the
+German messages, and that filling only the Steuernummer (no USt-IdNr.) is accepted.
+
+---
+
+## Task 30: Stop the test suite from touching real invoicing data
+
+**Files:** Modify `tests/e2e/db.ts`, `playwright.config.ts` (or add `tests/e2e/guard.setup.ts`),
+`package.json`; document the second connection string in `README.md`
+
+**Why.** `npm run test:e2e` runs against `DATABASE_URL` from `.env.local` — the same database the admin app
+uses. The suite **disables both immutability triggers**, deletes rows, and overwrites `master_data`, with
+`tests/e2e/.auth/master-data-backup.json` as the only copy of the owner's IBAN, tax numbers and
+Sozialversicherungsnummer for the duration of a run. That file is gitignored and untracked, so
+`git clean -xfd` removes it; a crash plus a clean means permanent, silent loss. This is currently harmless
+only because `master_data` is empty and no real invoice exists — which is about to change.
+
+- [ ] **Step 1: A guard that refuses to run against real data**
+
+Before anything else in the suite (a setup project that other projects depend on):
+
+```ts
+import { sql } from '../../lib/db/client.ts'
+
+setup('refuse to run against real invoicing data', async () => {
+  const issued = await sql`
+    select count(*)::int as n from invoices
+    where status = 'issued' and (invoice_number is null or invoice_number not like 'E2E-%')
+  `
+  expect(
+    issued[0].n,
+    'This database holds issued invoices that are not E2E test data. The suite ' +
+      'disables the immutability triggers and overwrites master data — point ' +
+      'E2E_DATABASE_URL at a separate Neon branch instead.'
+  ).toBe(0)
+})
+```
+
+- [ ] **Step 2: A separate connection string**
+
+Have the suite prefer `E2E_DATABASE_URL` and fall back to `DATABASE_URL` **only** when the guard above
+passes. Document in `README.md` how to create a Neon branch for it (`vercel integration` / the Neon
+dashboard) and add it to `.env.local`.
+
+- [ ] **Step 3: Fix the third copy of the master-data column mapping**
+
+`tests/e2e/db.ts` mirrors the `master_data` columns in hand-written SQL. It is the third copy after
+`masterData.ts` and the schema, and drift there makes the teardown restore leave polluted values in real
+data. Either derive the column list from one place or add a test that fails when the counts diverge.
+
+- [ ] **Step 4: Small correctness items from the same review**
+
+- `print.spec.ts` uses the customer name `'Druck Testkunde'`, which `cleanupE2eRows`' `like 'Testkunde%'`
+  does not match. Rename it to `Testkunde Druck`.
+- Add the missing `window.print()` `addInitScript` stub to the one issuing test lacking it.
+
+- [ ] **Step 5: Verify** — with a deliberately non-`E2E-` issued invoice present, confirm the suite refuses
+to start; remove it and confirm the suite runs. Then run it twice consecutively.
+
+---
+
 ## Self-Review
 
 **Spec coverage** — every spec section maps to a task:
