@@ -3,7 +3,9 @@ import { test, expect } from '@playwright/test'
 test.describe('print output', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/admin')
-    await page.getByLabel('Kundenname').fill('Druck Testkunde')
+    // "Testkunde …", not "… Testkunde": cleanupE2eRows removes drafts by
+    // `like 'Testkunde%'`, which a leading "Druck" would silently escape.
+    await page.getByLabel('Kundenname').fill('Testkunde Druck')
     await page.getByLabel('Kundenstraße').fill('Teststr. 1')
     await page.getByLabel('Kunden-PLZ und Ort').fill('65195 Wiesbaden')
     await page.getByLabel('Leistungsdatum oder Leistungszeitraum').fill('Juli 2026')

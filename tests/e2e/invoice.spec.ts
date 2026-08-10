@@ -185,6 +185,12 @@ test('an issued invoice keeps printing its frozen sender after Stammdaten change
 })
 
 test('an unsaved Stammdaten edit never reaches an issued invoice', async ({ page }) => {
+  // Neutralise window.print() so a real print dialog can never hang the run —
+  // same convention as the other two issuing tests.
+  await page.addInitScript(() => {
+    window.print = () => {}
+  })
+
   await page.goto('/admin')
 
   // Save a known sender.

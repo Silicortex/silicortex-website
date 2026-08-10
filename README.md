@@ -69,6 +69,29 @@ npm run dev
 
 Open http://localhost:3000 with your browser to see the result. You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 
+## 🧪 End-to-end tests and the isolated test database
+
+The Playwright suite (`npm run test:e2e`) exercises the real admin app against a real
+Postgres — including destructive operations: it temporarily disables the invoice
+immutability triggers, deletes its own test rows, and overwrites the master data row.
+**It must never run against the invoicing database.**
+
+It therefore uses `E2E_DATABASE_URL`, a separate logical database (`e2e_tests`) on the
+same Neon instance, created with:
+
+```sql
+CREATE DATABASE e2e_tests;  -- then apply db/schema.sql to it via db/migrate.mjs
+```
+
+and stored in `.env.local` as `DATABASE_URL` with the database name swapped to
+`e2e_tests`. `playwright.config.ts` redirects `DATABASE_URL` to it for both the test
+process and the dev server it launches, and `tests/e2e/guard.setup.ts` aborts any run
+whose target database contains non-`E2E-` issued invoices or filled-in personal
+identifiers — so even a missing env var cannot make the suite touch real data.
+
+The suite never reuses a running dev server: one started by hand points at the real
+database, so Playwright always starts its own.
+
 ## 📜 Available Scripts
 
 - `npm run dev`: Starts the local development server.
