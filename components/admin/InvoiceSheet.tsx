@@ -81,6 +81,13 @@ export function InvoiceSheet({
             value={invoice.customerVatId}
             readOnly={readOnly}
             onChange={(v) => set('customerVatId', v)}
+            // A bare tax id under the address reads ambiguously on a document
+            // going to a client, so print names it. The prefix is CONDITIONAL:
+            // .admin-optional hides this row by matching an EMPTY print span,
+            // so an unconditional label would print "USt-IdNr.:" with no value.
+            printValue={
+              invoice.customerVatId.trim() ? `USt-IdNr.: ${invoice.customerVatId}` : ''
+            }
           />
         </div>
       </section>

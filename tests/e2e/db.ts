@@ -3,14 +3,37 @@ import { sql } from '../../lib/db/client.ts'
 import type { MasterData } from '../../lib/db/masterData.ts'
 
 /** The identity of the database we are connected to, for the backup file to
- *  record. Host plus database name is enough to tell the e2e database from the
- *  real one without ever writing a credential to disk. */
+ *  record. Cluster plus database name is enough to tell the e2e database from
+ *  the real one without ever writing a credential to disk.
+ *
+ *  NOT the server address. `inet_server_addr()` reports the address THIS
+ *  connection happened to reach the server on, and `localhost` resolves to
+ *  either 127.0.0.1 or ::1 from one run to the next. The same database
+ *  therefore produced two different identities, and the restore was refused as
+ *  a cross-database replay — leaving master data overwritten, which is the exact
+ *  outcome the check exists to prevent.
+ *
+ *  `system_identifier` is fixed when the cluster is initialised, so it is stable
+ *  across connections. It does NOT distinguish the two databases on its own —
+ *  the e2e database is a separate database in the SAME cluster as the real one,
+ *  so both report the same value and the database name is what separates them. */
 export async function databaseIdentity(): Promise<string> {
-  const rows = await sql`
-    select current_database() as db,
-           coalesce(inet_server_addr()::text, 'local') as host
-  `
-  return `${rows[0].host}/${rows[0].db}`
+  let rows
+  try {
+    rows = await sql`
+      select current_database() as db,
+             (select system_identifier::text from pg_control_system()) as cluster
+    `
+  } catch (error) {
+    // Fail closed. A guessed identity would either refuse every restore or
+    // wave a genuine cross-database replay through.
+    throw new Error(
+      'Cannot determine the database identity, so the master-data backup ' +
+        'cannot be guarded against a cross-database restore. ' +
+        `Underlying error: ${(error as Error).message}`
+    )
+  }
+  return `${rows[0].cluster}/${rows[0].db}`
 }
 
 /** Refuses to proceed unless this database is free of real invoices.

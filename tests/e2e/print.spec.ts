@@ -52,6 +52,47 @@ test.describe('print output', () => {
     await expect(emptyRow).toBeHidden() // and print CSS must still hide it
   })
 
+  test("the customer's USt-IdNr. prints with its label", async ({ page }) => {
+    await page.emulateMedia({ media: 'screen' })
+    await page.getByLabel('USt-IdNr. des Kunden').fill('DE123456789')
+    await page.emulateMedia({ media: 'print' })
+    // A bare "DE123456789" under the address does not say what it is.
+    await expect(page.getByText('USt-IdNr.: DE123456789')).toBeVisible()
+  })
+
+  test('net and VAT print paired per rate, with no 0 % VAT line', async ({ page }) => {
+    await page.emulateMedia({ media: 'screen' })
+    // beforeEach left position 1 at the default 19 %.
+    for (const [n, price, rate] of [[2, '49,90', '7'], [3, '12,00', '0']] as const) {
+      await page.getByRole('button', { name: '+ Position hinzufügen' }).click()
+      await page.getByLabel(`Beschreibung Position ${n}`).fill(`Position ${n}`)
+      await page.getByLabel(`Menge Position ${n}`).fill('1')
+      await page.getByLabel(`Einzelpreis Position ${n}`).fill(price)
+      await page.getByLabel(`Einzelpreis Position ${n}`).blur()
+      await page.getByLabel(`Steuersatz Position ${n}`).selectOption(rate)
+    }
+    await page.emulateMedia({ media: 'print' })
+
+    // The exact printed sequence, not a set of contains-checks: the ORDER is
+    // the fix, so an assertion that ignores it could not fail.
+    const labels = (
+      await page.locator('.admin-sheet table').last().locator('tbody th').allInnerTexts()
+    ).map((t) => t.replace(/\s+/g, ' ').trim())
+    expect(labels).toEqual([
+      'Nettobetrag 0 % USt.',
+      'Nettobetrag 7 % USt.',
+      'zzgl. 7 % USt.',
+      'Nettobetrag 19 % USt.',
+      'zzgl. 19 % USt.',
+      'Gesamt netto',
+      'Gesamtbetrag',
+    ])
+    // The 0 % net line stays, so the bases still reconcile to Gesamt netto.
+    const totals = await page.locator('.admin-sheet table').last().innerText()
+    expect(totals).toContain('12,00')
+    expect(totals).toContain('222,90') // 161,00 + 49,90 + 12,00
+  })
+
   test('toolbar, tabs and inputs are hidden', async ({ page }) => {
     await expect(page.getByRole('button', { name: 'Drucken / PDF' })).toBeHidden()
     await expect(page.getByRole('button', { name: 'Meine Rechnungen' })).toBeHidden()

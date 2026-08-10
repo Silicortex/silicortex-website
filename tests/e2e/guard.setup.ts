@@ -52,6 +52,17 @@ setup('refuse to run against real invoicing data', async () => {
 // column is added, renamed or dropped and the mirror is not updated, the
 // backup/restore would silently restore the owner's row incompletely, which is
 // worse than not restoring at all. This pin fails the whole run instead.
+// A network address is not an identity: `localhost` resolves to 127.0.0.1 or
+// ::1 depending on the run, so an address-derived identity made the same
+// database look like two, and the restore was refused as a cross-database
+// replay — leaving master data overwritten.
+setup('the database identity is stable, not derived from a network address', async () => {
+  const { databaseIdentity } = await import('./db.ts')
+  const identity = await databaseIdentity()
+  expect(identity, 'identity looks like an IP address').not.toMatch(/\d+\.\d+\.\d+\.\d+|::/)
+  expect(await databaseIdentity(), 'identity is not stable').toBe(identity)
+})
+
 setup('the master_data mirror in db.ts has not drifted from the schema', async () => {
   const rows = await sql`
     select column_name from information_schema.columns
