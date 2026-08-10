@@ -87,15 +87,16 @@ export function MasterDataForm({
   }
 
   const row = 'flex flex-col gap-1 sm:flex-row sm:items-center'
-  const labelCls = 'w-72 shrink-0 text-sm text-gray-600'
-  const inputCls = 'w-full rounded border border-gray-300 bg-white px-2 py-1 text-sm'
+  const labelCls = 'w-72 shrink-0 text-sm text-slate-600'
+  const inputCls =
+    'w-full rounded-lg border border-black/8 bg-white px-2.5 py-1.5 text-sm text-slate-900 transition focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/25'
 
   return (
     <div className="mx-auto max-w-3xl px-6 py-8">
       <h2 className="admin-accent mb-6 text-lg font-semibold">Stammdaten</h2>
 
-      <fieldset className="mb-8 flex flex-col gap-3">
-        <legend className="mb-2 text-sm font-semibold">Angaben auf der Rechnung</legend>
+      <fieldset className="mb-6 flex flex-col gap-3 rounded-2xl border border-black/8 bg-white/85 p-5 shadow-sm shadow-slate-950/5 backdrop-blur-sm">
+        <legend className="px-1.5 text-[10px] font-bold uppercase tracking-widest text-slate-400">Angaben auf der Rechnung</legend>
         {VISIBLE_FIELDS.map((f) => (
           <div key={f.key} className={row}>
             <label className={labelCls} htmlFor={`md-${f.key}`}>{f.label}</label>
@@ -154,8 +155,8 @@ export function MasterDataForm({
         </div>
       </fieldset>
 
-      <fieldset className="mb-8 flex flex-col gap-3">
-        <legend className="mb-2 text-sm font-semibold">Bankverbindung</legend>
+      <fieldset className="mb-6 flex flex-col gap-3 rounded-2xl border border-black/8 bg-white/85 p-5 shadow-sm shadow-slate-950/5 backdrop-blur-sm">
+        <legend className="px-1.5 text-[10px] font-bold uppercase tracking-widest text-slate-400">Bankverbindung</legend>
         {BANK_FIELDS.map((f) => (
           <div key={f.key} className={row}>
             <label className={labelCls} htmlFor={`md-${f.key}`}>{f.label}</label>
@@ -169,10 +170,10 @@ export function MasterDataForm({
         ))}
       </fieldset>
 
-      <fieldset className="mb-8 flex flex-col gap-3 rounded border border-amber-300 bg-amber-50 p-4">
-        <legend className="flex items-center gap-2 text-sm font-semibold">
+      <fieldset className="mb-6 flex flex-col gap-3 rounded-2xl border border-amber-300/70 bg-amber-50/90 p-5">
+        <legend className="flex items-center gap-2 px-1.5 text-[10px] font-bold uppercase tracking-widest text-amber-700">
           Nur zur Ablage — erscheint nie auf einer Rechnung
-          <span className="rounded bg-amber-200 px-1.5 py-0.5 text-[10px] font-bold uppercase text-amber-900">
+          <span className="rounded-full bg-amber-200 px-2 py-0.5 text-[10px] font-bold uppercase tracking-widest text-amber-900">
             intern
           </span>
         </legend>
@@ -194,11 +195,11 @@ export function MasterDataForm({
           type="button"
           onClick={save}
           disabled={saving}
-          className="rounded bg-[#1f5f4f] px-4 py-2 text-sm font-medium text-white disabled:opacity-60"
+          className="rounded-full bg-blue-600 px-5 py-2 text-sm font-medium text-white shadow-sm shadow-blue-600/25 transition hover:bg-blue-500 disabled:opacity-60"
         >
           {saving ? 'Speichere …' : 'Stammdaten speichern'}
         </button>
-        {status && <span className="text-sm text-gray-600">{status}</span>}
+        {status && <span className="text-sm text-slate-600">{status}</span>}
       </div>
     </div>
   )

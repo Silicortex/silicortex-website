@@ -1,22 +1,49 @@
-/* Admin-only styles. Light-only by design: the invoice is white paper. */
+/* Admin-only styles, in the Silicortex brand language: Geist type, slate
+ * palette, blue-500 accent, hairline borders, mono numerals.
+ *
+ * Light-only by DESIGN, not omission: the invoice is white paper, and every
+ * print rule below depends on rendering it as such. Do not add dark mode here.
+ */
 .admin-root {
+  --acc: #3b82f6; /* blue-500 — siteConfig.themeColors.accent */
+  --acc-deep: #2563eb; /* blue-600 for text on white (contrast) */
+  --ink: #0f172a; /* slate-900 */
+  --line: rgba(2, 6, 23, 0.08); /* the site's hairline border */
+
   color-scheme: light;
   min-height: 100dvh;
-  background: #f1f5f4;
-  color: #111827;
-  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  /* The machine-room atmosphere: one soft brand glow (echoing the Hero's
+     radial glows) over a faint blueprint dot grid, on slate-100. All of it is
+     screen-only — print flattens to white below. */
+  background:
+    radial-gradient(60rem 26rem at 85% -8%, rgba(59, 130, 246, 0.08), transparent 60%),
+    radial-gradient(rgba(15, 23, 42, 0.055) 1px, transparent 1px) 0 0 / 22px 22px,
+    #f1f5f9;
+  color: var(--ink);
+  font-family: var(--font-geist-sans), system-ui, -apple-system, "Segoe UI", sans-serif;
 }
 
 .admin-accent {
-  color: #1f5f4f;
+  color: var(--acc-deep);
+}
+
+/* Every amount cell already carries Tailwind's `tabular-nums`; piggyback on it
+ * so all money and meta numerals render in Geist Mono — the site's
+ * engineering voice — without touching each cell. Prints too, deliberately. */
+.admin-root .tabular-nums {
+  font-family: var(--font-geist-mono), ui-monospace, SFMono-Regular, monospace;
+  font-size: 0.92em;
 }
 
 .admin-sheet {
   width: 840px;
   max-width: 100%;
   background: #fff;
-  border: 1px solid #e2e8e6;
-  box-shadow: 0 1px 3px rgb(0 0 0 / 8%);
+  border: 1px solid var(--line);
+  /* The one brand mark that reaches paper: a blue rule at the head of the
+     document. Everything else on the sheet stays businesslike. */
+  border-top: 3px solid var(--acc-deep);
+  box-shadow: 0 24px 60px -28px rgba(2, 6, 23, 0.25), 0 1px 3px rgba(2, 6, 23, 0.06);
   padding: 48px 56px;
 }
 
@@ -28,12 +55,13 @@
   padding: 2px 4px;
   font: inherit;
   color: inherit;
+  border-radius: 6px;
 }
 .admin-field:hover {
-  background: #f3f6f5;
+  background: rgba(59, 130, 246, 0.06);
 }
 .admin-field:focus {
-  outline: 2px solid #1f5f4f;
+  outline: 2px solid var(--acc);
   outline-offset: 0;
   background: #fff;
 }
@@ -57,8 +85,10 @@
   .admin-sheet {
     width: auto;
     border: 0;
+    /* The brand rule survives onto paper. */
+    border-top: 3px solid var(--acc-deep);
     box-shadow: none;
-    padding: 0;
+    padding: 24px 0 0;
   }
   .admin-field {
     display: none;

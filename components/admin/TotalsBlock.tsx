@@ -10,7 +10,7 @@ export function TotalsBlock({ totals }: { totals: InvoiceTotals }) {
         <tbody>
           {totals.groups.map((group) => (
             <tr key={group.rate}>
-              <th scope="row" className="py-0.5 pr-6 text-left font-normal text-gray-600">
+              <th scope="row" className="py-0.5 pr-6 text-left font-normal text-slate-500">
                 Nettobetrag {formatQuantity(group.rate)} % USt.
               </th>
               <td className="py-0.5 text-right tabular-nums">{formatCurrency(group.net)}</td>
@@ -18,19 +18,19 @@ export function TotalsBlock({ totals }: { totals: InvoiceTotals }) {
           ))}
           {totals.groups.map((group) => (
             <tr key={`vat-${group.rate}`}>
-              <th scope="row" className="py-0.5 pr-6 text-left font-normal text-gray-600">
+              <th scope="row" className="py-0.5 pr-6 text-left font-normal text-slate-500">
                 zzgl. {formatQuantity(group.rate)} % USt.
               </th>
               <td className="py-0.5 text-right tabular-nums">{formatCurrency(group.vat)}</td>
             </tr>
           ))}
-          <tr className="border-t border-gray-300">
-            <th scope="row" className="py-1 pr-6 text-left font-normal text-gray-600">
+          <tr className="border-t border-black/15">
+            <th scope="row" className="py-1 pr-6 text-left font-normal text-slate-500">
               Gesamt netto
             </th>
             <td className="py-1 text-right tabular-nums">{formatCurrency(totals.netTotal)}</td>
           </tr>
-          <tr className="border-t-2 border-gray-800">
+          <tr className="border-t-2 border-slate-900">
             <th scope="row" className="py-1.5 pr-6 text-left font-semibold">
               Gesamtbetrag
             </th>

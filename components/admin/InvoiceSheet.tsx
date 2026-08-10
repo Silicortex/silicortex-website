@@ -30,7 +30,7 @@ export function InvoiceSheet({
   }
 
   const metaRow = 'flex gap-2'
-  const metaLabel = 'w-40 shrink-0 text-gray-600'
+  const metaLabel = 'w-40 shrink-0 text-slate-500'
 
   return (
     <article className="admin-sheet mx-auto my-8 text-sm">
@@ -42,7 +42,7 @@ export function InvoiceSheet({
           <p>{sender.zipCity}</p>
           <p>{sender.country}</p>
         </div>
-        <h2 className="admin-accent text-2xl font-semibold tracking-wide">RECHNUNG</h2>
+        <h2 className="admin-accent text-2xl font-bold tracking-[0.2em]">RECHNUNG</h2>
       </header>
 
       <section className="mt-12 leading-relaxed">
@@ -161,7 +161,7 @@ export function InvoiceSheet({
         </div>
       </section>
 
-      <footer className="mt-12 border-t border-gray-200 pt-3 text-xs leading-relaxed text-gray-600">
+      <footer className="mt-12 border-t border-black/10 pt-3 text-xs leading-relaxed text-slate-500">
         <p>
           {sender.name} · {sender.street} · {sender.zipCity}
         </p>

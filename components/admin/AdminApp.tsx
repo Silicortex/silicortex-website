@@ -190,26 +190,32 @@ export function AdminApp({
 
   return (
     <>
-      <nav className="admin-no-print flex gap-1 border-b border-gray-200 bg-white px-6">
-        {TABS.map((t) => (
-          <button
-            key={t.id}
-            type="button"
-            onClick={() => setTab(t.id)}
-            aria-current={tab === t.id ? 'page' : undefined}
-            className={
-              tab === t.id
-                ? 'border-b-2 border-[#1f5f4f] px-4 py-3 text-sm font-semibold text-[#1f5f4f]'
-                : 'px-4 py-3 text-sm text-gray-500'
-            }
-          >
-            {t.label}
-          </button>
-        ))}
+      <nav className="admin-no-print border-b border-black/8 bg-white/70 backdrop-blur-sm">
+        <div className="mx-auto flex max-w-7xl gap-1 px-4 sm:px-6">
+          {TABS.map((t) => (
+            <button
+              key={t.id}
+              type="button"
+              onClick={() => setTab(t.id)}
+              aria-current={tab === t.id ? 'page' : undefined}
+              className={
+                tab === t.id
+                  ? 'relative px-4 py-3 text-sm font-semibold text-slate-900'
+                  : 'px-4 py-3 text-sm text-slate-500 transition hover:text-slate-900'
+              }
+            >
+              {t.label}
+              {tab === t.id && (
+                // The site navbar's active marker: a hairline of brand blue.
+                <span className="absolute inset-x-3 -bottom-px h-px bg-blue-500" />
+              )}
+            </button>
+          ))}
+        </div>
       </nav>
 
       {notice && (
-        <p className="admin-no-print mx-auto max-w-[840px] px-6 pt-4 text-sm text-gray-600" role="status">
+        <p className="admin-no-print mx-auto max-w-[840px] px-6 pt-4 text-sm text-slate-600" role="status">
           {notice}
         </p>
       )}
@@ -221,7 +227,7 @@ export function AdminApp({
               type="button"
               onClick={saveToArchive}
               disabled={busy || invoice.status === 'issued'}
-              className="rounded bg-[#1f5f4f] px-4 py-2 text-sm font-medium text-white disabled:opacity-60"
+              className="rounded-full bg-blue-600 px-5 py-2 text-sm font-medium text-white shadow-sm shadow-blue-600/25 transition hover:bg-blue-500 disabled:opacity-60"
             >
               {busy ? 'Speichere …' : 'Ins Archiv legen'}
             </button>
@@ -229,7 +235,7 @@ export function AdminApp({
               type="button"
               onClick={printInvoice}
               disabled={busy}
-              className="rounded border border-[#1f5f4f] px-4 py-2 text-sm font-medium text-[#1f5f4f] disabled:opacity-60"
+              className="rounded-full border border-black/10 bg-white px-5 py-2 text-sm font-medium text-slate-700 transition hover:border-blue-500/50 hover:text-blue-600 disabled:opacity-60"
             >
               Drucken / PDF
             </button>
@@ -237,7 +243,7 @@ export function AdminApp({
           {printErrors.length > 0 && (
             <div
               role="alert"
-              className="admin-no-print mx-auto mt-3 max-w-[840px] rounded border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-800"
+              className="admin-no-print mx-auto mt-3 max-w-[840px] rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800"
             >
               <p className="mb-1 font-semibold">Die Rechnung ist noch nicht vollständig:</p>
               <ul className="list-inside list-disc">

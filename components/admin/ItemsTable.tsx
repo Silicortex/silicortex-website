@@ -85,7 +85,7 @@ export function ItemsTable({
     <div className="mt-8">
       <table className="w-full text-sm">
         <thead>
-          <tr className="border-b border-gray-300 text-left text-xs uppercase text-gray-500">
+          <tr className="border-b border-black/10 text-left text-[10px] font-bold uppercase tracking-widest text-slate-400">
             <th className="w-10 py-1 font-medium">Pos.</th>
             <th className="py-1 font-medium">Beschreibung</th>
             {/* pr-3: right-aligned "Menge" otherwise butts straight against
@@ -102,10 +102,10 @@ export function ItemsTable({
           {items.map((item, index) => (
             <tr
               key={index}
-              className="border-b border-gray-100 align-top"
+              className="border-b border-black/5 align-top"
               data-empty={item.description.trim() === '' && item.unitPrice === 0 ? 'true' : undefined}
             >
-              <td className="py-1 text-gray-500">{index + 1}</td>
+              <td className="py-1 font-mono text-xs text-slate-400">{index + 1}</td>
               <td className="py-1">
                 <EditableField
                   ariaLabel={`Beschreibung Position ${index + 1}`}
@@ -147,7 +147,7 @@ export function ItemsTable({
                     type="button"
                     aria-label={`Position ${index + 1} löschen`}
                     onClick={() => removeRow(index)}
-                    className="px-1 text-gray-400 hover:text-red-700"
+                    className="px-1 text-slate-400 transition hover:text-red-600"
                   >
                     ✕
                   </button>
@@ -162,7 +162,7 @@ export function ItemsTable({
         <button
           type="button"
           onClick={() => onChange([...items, emptyItem(defaultVatRate)])}
-          className="admin-no-print mt-3 text-sm text-[#1f5f4f] underline"
+          className="admin-no-print mt-3 text-sm text-blue-600 underline decoration-blue-300 underline-offset-4 transition hover:text-blue-500"
         >
           + Position hinzufügen
         </button>

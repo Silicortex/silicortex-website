@@ -10,7 +10,10 @@ export function LoginForm() {
 
   return (
     <form action={action} className="flex flex-col gap-3">
-      <label htmlFor="password" className="text-sm font-medium">
+      <label
+        htmlFor="password"
+        className="text-[10px] font-bold uppercase tracking-widest text-slate-400"
+      >
         Passwort
       </label>
       <input
@@ -20,12 +23,12 @@ export function LoginForm() {
         autoComplete="current-password"
         autoFocus
         required
-        className="rounded border border-gray-300 bg-white px-3 py-2"
+        className="rounded-lg border border-black/8 bg-white px-3 py-2 text-slate-900 transition focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/25"
       />
       <button
         type="submit"
         disabled={pending}
-        className="rounded bg-[#1f5f4f] px-3 py-2 font-medium text-white disabled:opacity-60"
+        className="mt-1 rounded-full bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm shadow-blue-600/25 transition hover:bg-blue-500 disabled:opacity-60"
       >
         {pending ? 'Prüfe …' : 'Anmelden'}
       </button>
