@@ -140,6 +140,34 @@ test('an issued invoice cannot be edited or deleted', async ({ page }) => {
   await expect(page.getByText(new RegExp(`Festgeschriebene Rechnungen:\\s*${before + 1}$`))).toBeVisible()
 })
 
+test('a number already issued cannot be claimed by another invoice', async ({ page }) => {
+  await page.addInitScript(() => {
+    window.print = () => {}
+  })
+  await page.goto('/admin')
+  await saveSender(page, 'E2E Sender Duplicate')
+
+  const taken = `E2E-DUP-${RUN}`
+  await page.getByRole('button', { name: 'Rechnung erstellen' }).click()
+  await fillInvoice(page, `Testkunde Dup A ${RUN}`)
+  await page.getByLabel('Rechnungsnummer').fill(taken)
+  page.once('dialog', (dialog) => dialog.accept())
+  await page.getByRole('button', { name: 'Drucken / PDF' }).click()
+  await expect(page.getByText(`Festgeschrieben als ${taken}.`)).toBeVisible()
+
+  // A second invoice typed with the same number must be refused outright.
+  await page.reload()
+  await fillInvoice(page, `Testkunde Dup B ${RUN}`)
+  await page.getByLabel('Rechnungsnummer').fill(taken)
+  page.once('dialog', (dialog) => dialog.accept())
+  await page.getByRole('button', { name: 'Drucken / PDF' }).click()
+
+  await expect(page.getByText(`Die Rechnungsnummer ${taken} ist bereits vergeben.`)).toBeVisible()
+  // Rejected WHOLE: it is still an editable draft, not a half-issued document.
+  await expect(page.getByLabel('Kundenname')).not.toHaveAttribute('readonly', '')
+  await expect(page.getByRole('button', { name: 'Ins Archiv legen' })).toBeEnabled()
+})
+
 test('a Storno is a new GS- document that references the original', async ({ page }) => {
   await page.addInitScript(() => {
     window.print = () => {}

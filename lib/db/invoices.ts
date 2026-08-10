@@ -259,13 +259,23 @@ export async function issueInvoice(
 ): Promise<{ ok: true } | { ok: false; error: 'number_taken' | 'not_draft' }> {
   const parsed = parseInvoiceNumber(invoiceNumber)
   try {
-    // One transaction, because the two halves must not be able to disagree: an
-    // invoice issued without its journal entry would have a reusable number, and
-    // a journal entry without an invoice would be an unexplained burn.
-    const results = await sql.transaction([
-      // OLD.status is still 'draft' here, so the immutability trigger allows
-      // exactly this one transition and nothing after it.
-      sql`
+    // ONE statement, with the journal insert reading from the UPDATE's own
+    // RETURNING rows. The two halves must not be able to disagree: an invoice
+    // issued without its journal entry would have a reusable number, and a
+    // journal entry without an invoice would be an unexplained burn.
+    //
+    // A two-statement transaction was verified insufficient. Guarding the insert
+    // with `where exists (… and status = 'issued')` looks equivalent but is not:
+    // issuing the same invoice a second time under a DIFFERENT number left the
+    // update matching nothing while the guard still passed — satisfied by the
+    // FIRST issue — so the second number was burned against an invoice that
+    // carries neither it nor any explanation. Reading from the update's output
+    // cannot make that mistake: no rows updated, no rows inserted.
+    //
+    // OLD.status is still 'draft' in the update, so the immutability trigger
+    // allows exactly this one transition and nothing after it.
+    const rows = await sql`
+      with issued as (
         update invoices set
           status = 'issued',
           invoice_number = ${invoiceNumber},
@@ -274,21 +284,15 @@ export async function issueInvoice(
           updated_at = now()
         where id = ${id} and status = 'draft'
         returning id
-      `,
-      // `where exists` rather than an unconditional insert: if the update above
-      // matched nothing (already issued, or gone), this must not burn the number
-      // on an invoice that was never written.
-      sql`
-        insert into issued_numbers (number, prefix, year, seq, invoice_id, reason)
-        select ${invoiceNumber}, ${parsed?.prefix ?? null}, ${parsed?.year ?? null},
-               ${parsed?.seq ?? null}, ${id}, ''
-        where exists (
-          select 1 from invoices where id = ${id} and status = 'issued'
-        )
-      `,
-    ])
+      )
+      insert into issued_numbers (number, prefix, year, seq, invoice_id, reason)
+      select ${invoiceNumber}, ${parsed?.prefix ?? null}, ${parsed?.year ?? null},
+             ${parsed?.seq ?? null}, issued.id, ''
+      from issued
+      returning number
+    `
 
-    if ((results[0] as unknown[]).length === 0) return { ok: false, error: 'not_draft' }
+    if (rows.length === 0) return { ok: false, error: 'not_draft' }
     return { ok: true }
   } catch (error) {
     // Matched by SQLSTATE alone. The previous version also matched the string

@@ -344,3 +344,75 @@ test('a Storno is a separate invoice that points at the original', async () => {
     /immutable|issued/i
   )
 })
+
+// Mirrors the single statement in lib/db/invoices.ts `issueInvoice`. It is
+// reproduced here rather than imported because that module is server-only, and
+// the guarantee is a property of the SQL: the journal insert reads from the
+// UPDATE's own RETURNING rows, so no rows updated means no rows inserted.
+//
+// This exists because the obvious two-statement version was verified WRONG. With
+// `insert … where exists (select 1 from invoices where id = $1 and status =
+// 'issued')`, issuing the same invoice a second time under a different number
+// left the update matching nothing while the guard still passed — satisfied by
+// the FIRST issue — and burned the second number against an invoice that carries
+// neither it nor any explanation.
+async function issue(db, id, number) {
+  const result = await db.query(
+    `with issued as (
+       update invoices set status = 'issued', invoice_number = $2,
+              issued_at = now(), sender_snapshot = '{}'::jsonb, updated_at = now()
+       where id = $1 and status = 'draft'
+       returning id
+     )
+     insert into issued_numbers (number, prefix, year, seq, invoice_id, reason)
+     select $2, 'RE', 2026, $3, issued.id, '' from issued
+     returning number`,
+    [id, number, Number(number.slice(-3))]
+  )
+  return result.rows.length > 0
+}
+
+test('issuing twice cannot burn a second number', async () => {
+  const db = await freshDb()
+  const draft = await db.query(
+    `insert into invoices (invoice_date, customer_name) values ('2026-08-10', 'A') returning id`
+  )
+  const id = draft.rows[0].id
+
+  assert.equal(await issue(db, id, 'RE-2026-001'), true)
+
+  // The same invoice again, under a DIFFERENT number. The update matches nothing
+  // because the row is no longer a draft, so nothing may be journalled.
+  assert.equal(await issue(db, id, 'RE-2026-002'), false)
+
+  const journal = await db.query('select number from issued_numbers order by number')
+  assert.deepEqual(
+    journal.rows.map((r) => r.number),
+    ['RE-2026-001'],
+    'RE-2026-002 was burned against an invoice that does not carry it'
+  )
+  // And the invoice still carries the number it was actually issued under.
+  const invoice = await db.query('select invoice_number from invoices where id = $1', [id])
+  assert.equal(invoice.rows[0].invoice_number, 'RE-2026-001')
+})
+
+test('a draft claiming an already-issued number is rejected whole', async () => {
+  const db = await freshDb()
+  const first = await db.query(
+    `insert into invoices (invoice_date, customer_name) values ('2026-08-10', 'A') returning id`
+  )
+  const second = await db.query(
+    `insert into invoices (invoice_date, customer_name) values ('2026-08-10', 'B') returning id`
+  )
+  assert.equal(await issue(db, first.rows[0].id, 'RE-2026-001'), true)
+
+  await assert.rejects(
+    () => issue(db, second.rows[0].id, 'RE-2026-001'),
+    /duplicate key|unique/i
+  )
+  // Nothing partial survived: the loser is still a draft with no number.
+  const loser = await db.query('select status, invoice_number from invoices where id = $1', [
+    second.rows[0].id,
+  ])
+  assert.deepEqual(loser.rows[0], { status: 'draft', invoice_number: null })
+})
