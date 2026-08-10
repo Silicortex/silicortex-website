@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { computeTotals, round2, type InvoiceItemInput } from './totals.ts'
+import { computeTotals, round2, round3, type InvoiceItemInput } from './totals.ts'
 
 function item(partial: Partial<InvoiceItemInput>): InvoiceItemInput {
   return { description: 'Leistung', quantity: 1, unit: 'Std', unitPrice: 0, vatRate: 19, ...partial }
@@ -120,4 +120,35 @@ test('computes VAT per rate group, not per line', () => {
 test('an empty invoice is all zeros', () => {
   const totals = computeTotals([])
   assert.deepEqual(totals, { lineNets: [], groups: [], netTotal: 0, vatTotal: 0, grossTotal: 0 })
+})
+
+test('round3 quantizes quantities to the stored scale', () => {
+  assert.equal(round3(0.0004), 0)
+  assert.equal(round3(1.23456), 1.235)
+  assert.equal(round3(-1.23456), -1.235)
+  assert.equal(round3(1.0005), 1.001)
+  assert.equal(round3(Number.NaN), 0)
+  assert.equal(round3(Number.POSITIVE_INFINITY), 0)
+  assert.equal(round3(2), 2)
+})
+
+// The defect this guards: the raw parsed value went into state while the print
+// span and the numeric(12,2) column both rounded, so the printed line did not
+// equal printed price x printed quantity. 8 x 0,125 EUR printed as
+// "8 x 0,13 EUR = 1,00 EUR" while any reader computes 1,04 EUR.
+test('a quantized price makes the printed line self-consistent', () => {
+  const price = round2(0.125) // what the field shows and the column stores
+  assert.equal(price, 0.13)
+  const totals = computeTotals([
+    { description: 'x', quantity: 8, unit: 'Std', unitPrice: price, vatRate: 19 },
+  ])
+  assert.equal(totals.lineNets[0], 1.04)
+  assert.equal(totals.netTotal, 1.04)
+})
+
+test('a sub-cent price rounds to zero rather than storing an invisible value', () => {
+  // 0,004 would store as 0.00 in numeric(12,2) while state held 0.004, so the
+  // print validation's `unitPrice > 0` passed at issue time and failed on every
+  // later reprint — an issued invoice that could never be printed again.
+  assert.equal(round2(0.004), 0)
 })

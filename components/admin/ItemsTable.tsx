@@ -5,6 +5,7 @@ import { EditableField } from './EditableField.tsx'
 import { formatAmount, formatCurrency, formatQuantity } from '@/lib/invoice/format.ts'
 import { parseNum } from '@/lib/invoice/parseNum.ts'
 import { emptyItem } from '@/lib/invoice/types.ts'
+import { round2, round3 } from '@/lib/invoice/totals.ts'
 import type { InvoiceItemInput } from '@/lib/invoice/totals.ts'
 
 const VAT_RATES = [19, 7, 0]
@@ -54,7 +55,17 @@ export function ItemsTable({
           value={raw ?? display(items[index][field])}
           onChange={(e) => {
             setDrafts((d) => ({ ...d, [key]: e.target.value }))
-            update(index, { [field]: parseNum(e.target.value) })
+            // Quantize to the precision that will actually be printed and
+            // stored — money to 2 decimals, quantity to 3 — so the printed
+            // line always equals printed price × printed quantity. Committing
+            // the raw parsed value made 8 × 0,125 € print as
+            // "8 × 0,13 € = 1,00 €" while any reader computes 1,04 €, and the
+            // database stored the rounded price beside the unrounded net, so
+            // an issued invoice reprinted that contradiction forever.
+            const parsed = parseNum(e.target.value)
+            update(index, {
+              [field]: field === 'unitPrice' ? round2(parsed) : round3(parsed),
+            })
           }}
           onBlur={() => {
             // Rewrite the field in German formatting on blur.

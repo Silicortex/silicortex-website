@@ -6,6 +6,19 @@ export type InvoiceItemInput = {
   vatRate: number
 }
 
+/**
+ * Quantities are stored as `numeric(12,3)` and printed with at most three
+ * decimals, so they must be quantized to that scale on entry. Built the same
+ * way as `round2` so it inherits the same NaN guards and symmetric rounding.
+ */
+export function round3(value: number): number {
+  if (!Number.isFinite(value)) return 0
+  const away = (n: number) => (n < 0 ? -Math.round(-n) : Math.round(n))
+  const shifted = Number(`${value}e+3`)
+  if (!Number.isFinite(shifted)) return away(value * 1000) / 1000
+  return Number(`${away(shifted)}e-3`)
+}
+
 export type VatGroup = { rate: number; net: number; vat: number }
 
 export type InvoiceTotals = {
