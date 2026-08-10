@@ -1,0 +1,77 @@
+/* Admin-only styles. Light-only by design: the invoice is white paper. */
+.admin-root {
+  color-scheme: light;
+  min-height: 100dvh;
+  background: #f1f5f4;
+  color: #111827;
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+.admin-accent {
+  color: #1f5f4f;
+}
+
+.admin-sheet {
+  width: 840px;
+  max-width: 100%;
+  background: #fff;
+  border: 1px solid #e2e8e6;
+  box-shadow: 0 1px 3px rgb(0 0 0 / 8%);
+  padding: 48px 56px;
+}
+
+/* Fields read as plain text and only reveal themselves on hover. */
+.admin-field {
+  width: 100%;
+  background: transparent;
+  border: 0;
+  padding: 2px 4px;
+  font: inherit;
+  color: inherit;
+}
+.admin-field:hover {
+  background: #f3f6f5;
+}
+.admin-field:focus {
+  outline: 2px solid #1f5f4f;
+  outline-offset: 0;
+  background: #fff;
+}
+
+/* Print twins: the span is the printed representation of every field. */
+.admin-print-only {
+  display: none;
+  white-space: pre-wrap;
+}
+
+@media print {
+  @page {
+    margin: 16mm 14mm;
+  }
+  .admin-root {
+    background: #fff;
+  }
+  .admin-no-print {
+    display: none !important;
+  }
+  .admin-sheet {
+    width: auto;
+    border: 0;
+    box-shadow: none;
+    padding: 0;
+  }
+  .admin-field {
+    display: none;
+  }
+  .admin-print-only {
+    display: block;
+  }
+  /* Optional fields left empty must not print an empty label row. */
+  .admin-optional:has(.admin-print-only:empty) {
+    display: none;
+  }
+  /* Line items with no description and no price. */
+  tr[data-empty='true'] {
+    display: none;
+  }
+}

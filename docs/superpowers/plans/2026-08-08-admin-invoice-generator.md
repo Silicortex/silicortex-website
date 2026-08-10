@@ -15,12 +15,15 @@
 - **This repository is PUBLIC.** No tax number, IBAN, USt-IdNr, Steuer-IdNr, Sozialversicherungsnummer, birth date, password or connection string may appear in any committed file, including tests and fixtures. Master data is typed into the UI by the owner and lives only in the database.
 - **Next.js 16 APIs, verified against `node_modules/next/dist/docs/`:** `cookies()` must be awaited. `middleware.ts` no longer exists — it is `proxy.ts`, and this plan deliberately does not use it. Post-mutation refresh is `refresh()` from `next/cache`.
 - **`requireSession()` is the first statement of every Server Action.** Server Actions are POST endpoints reachable directly; a layout gate does not protect them.
+- **`requireSession()` must never sit inside a `try`/`catch`.** `redirect()` works by throwing a `NEXT_REDIRECT` error, and the shipped Next docs warn it must be called outside `try`/`catch`. An action written as `try { await requireSession(); … } catch { return { ok: false } }` would swallow the redirect and **continue executing unauthenticated** — the gate would appear to work while protecting nothing. Every action in this plan therefore calls `requireSession()` as a bare first statement, with the `try` opening only afterwards. Do not "tidy" an action by wrapping the whole body.
 - **Never `<input type="number">` for money or quantity.** German decimal input (`80,50`) is discarded by that control. Always `type="text" inputmode="decimal"` + `parseNum`.
-- **Money is `numeric` in Postgres and never a float in arithmetic.** The Neon driver returns `numeric` columns as **strings** — every read parses explicitly.
+- **Money is `numeric` in Postgres and never a float in arithmetic.** The Neon driver returns `numeric` columns as **strings** — every read parses explicitly. Verified against the live database: `quantity` came back as `"2.000"` and `unit_price` as `"80.50"`.
+- **Every `date` column must be selected as `::text`.** Verified against the live database: the driver parses a `date` into a `Date` at **local** midnight, so a stored `2026-08-08` arrives as `2026-08-07T22:00:00.000Z` in CEST. Both obvious readings are wrong — `String(value).slice(0, 10)` gives `"Sat Aug 08"`, and `value.toISOString().slice(0, 10)` gives `"2026-08-07"`, one day early on a legally dated document. `select invoice_date::text` returns `"2026-08-08"` correctly. `timestamptz` columns (`created_at`, `issued_at`) may stay as `Date` objects; `jsonb` arrives already parsed.
 - **VAT is computed per rate group, never per line:** round each line net to 2 decimals, group by rate, `round2(groupNet × rate / 100)`.
 - **UI text is German. Code, comments, commit messages, test names are English.** Admin strings are hard-coded German and must NOT be added to `lib/dictionaries/`.
 - **Admin is light-only.** No `next-themes`, no Framer Motion, no marketing navbar or footer under `/admin`.
 - **Ordering note:** this plan swaps spec §9 phases 2 and 3. Login's attempt-limiting table requires the database, so Postgres is provisioned first.
+- **`server-only` and bare-Node scripts.** Server modules are marked with `import 'server-only'` so a stray client import can never bundle database credentials into the browser. Next resolves that specifier through its own alias, but **bare Node throws by design** ("This module cannot be imported from a Client Component module"), which would break every verification script in this plan. Two consequences, both verified here: `server-only` is an explicit dependency in `package.json` (it is otherwise absent from `node_modules`, since Next uses a compiled copy), and every bare-Node command that imports a repository module runs with **`--conditions=react-server`**, which resolves the specifier to its empty stub. Do not "fix" a script by deleting the `server-only` import — the flag is the fix.
 - Every task ends with `npm run build` and `npm run lint` clean unless the task says otherwise.
 
 ## File Structure
@@ -411,7 +414,7 @@ export const sql = neon(databaseUrl())
 - [ ] **Step 9: Smoke-test the client against the real database**
 
 ```bash
-node --env-file=.env.local --experimental-strip-types -e "
+node --env-file=.env.local --conditions=react-server --experimental-strip-types -e "
 const { sql } = await import('./lib/db/client.ts');
 const rows = await sql\`select id, name from master_data\`;
 console.log(rows);
@@ -699,7 +702,7 @@ Algorithm is pinned so alg:none and confusion attacks are rejected."
   - `createSessionCookie(): Promise<void>`
   - `clearSessionCookie(): Promise<void>`
 
-Not unit-testable — it depends on the request scope. Task 12's Playwright specs cover it.
+Not unit-testable — it depends on the request scope. Task 17's Playwright specs cover it.
 
 - [ ] **Step 1: Write `lib/admin/session.ts`**
 
@@ -811,7 +814,7 @@ export async function recordAttempt(ip: string, success: boolean): Promise<void>
 - [ ] **Step 2: Verify against the real database**
 
 ```bash
-node --env-file=.env.local --experimental-strip-types -e "
+node --env-file=.env.local --conditions=react-server --experimental-strip-types -e "
 const { isLockedOut, recordAttempt, MAX_FAILURES } = await import('./lib/db/loginAttempts.ts');
 const ip = 'test-' + process.pid;
 console.log('locked before:', await isLockedOut(ip));
@@ -1141,6 +1144,18 @@ Check all five, in order:
 
 Then confirm the marketing site is untouched: open `/` and toggle dark mode.
 
+**Deferred check inherited from Task 19** — the admin area must not carry the marketing chrome. With the
+dev server running:
+
+```bash
+curl -s http://localhost:3000/admin/login | grep -c "All rights reserved"
+curl -s http://localhost:3000/admin/login | grep -c "<nav"
+curl -s -o /dev/null -w "%{http_code}\n" http://localhost:3000/admin/login
+```
+
+Expected: `0`, `0`, and `200`. A `404` means the login route is not being matched; a `1` on either grep
+means the bare root layout has been undone and `/admin` is inheriting the site chrome.
+
 - [ ] **Step 11: Verify the build**
 
 ```bash
@@ -1317,7 +1332,7 @@ export async function saveMasterData(data: MasterData): Promise<void> {
 Uses obviously fake values — never real master data in a shell command that lands in shell history.
 
 ```bash
-node --env-file=.env.local --experimental-strip-types -e "
+node --env-file=.env.local --conditions=react-server --experimental-strip-types -e "
 const { loadMasterData, saveMasterData } = await import('./lib/db/masterData.ts');
 const before = await loadMasterData();
 await saveMasterData({
@@ -1392,6 +1407,7 @@ import type {
   MasterDataInvoiceVisible,
 } from '@/lib/db/masterData.ts'
 import { saveMasterDataAction } from '@/app/admin/(protected)/actions.ts'
+import { parseNum } from '@/lib/invoice/parseNum.ts'
 
 type TextKey = Exclude<keyof MasterDataInvoiceVisible, 'defaultVatRate' | 'paymentTermsDays'>
 
@@ -1437,6 +1453,9 @@ export function MasterDataForm({
 }) {
   const [status, setStatus] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
+  // Raw text for the two numeric fields while they are being typed.
+  const [rawVatRate, setRawVatRate] = useState<string | null>(null)
+  const [rawTermsDays, setRawTermsDays] = useState<string | null>(null)
 
   function setVisible(key: TextKey, value: string) {
     onChange({
@@ -1452,9 +1471,19 @@ export function MasterDataForm({
   async function save() {
     setSaving(true)
     setStatus(null)
-    const result = await saveMasterDataAction(masterData)
-    setSaving(false)
-    setStatus(result.ok ? 'Gespeichert.' : (result.error ?? 'Fehler.'))
+    try {
+      const result = await saveMasterDataAction(masterData)
+      setStatus(result.ok ? 'Gespeichert.' : (result.error ?? 'Fehler.'))
+    } catch {
+      // A transport-level failure (dropped connection, function timeout) rejects
+      // the action call itself. Without this catch the rejection is unhandled,
+      // `saving` stays true, the button sits on "Speichere …" forever, and the
+      // only escape — reloading — discards everything the owner just typed into
+      // 26 fields.
+      setStatus('Speichern fehlgeschlagen. Bitte Verbindung prüfen und erneut versuchen.')
+    } finally {
+      setSaving(false)
+    }
   }
 
   const row = 'flex flex-col gap-1 sm:flex-row sm:items-center'
@@ -1480,20 +1509,26 @@ export function MasterDataForm({
         ))}
         <div className={row}>
           <label className={labelCls} htmlFor="md-vatRate">Standard-Steuersatz (%)</label>
+          {/* Raw text is held while typing, so an in-progress "7," is not
+              re-rendered as "7" — which would make a decimal rate impossible to
+              enter one keystroke at a time. parseNum accepts both "7,7" and
+              "7.7". The raw draft is dropped on blur. */}
           <input
             id="md-vatRate"
             className={inputCls}
             inputMode="decimal"
-            value={String(masterData.invoiceVisible.defaultVatRate)}
-            onChange={(e) =>
+            value={rawVatRate ?? String(masterData.invoiceVisible.defaultVatRate)}
+            onChange={(e) => {
+              setRawVatRate(e.target.value)
               onChange({
                 ...masterData,
                 invoiceVisible: {
                   ...masterData.invoiceVisible,
-                  defaultVatRate: Number(e.target.value.replace(',', '.')) || 0,
+                  defaultVatRate: parseNum(e.target.value),
                 },
               })
-            }
+            }}
+            onBlur={() => setRawVatRate(null)}
           />
         </div>
         <div className={row}>
@@ -1502,16 +1537,19 @@ export function MasterDataForm({
             id="md-terms"
             className={inputCls}
             inputMode="numeric"
-            value={String(masterData.invoiceVisible.paymentTermsDays)}
-            onChange={(e) =>
+            value={rawTermsDays ?? String(masterData.invoiceVisible.paymentTermsDays)}
+            onChange={(e) => {
+              setRawTermsDays(e.target.value)
               onChange({
                 ...masterData,
                 invoiceVisible: {
                   ...masterData.invoiceVisible,
-                  paymentTermsDays: parseInt(e.target.value, 10) || 0,
+                  // Days are whole numbers; never negative.
+                  paymentTermsDays: Math.max(0, Math.trunc(parseNum(e.target.value))),
                 },
               })
-            }
+            }}
+            onBlur={() => setRawTermsDays(null)}
           />
         </div>
       </fieldset>
@@ -1708,8 +1746,51 @@ for (const [input, expected] of CASES) {
   })
 }
 
-test('treats a three-digit group after a comma as a thousands separator', () => {
-  assert.equal(parseNum('1,234'), 1234)
+// A comma is always the decimal separator — never thousands.
+test('treats any comma as the decimal separator', () => {
+  assert.equal(parseNum('1,234'), 1.234)
+  assert.equal(parseNum('0,005'), 0.005)
+  assert.equal(parseNum('80,505'), 80.505)
+})
+
+// Regression: "1.234" previously parsed as 1.234, printing 1,23 € for an
+// invoice line the owner meant as 1.234,00 € — a 1000x undercharge.
+test('treats a lone dot grouping three digits as thousands', () => {
+  assert.equal(parseNum('1.234'), 1234)
+  assert.equal(parseNum('1.500'), 1500)
+  assert.equal(parseNum('1.234.567'), 1234567)
+})
+
+// A grouping never starts with 0, so these stay decimals.
+test('treats other lone dots as decimal points', () => {
+  assert.equal(parseNum('0.005'), 0.005)
+  assert.equal(parseNum('1.2345'), 1.2345)
+  assert.equal(parseNum('0.5'), 0.5)
+})
+
+test('round-trips what formatQuantity prints', () => {
+  // formatQuantity(0.005) renders "0,005"; re-parsing it must not change it.
+  assert.equal(parseNum('0,005'), 0.005)
+})
+
+// Regression: a stray letter used to be stripped, fusing digits into a
+// plausible but wrong price (8O,50 -> 8.5). It must be rejected instead.
+test('rejects input containing unexpected characters', () => {
+  assert.equal(parseNum('8O,50'), 0)
+  assert.equal(parseNum('1e3'), 0)
+  assert.equal(parseNum('NaN'), 0)
+  assert.equal(parseNum('Infinity'), 0)
+  assert.equal(parseNum('1.2.3'), 0)
+  assert.equal(parseNum('80,50,60'), 0)
+  assert.equal(parseNum('-'), 0)
+})
+
+test('strips currency noise only at the edges', () => {
+  assert.equal(parseNum('€80,50'), 80.5)
+  assert.equal(parseNum('80.50 EUR'), 80.5)
+  assert.equal(parseNum('  80,50  '), 80.5)
+  assert.equal(parseNum('1 234,56'), 1234.56)
+  assert.equal(parseNum('8eur0'), 0)
 })
 
 test('handles null and undefined', () => {
@@ -1719,10 +1800,17 @@ test('handles null and undefined', () => {
 
 test('handles a number passed straight through', () => {
   assert.equal(parseNum(80.5), 80.5)
+  assert.equal(parseNum(Number.NaN), 0)
+  assert.equal(parseNum(Number.POSITIVE_INFINITY), 0)
 })
 
 test('keeps a leading minus', () => {
   assert.equal(parseNum('-80,50'), -80.5)
+})
+
+test('tolerates a trailing or leading separator', () => {
+  assert.equal(parseNum('80,'), 80)
+  assert.equal(parseNum(',50'), 0.5)
 })
 ```
 
@@ -1737,38 +1825,66 @@ Expected: FAIL — cannot find module `./parseNum.ts`.
 - [ ] **Step 3: Write `lib/invoice/parseNum.ts`**
 
 ```ts
-// Parses both German ("1.234,56") and English ("1,234.56") number input.
+// Parses money and quantity input for a German-first invoicing tool.
 //
 // NEVER use <input type="number"> for these values: it accepts only "." as
 // the decimal separator, so a German "80,50" makes .value return an empty
 // string and the amount silently becomes 0.
+//
+// Rules, in order of precedence:
+//   1. A comma is ALWAYS the decimal separator ("0,005" -> 0.005). German
+//      users do not write commas as thousands separators.
+//   2. A lone dot is a THOUSANDS separator when it groups exactly three
+//      digits and the leading group does not start with "0" ("1.234" ->
+//      1234); otherwise it is a decimal point ("80.50" -> 80.5).
+//   3. With both present, whichever appears last is the decimal separator.
+//   4. Anything else is rejected as 0 rather than silently reinterpreted:
+//      "8O,50" (letter O) must not become 8.5 on a customer's invoice.
 export function parseNum(value: unknown): number {
   if (value === null || value === undefined) return 0
-  let s = String(value).trim()
+  if (typeof value === 'number') return Number.isFinite(value) ? value : 0
+
+  // Strip currency noise only at the edges, never in the middle: removing a
+  // stray character between digits would fuse groups into a wrong number.
+  let s = String(value).replace(/[\s ]/g, '')
+  s = s.replace(/^(?:€|\$|eur)/i, '').replace(/(?:€|\$|eur)$/i, '')
   if (!s) return 0
 
-  s = s.replace(/[^\d.,\-]/g, '') // "95 €" -> "95"
+  if (!/^-?[\d.,]+$/.test(s)) return 0
 
-  const lastComma = s.lastIndexOf(',')
-  const lastDot = s.lastIndexOf('.')
+  const negative = s.startsWith('-')
+  if (negative) s = s.slice(1)
+  if (s.includes('-')) return 0
 
-  if (lastComma > -1 && lastDot > -1) {
-    // Both present: whichever comes last is the decimal separator.
-    if (lastComma > lastDot) {
-      s = s.replace(/\./g, '').replace(',', '.') // 1.234,56
-    } else {
-      s = s.replace(/,/g, '') // 1,234.56
-    }
-  } else if (lastComma > -1) {
-    const digitsAfter = s.length - lastComma - 1
-    s =
-      digitsAfter > 0 && digitsAfter <= 2
-        ? s.replace(',', '.') // 80,50 -> decimal
-        : s.replace(/,/g, '') // 1,234 -> thousands
+  const commas = (s.match(/,/g) ?? []).length
+  const dots = (s.match(/\./g) ?? []).length
+  if (commas > 1) return 0 // "80,50,60" is not a number
+
+  let normalised: string
+  if (commas === 1 && dots > 0) {
+    normalised =
+      s.lastIndexOf(',') > s.lastIndexOf('.')
+        ? s.replace(/\./g, '').replace(',', '.') // 1.234,56
+        : s.replace(/,/g, '') // 1,234.56
+  } else if (commas === 1) {
+    normalised = s.replace(',', '.') // 80,50 and 0,005
+  } else if (dots > 0 && isThousandsGrouping(s)) {
+    normalised = s.replace(/\./g, '') // 1.234 and 1.234.567
+  } else if (dots > 1) {
+    return 0 // "1.2.3" is neither a grouping nor a decimal
+  } else {
+    normalised = s // 80.50 and 0.005
   }
 
-  const n = parseFloat(s)
-  return Number.isNaN(n) ? 0 : n
+  const n = parseFloat(normalised)
+  if (!Number.isFinite(n)) return 0
+  return negative ? -n : n
+}
+
+// True for "1.234" and "1.234.567"; false for "80.50" and "0.005".
+// A thousands grouping never starts with 0 and every later group is 3 digits.
+function isThousandsGrouping(s: string): boolean {
+  return /^[1-9]\d{0,2}(\.\d{3})+$/.test(s)
 }
 ```
 
@@ -1816,6 +1932,29 @@ test('returns an empty string for empty or malformed dates', () => {
   assert.equal(formatDateDe(''), '')
   assert.equal(formatDateDe('nonsense'), '')
 })
+
+// Regression: shape-only validation printed impossible dates on invoices.
+test('rejects dates that match the shape but do not exist', () => {
+  assert.equal(formatDateDe('2026-02-30'), '')
+  assert.equal(formatDateDe('2026-13-01'), '')
+  assert.equal(formatDateDe('2026-00-10'), '')
+  assert.equal(formatDateDe('2026-04-31'), '')
+})
+
+test('accepts a real leap day', () => {
+  assert.equal(formatDateDe('2028-02-29'), '29.02.2028')
+})
+
+// Regression: the invoice date must follow Europe/Berlin, not the server's
+// clock. On Vercel (UTC) a naive date is a day behind just after midnight.
+test('todayIso follows the German calendar date, not UTC', () => {
+  // 22:30 UTC in August is 00:30 the next day in Berlin (UTC+2).
+  assert.equal(todayIso(new Date('2026-08-08T22:30:00Z')), '2026-08-09')
+  // 23:30 UTC on New Year's Eve is 00:30 on 1 January in Berlin (UTC+1).
+  assert.equal(todayIso(new Date('2025-12-31T23:30:00Z')), '2026-01-01')
+  // Midday is unambiguous in either zone.
+  assert.equal(todayIso(new Date('2026-08-08T12:00:00Z')), '2026-08-08')
+})
 ```
 
 - [ ] **Step 6: Run the test to verify it fails**
@@ -1853,14 +1992,35 @@ export function formatDateDe(iso: string): string {
   const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso)
   if (!match) return ''
   const [, year, month, day] = match
+
+  // Shape alone is not enough: "2026-02-30" matches the pattern but is not a
+  // date, and must not print as 30.02.2026 on an invoice.
+  const date = new Date(`${year}-${month}-${day}T00:00:00Z`)
+  if (
+    Number.isNaN(date.getTime()) ||
+    date.getUTCFullYear() !== Number(year) ||
+    date.getUTCMonth() + 1 !== Number(month) ||
+    date.getUTCDate() !== Number(day)
+  ) {
+    return ''
+  }
+
   return `${day}.${month}.${year}`
 }
 
-export function todayIso(): string {
-  const now = new Date()
-  const month = String(now.getMonth() + 1).padStart(2, '0')
-  const day = String(now.getDate()).padStart(2, '0')
-  return `${now.getFullYear()}-${month}-${day}`
+// The invoice date must be the German calendar date. Vercel Functions run in
+// UTC, so a naive local-time date would be one day behind for the first one
+// to two hours after midnight in Germany — on a legally dated document.
+// The `now` parameter exists so this is testable.
+export function todayIso(now: Date = new Date()): string {
+  const parts = new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'Europe/Berlin',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(now)
+  const part = (type: string) => parts.find((p) => p.type === type)?.value ?? ''
+  return `${part('year')}-${part('month')}-${part('day')}`
 }
 ```
 
@@ -1920,6 +2080,36 @@ test('rounds half away from zero despite float representation', () => {
   assert.equal(round2(161), 161)
 })
 
+// A NaN here would silently poison every total on the invoice, so the
+// guards must hold for values that stringify in exponential notation.
+test('round2 never returns NaN', () => {
+  assert.equal(round2(1e-7), 0)
+  assert.equal(round2(Number.NaN), 0)
+  assert.equal(round2(Number.POSITIVE_INFINITY), 0)
+  assert.equal(round2(0), 0)
+})
+
+// Discount lines ("Nachlass -50,00") are ordinary on a German invoice, so
+// negative amounts must round like their positive mirror image.
+test('rounds half away from zero for negative amounts too', () => {
+  assert.equal(round2(-0.145), -0.15)
+  assert.equal(round2(-2.675), -2.68)
+  assert.equal(round2(-1.005), -1.01)
+})
+
+test('a discount line exactly cancels the line it reverses', () => {
+  // With asymmetric rounding these two lines would print 0,15 and -0,14 and
+  // leave a cent of VAT on a net-zero transaction.
+  const totals = computeTotals([
+    item({ quantity: 1, unitPrice: 0.145, vatRate: 19 }),
+    item({ quantity: 1, unitPrice: -0.145, vatRate: 19 }),
+  ])
+  assert.deepEqual(totals.lineNets, [0.15, -0.15])
+  assert.equal(totals.groups[0].net, 0)
+  assert.equal(totals.groups[0].vat, 0)
+  assert.equal(totals.grossTotal, 0)
+})
+
 test('computes a single-rate invoice', () => {
   // 2 × 80,50 = 161,00 net; 19 % of 161,00 = 30,59; gross 191,59
   const totals = computeTotals([item({ quantity: 2, unitPrice: 80.5, vatRate: 19 })])
@@ -1963,15 +2153,35 @@ test('includes a 0 % group with no VAT', () => {
   assert.equal(totals.grossTotal, 50)
 })
 
-test('groups VAT per rate rather than per line', () => {
-  // Per line: round2(0.055) = 0.06 twice = 0.12
-  // Per group (correct): round2(0.29 × 0.19) = 0.06
+// The printed document must be arithmetically consistent: the group net is
+// the sum of the line nets AS PRINTED. Summing unrounded values instead would
+// print lines of 0,15 + 0,15 under a subtotal of 0,29 — an invoice that
+// visibly does not add up, which is worse than a one-cent rounding choice.
+test('the group net is the sum of the rounded line nets, so the invoice adds up', () => {
   const totals = computeTotals([
     item({ quantity: 1, unitPrice: 0.145, vatRate: 19 }),
     item({ quantity: 1, unitPrice: 0.145, vatRate: 19 }),
   ])
-  assert.equal(totals.groups[0].net, 0.29)
+  assert.deepEqual(totals.lineNets, [0.15, 0.15])
+  assert.equal(totals.groups[0].net, 0.3)
+  assert.equal(totals.netTotal, 0.3)
   assert.equal(totals.groups[0].vat, 0.06)
+})
+
+// This is the § 14 UStG requirement itself: VAT is owed on the summed net of
+// each rate, not on each line separately.
+test('computes VAT per rate group, not per line', () => {
+  // Four lines of 0,03 net at 19 %. Per line the VAT rounds to 0,01 each,
+  // i.e. 0,04 in total; on the summed net of 0,12 it is 0,02. The invoice
+  // must show 0,02.
+  const totals = computeTotals([
+    item({ quantity: 1, unitPrice: 0.03, vatRate: 19 }),
+    item({ quantity: 1, unitPrice: 0.03, vatRate: 19 }),
+    item({ quantity: 1, unitPrice: 0.03, vatRate: 19 }),
+    item({ quantity: 1, unitPrice: 0.03, vatRate: 19 }),
+  ])
+  assert.equal(totals.groups[0].net, 0.12)
+  assert.equal(totals.groups[0].vat, 0.02)
 })
 
 test('an empty invoice is all zeros', () => {
@@ -2011,12 +2221,33 @@ export type InvoiceTotals = {
 
 // Decimal-string shift: Math.round(2.675 * 100) gives 267 because 2.675 is
 // really 2.67499..., while Number('2.675e+2') is exactly 267.5.
+//
+// The two guards are not decoration. A value JavaScript stringifies in
+// exponential form (1e-7, or anything >= 1e21) would make the template
+// literal read "1e-7e+2", which is NaN — and a NaN silently poisons every
+// total downstream. Non-finite input returns 0; exponential input falls back
+// to plain multiplication, which is accurate enough at that magnitude.
 export function round2(value: number): number {
-  return Number(`${Math.round(Number(`${value}e+2`))}e-2`)
+  if (!Number.isFinite(value)) return 0
+
+  // Half away from zero in BOTH directions. Math.round(-14.5) is -14, so a
+  // naive implementation rounds +0,145 to 0,15 but -0,145 to -0,14 — and a
+  // discount line would then not cancel the line it reverses. German
+  // commercial rounding (kaufmännisches Runden) is symmetric.
+  const away = (n: number) => (n < 0 ? -Math.round(-n) : Math.round(n))
+
+  const shifted = Number(`${value}e+2`)
+  if (!Number.isFinite(shifted)) return away(value * 100) / 100
+  return Number(`${away(shifted)}e-2`)
 }
 
 // VAT is computed per rate group, never per line: § 14 UStG requires the
 // net subtotal and the VAT owed to be shown for each rate.
+//
+// The order matters and is deliberate: round each line first, then sum the
+// ROUNDED line nets per rate, then round the VAT of each group. Grouping
+// unrounded values would leave the printed line amounts not summing to the
+// printed subtotal — an invoice that visibly does not add up.
 export function computeTotals(items: InvoiceItemInput[]): InvoiceTotals {
   const lineNets = items.map((i) => round2(i.quantity * i.unitPrice))
 
@@ -2181,6 +2412,27 @@ export type InvoiceSummary = {
   grossTotal: number
 }
 
+// `crypto.randomUUID()` exists only in a secure context, so a dev server
+// reached over a plain-HTTP LAN address (from a phone, say) would throw and take
+// the whole admin app down. `getRandomValues` has no such restriction, so the
+// fallback is still cryptographically random — and it must keep a valid UUID
+// shape, because `invoices.id` is a `uuid` column.
+export function newInvoiceId(): string {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID()
+  }
+  const bytes = new Uint8Array(16)
+  if (typeof crypto !== 'undefined' && typeof crypto.getRandomValues === 'function') {
+    crypto.getRandomValues(bytes)
+  } else {
+    for (let i = 0; i < 16; i += 1) bytes[i] = Math.floor(Math.random() * 256)
+  }
+  bytes[6] = (bytes[6] & 0x0f) | 0x40 // version 4
+  bytes[8] = (bytes[8] & 0x3f) | 0x80 // variant 1
+  const hex = [...bytes].map((b) => b.toString(16).padStart(2, '0')).join('')
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`
+}
+
 export function emptyItem(vatRate: number): InvoiceItemInput {
   return { description: '', quantity: 1, unit: 'Std', unitPrice: 0, vatRate }
 }
@@ -2196,7 +2448,12 @@ export function emptyInvoice(args: {
   vatRate: number
 }): InvoiceDraft {
   return {
-    id: null,
+    // The id is minted here, on the client, rather than left null until the
+    // first save. `saveDraft` upserts on it, so clicking "Ins Archiv legen"
+    // twice in quick succession updates one row instead of creating two — with
+    // a null id each click mints its own UUID, `on conflict (id)` never fires,
+    // and nothing else in the schema stops the duplicate.
+    id: newInvoiceId(),
     status: 'draft',
     invoiceNumber: null,
     proposedNumber: args.proposedNumber,
@@ -2449,7 +2706,9 @@ export function ItemsTable({
           <tr className="border-b border-gray-300 text-left text-xs uppercase text-gray-500">
             <th className="w-10 py-1 font-medium">Pos.</th>
             <th className="py-1 font-medium">Beschreibung</th>
-            <th className="w-20 py-1 text-right font-medium">Menge</th>
+            {/* pr-3: right-aligned "Menge" otherwise butts straight against
+                left-aligned "Einheit" and the header reads "MENGEEINHEIT". */}
+            <th className="w-20 py-1 pr-3 text-right font-medium">Menge</th>
             <th className="w-20 py-1 font-medium">Einheit</th>
             <th className="w-28 py-1 text-right font-medium">Einzelpreis</th>
             <th className="w-20 py-1 text-right font-medium">USt.</th>
@@ -2473,7 +2732,7 @@ export function ItemsTable({
                   onChange={(value) => update(index, { description: value })}
                 />
               </td>
-              <td className="py-1">{numericCell(index, 'quantity', formatQuantity)}</td>
+              <td className="py-1 pr-3">{numericCell(index, 'quantity', formatQuantity)}</td>
               <td className="py-1">
                 <EditableField
                   ariaLabel={`Einheit Position ${index + 1}`}
@@ -2875,7 +3134,7 @@ follow master data until manually edited."
   - `loadInvoice(id: string): Promise<InvoiceDraft | null>`
   - `saveDraft(draft: InvoiceDraft): Promise<string>`
   - `deleteDraft(id: string): Promise<void>`
-  - `highestIssuedNumber(): Promise<string | null>`
+  - `lastIssuedNumber(): Promise<string | null>`
   - `issueInvoice(id, invoiceNumber, snapshot): Promise<{ ok: true } | { ok: false; error: 'number_taken' | 'not_draft' }>`
   - Actions: `saveDraftAction`, `loadInvoiceAction`, `deleteDraftAction`
 
@@ -2885,20 +3144,38 @@ follow master data until manually edited."
 import 'server-only'
 import { randomUUID } from 'node:crypto'
 import { sql } from './client.ts'
-import { computeTotals } from '@/lib/invoice/totals.ts'
-import { compareInvoiceNumbers } from '@/lib/invoice/numbering.ts'
-import { todayIso } from '@/lib/invoice/format.ts'
-import type { InvoiceDraft, InvoiceStatus, InvoiceSummary } from '@/lib/invoice/types.ts'
+// Relative, not `@/…`: plain Node ESM cannot resolve the tsconfig path alias,
+// so an `@/` import here breaks every bare-Node verification script in this
+// plan (it reads `@/lib/…` as an invalid bare package name). The rest of
+// `lib/` already imports relatively for the same reason.
+import { computeTotals } from '../invoice/totals.ts'
+import { compareInvoiceNumbers } from '../invoice/numbering.ts'
+import { todayIso } from '../invoice/format.ts'
+import type { InvoiceDraft, InvoiceStatus, InvoiceSummary } from '../invoice/types.ts'
 import type { MasterDataInvoiceVisible } from './masterData.ts'
 
-// The driver returns `date` as a string and `numeric` as a string.
+// Verified against the live database: the driver parses a `date` column into a
+// Date at LOCAL midnight, so a stored 2026-08-08 arrives as
+// 2026-08-07T22:00:00.000Z in CEST. Both naive readings are wrong —
+// String(value).slice(0,10) gives "Sat Aug 08", and toISOString().slice(0,10)
+// gives "2026-08-07", one day early on a legally dated document.
+//
+// Every query therefore selects `invoice_date::text`. This guard exists so a
+// future query that forgets the cast fails loudly instead of silently shifting
+// every invoice date by a day.
 function isoDate(value: unknown): string {
-  return String(value ?? '').slice(0, 10)
+  if (typeof value !== 'string') {
+    throw new Error(
+      `invoice_date must be selected as ::text — got ${Object.prototype.toString.call(value)}`
+    )
+  }
+  return value.slice(0, 10)
 }
 
 export async function listInvoices(): Promise<InvoiceSummary[]> {
   const rows = await sql`
-    select id, status, invoice_number, proposed_number, invoice_date,
+    select id, status, invoice_number, proposed_number,
+           invoice_date::text as invoice_date,
            customer_name, net_total, vat_total, gross_total
     from invoices
   `
@@ -2923,7 +3200,15 @@ export async function listInvoices(): Promise<InvoiceSummary[]> {
 }
 
 export async function loadInvoice(id: string): Promise<InvoiceDraft | null> {
-  const rows = await sql`select * from invoices where id = ${id}`
+  // Columns are enumerated rather than `select *` so the date cast cannot be
+  // lost, and so adding a column later does not silently change this shape.
+  const rows = await sql`
+    select id, status, invoice_number, proposed_number,
+           invoice_date::text as invoice_date,
+           service_date, customer_number, customer_name, customer_street,
+           customer_zip_city, customer_country, customer_vat_id, payment_terms
+    from invoices where id = ${id}
+  `
   const r = rows[0]
   if (!r) return null
 
@@ -3015,11 +3300,24 @@ export async function deleteDraft(id: string): Promise<void> {
   await sql`delete from invoices where id = ${id} and status = 'draft'`
 }
 
-export async function highestIssuedNumber(): Promise<string | null> {
-  const rows = await sql`select invoice_number from invoices where status = 'issued'`
-  const numbers = rows.map((r) => r.invoice_number as string).filter(Boolean)
-  if (numbers.length === 0) return null
-  return numbers.sort(compareInvoiceNumbers).at(-1) ?? null
+// The number to continue from is the one on the invoice most recently ISSUED —
+// not the "highest" by any string ordering.
+//
+// Sorting the numbers was verified to be wrong: with `2026-050` and
+// `RE-2026-001` in the table, German collation ranks the letter-prefixed one
+// last, so it was treated as the highest and the next number came out as
+// `RE-2026-002` — BELOW the true `2026-050`, with no error raised. Because the
+// number is a free-text field the owner may edit, no string ordering can be
+// trusted across a change of prefix. `issued_at` always can: invoices are
+// issued one at a time, in time order.
+export async function lastIssuedNumber(): Promise<string | null> {
+  const rows = await sql`
+    select invoice_number from invoices
+    where status = 'issued' and invoice_number is not null
+    order by issued_at desc
+    limit 1
+  `
+  return (rows[0]?.invoice_number as string | undefined) ?? null
 }
 
 export async function issueInvoice(
@@ -3057,7 +3355,7 @@ export async function issueInvoice(
 ```ts
 import {
   deleteDraft,
-  highestIssuedNumber,
+  lastIssuedNumber,
   listInvoices,
   loadInvoice,
   saveDraft,
@@ -3106,14 +3404,14 @@ export async function listInvoicesAction(): Promise<InvoiceSummary[]> {
 // number from its own copy of the archive.
 export async function nextNumberAction(): Promise<string> {
   await requireSession()
-  return nextInvoiceNumber(await highestIssuedNumber(), new Date().getFullYear())
+  return nextInvoiceNumber(await lastIssuedNumber(), new Date().getFullYear())
 }
 ```
 
-`nextNumberAction` needs `highestIssuedNumber` and `nextInvoiceNumber`, which Task 16 also imports — add both imports now:
+`nextNumberAction` needs `lastIssuedNumber` and `nextInvoiceNumber`, which Task 16 also imports — add both imports now:
 
 ```ts
-import { highestIssuedNumber } from '@/lib/db/invoices.ts'
+import { lastIssuedNumber } from '@/lib/db/invoices.ts'
 import { nextInvoiceNumber } from '@/lib/invoice/numbering.ts'
 ```
 
@@ -3122,7 +3420,7 @@ import { nextInvoiceNumber } from '@/lib/invoice/numbering.ts'
 ```tsx
 import { requireSession } from '@/lib/admin/session.ts'
 import { loadMasterData } from '@/lib/db/masterData.ts'
-import { highestIssuedNumber, listInvoices } from '@/lib/db/invoices.ts'
+import { lastIssuedNumber, listInvoices } from '@/lib/db/invoices.ts'
 import { nextInvoiceNumber } from '@/lib/invoice/numbering.ts'
 import { AdminApp } from '@/components/admin/AdminApp.tsx'
 
@@ -3131,7 +3429,7 @@ export default async function AdminHomePage() {
   const [masterData, invoices, highest] = await Promise.all([
     loadMasterData(),
     listInvoices(),
-    highestIssuedNumber(),
+    lastIssuedNumber(),
   ])
   return (
     <AdminApp
@@ -3148,8 +3446,8 @@ export default async function AdminHomePage() {
 - [ ] **Step 4: Verify against the real database**
 
 ```bash
-node --env-file=.env.local --experimental-strip-types -e "
-const { saveDraft, loadInvoice, listInvoices, deleteDraft, highestIssuedNumber } = await import('./lib/db/invoices.ts');
+node --env-file=.env.local --conditions=react-server --experimental-strip-types -e "
+const { saveDraft, loadInvoice, listInvoices, deleteDraft, lastIssuedNumber } = await import('./lib/db/invoices.ts');
 const id = await saveDraft({
   id: null, status: 'draft', invoiceNumber: null, proposedNumber: 'TEST-001',
   invoiceDate: '2026-08-08', serviceDate: 'Juli 2026', customerNumber: '',
@@ -3162,8 +3460,11 @@ const id = await saveDraft({
 });
 const loaded = await loadInvoice(id);
 console.log('items:', loaded.items.length, 'qty type:', typeof loaded.items[0].quantity);
+// The date must survive the round trip EXACTLY — not one day early.
+console.log('invoiceDate:', JSON.stringify(loaded.invoiceDate), 'type:', typeof loaded.invoiceDate);
+if (loaded.invoiceDate !== '2026-08-08') throw new Error('invoice_date shifted: ' + loaded.invoiceDate);
 console.log('summary:', (await listInvoices()).find(i => i.id === id));
-console.log('highest issued:', await highestIssuedNumber());
+console.log('highest issued:', await lastIssuedNumber());
 await deleteDraft(id);
 console.log('deleted:', (await loadInvoice(id)) === null);
 "
@@ -3180,7 +3481,7 @@ npm run build && npm run lint
 - [ ] **Step 6: Commit**
 
 ```bash
-git add lib/db/invoices.ts app/admin
+git add lib/db/invoices.ts app/admin components/admin/AdminApp.tsx
 git commit -m "feat(invoice): add invoice repository and draft actions
 
 Items are replaced inside a transaction; drafts hold no invoice number,
@@ -3366,13 +3667,19 @@ Inside the component (props now include `invoices: InvoiceSummary[]`):
     if (!loaded) return setNotice('Rechnung nicht gefunden.')
     setInvoice({
       ...loaded,
-      id: null,
+      // A fresh id: a copy is a NEW invoice, and minting it here keeps the
+      // double-click protection that `emptyInvoice` relies on.
+      id: newInvoiceId(),
       status: 'draft',
       invoiceNumber: null,
       // Asked of the server, not derived from the client's archive copy.
       proposedNumber: await nextNumberAction(),
       invoiceDate: todayIso(),
     })
+    // A copy inherits the original's payment terms, which may have been edited
+    // by hand. Without this, a later Zahlungsziel change in Stammdaten would
+    // silently overwrite them.
+    setTermsTouched(true)
     setTab('invoice')
     setNotice('Kopie erstellt.')
   }
@@ -3382,14 +3689,28 @@ Inside the component (props now include `invoices: InvoiceSummary[]`):
     const result = await deleteDraftAction(id)
     if (!result.ok) return setNotice(result.error ?? 'Fehler.')
     await refreshArchive()
-    if (invoice.id === id) setInvoice({ ...invoice, id: null })
+    // A fresh id, not null: null would reopen the double-click duplication that
+    // client-minted ids exist to prevent.
+    if (invoice.id === id) setInvoice({ ...invoice, id: newInvoiceId() })
     setNotice('Entwurf gelöscht.')
   }
 ```
 
 Imports for this step: `ArchiveTable`, `todayIso` (already imported in Task 13), and from the actions module `deleteDraftAction`, `listInvoicesAction`, `loadInvoiceAction`, `saveDraftAction`, `nextNumberAction`. `nextInvoiceNumber` is **not** imported here — numbering lives on the server.
 
-Render, above the sheet in the invoice tab:
+Render the notice **above the tab content, outside every tab branch** — deleting a draft happens on
+the archive tab and does not switch tabs, so a notice rendered only inside the invoice tab would never
+be seen for the action that most needs confirming:
+
+```tsx
+      {notice && (
+        <p className="admin-no-print mx-auto max-w-[840px] px-6 pt-4 text-sm text-gray-600" role="status">
+          {notice}
+        </p>
+      )}
+```
+
+Then, in the invoice tab, the button row and the sheet:
 
 ```tsx
       {tab === 'invoice' && (
@@ -3403,7 +3724,6 @@ Render, above the sheet in the invoice tab:
             >
               {busy ? 'Speichere …' : 'Ins Archiv legen'}
             </button>
-            {notice && <span className="text-sm text-gray-600">{notice}</span>}
           </div>
           <InvoiceSheet
             invoice={invoice}
@@ -3462,7 +3782,7 @@ excluded, and only drafts can be deleted."
 - Modify: `app/admin/(protected)/actions.ts` (add `issueInvoiceAction`), `components/admin/AdminApp.tsx` (print button flow), `package.json` (add `validate.test.ts` to the `test` script)
 
 **Interfaces:**
-- Consumes: `InvoiceDraft`, `computeTotals`, `issueInvoice`, `highestIssuedNumber`, `nextInvoiceNumber`, `loadMasterData`.
+- Consumes: `InvoiceDraft`, `computeTotals`, `issueInvoice`, `lastIssuedNumber`, `nextInvoiceNumber`, `loadMasterData`.
 - Produces:
   - `validateForPrint(invoice: InvoiceDraft): string[]` — German messages, empty when valid
   - `issueInvoiceAction(id: string, proposedNumber: string): Promise<{ ok: true; invoiceNumber: string } | { ok: false; error: string }>`
@@ -3586,7 +3906,7 @@ Expected: `# pass 6`, `# fail 0`. Then append `lib/invoice/validate.test.ts` to 
 - [ ] **Step 5: Add `issueInvoiceAction` to `app/admin/(protected)/actions.ts`**
 
 ```ts
-import { highestIssuedNumber, issueInvoice } from '@/lib/db/invoices.ts'
+import { lastIssuedNumber, issueInvoice } from '@/lib/db/invoices.ts'
 import { nextInvoiceNumber } from '@/lib/invoice/numbering.ts'
 import { loadMasterData } from '@/lib/db/masterData.ts'
 
@@ -3600,7 +3920,7 @@ export async function issueInvoiceAction(
   // sequence gapless when a draft is deleted.
   const number =
     proposedNumber.trim() ||
-    nextInvoiceNumber(await highestIssuedNumber(), new Date().getFullYear())
+    nextInvoiceNumber(await lastIssuedNumber(), new Date().getFullYear())
 
   const masterData = await loadMasterData()
   // Only the invoice-visible half is frozen into the snapshot.
@@ -4037,7 +4357,7 @@ set -a && . ./.env.local && set +a && npx playwright test
 The suite issues invoices, and issued rows are protected — so first prove the protection is real, because the next step deliberately works around it.
 
 ```bash
-node --env-file=.env.local --experimental-strip-types -e "
+node --env-file=.env.local --conditions=react-server --experimental-strip-types -e "
 const { sql } = await import('./lib/db/client.ts');
 try {
   await sql\`delete from invoices where status = 'issued' and invoice_number like 'E2E-%'\`;
@@ -4055,7 +4375,7 @@ Expected: `expected block: … is issued and immutable`. If it prints `UNEXPECTE
 Drafts delete normally. Issued E2E rows need the trigger disabled for the duration — safe **only** because every E2E invoice number carries the `E2E-` prefix, so this can never touch a real invoice.
 
 ```bash
-node --env-file=.env.local --experimental-strip-types -e "
+node --env-file=.env.local --conditions=react-server --experimental-strip-types -e "
 const { sql } = await import('./lib/db/client.ts');
 // Drafts first — no trigger involved.
 const drafts = await sql\`delete from invoices where status = 'draft' and (customer_name like 'Testkunde%' or customer_name like 'Druck Testkunde%') returning id\`;
@@ -4074,7 +4394,7 @@ try {
 
 Expected: a draft count, the deleted `E2E-…` numbers, and `trigger re-enabled`. Re-run step 9b afterwards to confirm the protection is back on.
 
-**Alternative if you prefer never to disable the trigger:** leave the E2E invoices in the database and start your real numbering above them (e.g. `2026-001` while the test rows are all `E2E-…`). The prefixes do not collide, so nothing forces their removal — the numbering sequence derived from `highestIssuedNumber()` would then continue from an `E2E-` number, so set the first real number by hand.
+**Alternative if you prefer never to disable the trigger:** leave the E2E invoices in the database and start your real numbering above them (e.g. `2026-001` while the test rows are all `E2E-…`). The prefixes do not collide, so nothing forces their removal — the numbering sequence derived from `lastIssuedNumber()` would then continue from an `E2E-` number, so set the first real number by hand.
 
 - [ ] **Step 10: Commit**
 
@@ -4169,6 +4489,1591 @@ Expected: clean, or only intended files. Nothing in `.env*`.
 
 ---
 
+## Task 19: Restore the marketing chrome on the public 404
+
+**Files:**
+- Create: `components/SiteChrome.tsx`, `app/not-found.tsx`
+- Modify: `app/(site)/layout.tsx` (delegate to `SiteChrome`)
+
+**Interfaces:**
+- Consumes: `NavbarClient`, `ThemeProvider`, `LangProvider`, `siteConfig`, `SpeedInsights`, `Analytics`.
+- Produces: `<SiteChrome>` — the marketing shell, shared by the `(site)` layout and the 404 page.
+
+**Why this task exists.** Task 1 moved the chrome out of the root layout so `/admin` could be bare. An
+unmatched URL renders `app/not-found.tsx` inside the **root** layout, not inside `(site)`, so the public
+404 lost its navbar and footer — a visible regression from before the refactor. The owner ruled it gets
+full chrome back. Extracting `SiteChrome` keeps one copy of the chrome instead of two.
+
+- [ ] **Step 1: Create `components/SiteChrome.tsx`, moving the markup out of the `(site)` layout**
+
+```tsx
+import { LangProvider } from "@/components/providers/LangProvider"
+import { ThemeProvider } from "@/components/providers/ThemeProvider"
+import { NavbarClient } from "@/components/NavbarClient"
+import { siteConfig } from "@/lib/siteConfig"
+import { SpeedInsights } from "@vercel/speed-insights/next"
+import { Analytics } from "@vercel/analytics/next"
+
+// The marketing shell, shared by the (site) layout and the root not-found
+// page. Unmatched URLs render app/not-found.tsx inside the ROOT layout, which
+// stays deliberately bare so /admin inherits nothing — so the 404 page has to
+// bring the chrome with it instead of inheriting it.
+export function SiteChrome({
+  children,
+}: Readonly<{ children: React.ReactNode }>) {
+  return (
+    <>
+      <ThemeProvider>
+        <LangProvider>
+          <NavbarClient />
+          {children}
+          <footer className="border-t border-black/5 bg-white px-6 py-8 text-center dark:border-white/5 dark:bg-slate-950">
+            <p className="mb-1 text-xs text-slate-400 dark:text-slate-600">
+              {siteConfig.name} — {siteConfig.slogan}
+            </p>
+            <p className="text-xs text-slate-300 dark:text-slate-700">
+              © 2026 {siteConfig.name}. All rights reserved.
+            </p>
+          </footer>
+        </LangProvider>
+      </ThemeProvider>
+      <SpeedInsights />
+      <Analytics />
+    </>
+  )
+}
+```
+
+- [ ] **Step 2: Reduce `app/(site)/layout.tsx` to a delegation**
+
+The footer markup and provider nesting must exist in exactly one place.
+
+```tsx
+import { SiteChrome } from "@/components/SiteChrome"
+
+export default function SiteLayout({
+  children,
+}: Readonly<{ children: React.ReactNode }>) {
+  return <SiteChrome>{children}</SiteChrome>
+}
+```
+
+- [ ] **Step 3: Create `app/not-found.tsx`**
+
+English text, matching the site's `html lang="en"`. The admin area is unaffected — it has its own
+layout and never renders this page.
+
+```tsx
+import type { Metadata } from "next"
+import Link from "next/link"
+import { SiteChrome } from "@/components/SiteChrome"
+
+export const metadata: Metadata = {
+  title: "Page not found",
+}
+
+export default function NotFound() {
+  return (
+    <SiteChrome>
+      <main className="mx-auto flex min-h-[60vh] max-w-2xl flex-col items-center justify-center px-6 text-center">
+        <p className="mb-2 font-mono text-sm text-slate-400 dark:text-slate-500">404</p>
+        <h1 className="mb-3 text-2xl font-semibold">This page does not exist</h1>
+        <p className="mb-8 text-sm text-slate-500 dark:text-slate-400">
+          The link may be outdated, or the address slightly off.
+        </p>
+        <Link
+          href="/"
+          className="rounded-full border border-black/10 px-5 py-2 text-sm font-medium transition hover:bg-black/5 dark:border-white/15 dark:hover:bg-white/5"
+        >
+          Back to home
+        </Link>
+      </main>
+    </SiteChrome>
+  )
+}
+```
+
+- [ ] **Step 4: Verify the 404 has chrome and `/admin` still does not**
+
+```bash
+npm run build && npm run lint
+npm run dev
+```
+
+With the dev server running:
+
+```bash
+curl -s -o /dev/null -w "%{http_code}\n" http://localhost:3000/definitely-not-a-page
+curl -s http://localhost:3000/definitely-not-a-page | grep -c "All rights reserved"
+curl -s http://localhost:3000/definitely-not-a-page | grep -c "<nav"
+curl -s http://localhost:3000/admin/login | grep -c "All rights reserved"
+```
+
+Expected: `404`, then `1` and `1` (chrome present on the 404). Also re-check that `/` and one other
+public route still render their navbar and footer.
+
+**The fourth check cannot pass yet, and that is correct.** If `app/admin/` does not exist at this point,
+`/admin/login` is itself an unmatched URL, so it returns HTTP 404 and renders this very page — chrome
+included. Confirm the status code is 404 to prove it is the not-found page rather than chrome leaking,
+then treat the check as deferred: it belongs to Task 7, which creates the bare admin layout. If Task 7
+has already run, the expectation is `0` and a non-zero result is a real defect.
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add components/SiteChrome.tsx app/not-found.tsx "app/(site)/layout.tsx"
+git commit -m "fix: restore marketing chrome on the public 404 page
+
+Task 1 moved the chrome into the (site) route group so /admin could be
+bare, which left unmatched URLs rendering a chromeless 404 inside the
+root layout. Extracts SiteChrome so the (site) layout and the 404 page
+share one copy, and adds app/not-found.tsx using it."
+```
+
+---
+
+## Task 21: Permanent schema-guarantee test (PGlite)
+
+**Files:**
+- Create: `db/schema.test.mjs`
+- Modify: `package.json` (add `@electric-sql/pglite` as a devDependency and a `test:schema` script)
+
+**Interfaces:**
+- Consumes: `db/schema.sql`.
+- Produces: `npm run test:schema` — applies the real schema to an in-process Postgres and asserts the guarantees the invoicing design depends on.
+
+**Why this exists.** The immutability of an issued invoice, and the gapless-numbering design that rests on
+`invoice_number` being nullable, are *database* guarantees. Nothing in the test suite proves they hold —
+and a future migration could drop the trigger with every test still green. `@electric-sql/pglite` is
+PostgreSQL 18.3 compiled to WASM, running in-process with `plpgsql` available, so these properties can be
+tested with no provisioning, no credentials and no network. Verified working in this environment before
+this task was written.
+
+This complements the live smoke test in Task 2 step 9; it does not replace it. PGlite is not the Neon HTTP
+driver, so driver-level behaviour still needs the real database.
+
+- [ ] **Step 1: Install PGlite as a devDependency**
+
+```bash
+npm install -D @electric-sql/pglite
+```
+
+- [ ] **Step 2: Write `db/schema.test.mjs`**
+
+Plain `.mjs` (no type stripping needed), run directly by Node. It reads the real `db/schema.sql` — never
+a copy — so drift between the test and the shipped schema is impossible.
+
+```js
+// Applies db/schema.sql to an in-process Postgres (PGlite, PostgreSQL 18 in
+// WASM) and asserts the guarantees the invoicing design rests on:
+//   - an issued invoice cannot be updated or deleted, at the DATABASE level
+//   - a draft holds no invoice number, so deleting one leaves no gap
+//   - invoice numbers are unique once issued
+//   - the whole schema is idempotent
+// No provisioning, credentials or network needed.
+import { readFile } from 'node:fs/promises'
+import { test } from 'node:test'
+import assert from 'node:assert/strict'
+import { PGlite } from '@electric-sql/pglite'
+
+const schema = await readFile(new URL('./schema.sql', import.meta.url), 'utf8')
+const statements = schema
+  .split(/^-- @@$/m)
+  .map((s) => s.trim())
+  .filter(Boolean)
+
+async function freshDb() {
+  const db = await PGlite.create()
+  for (const statement of statements) await db.exec(statement)
+  return db
+}
+
+test('the schema applies, and applies again unchanged', async () => {
+  const db = await freshDb()
+  for (const statement of statements) await db.exec(statement)
+  const tables = await db.query(
+    `select table_name from information_schema.tables
+     where table_schema = 'public' order by 1`
+  )
+  assert.deepEqual(
+    tables.rows.map((r) => r.table_name),
+    ['invoice_items', 'invoices', 'login_attempts', 'master_data']
+  )
+  const seeded = await db.query('select count(*)::int as n from master_data')
+  assert.equal(seeded.rows[0].n, 1)
+})
+
+test('drafts hold no invoice number, so two may share a proposed number', async () => {
+  const db = await freshDb()
+  await db.query(
+    `insert into invoices (proposed_number, invoice_date, customer_name)
+     values ('2026-001', '2026-08-08', 'A')`
+  )
+  await db.query(
+    `insert into invoices (proposed_number, invoice_date, customer_name)
+     values ('2026-001', '2026-08-08', 'B')`
+  )
+  const drafts = await db.query(
+    `select count(*)::int as n from invoices where invoice_number is null`
+  )
+  assert.equal(drafts.rows[0].n, 2)
+})
+
+test('an issued invoice cannot be updated or deleted', async () => {
+  const db = await freshDb()
+  const inserted = await db.query(
+    `insert into invoices (proposed_number, invoice_date, customer_name)
+     values ('2026-001', '2026-08-08', 'Kundin') returning id`
+  )
+  const id = inserted.rows[0].id
+
+  // The one transition the trigger must permit: OLD.status is still 'draft'.
+  await db.query(
+    `update invoices set status = 'issued', invoice_number = '2026-001',
+     issued_at = now() where id = $1 and status = 'draft'`,
+    [id]
+  )
+
+  await assert.rejects(
+    () => db.query(`update invoices set customer_name = 'TAMPERED' where id = $1`, [id]),
+    /issued and immutable/
+  )
+  await assert.rejects(
+    () => db.query(`delete from invoices where id = $1`, [id]),
+    /issued and immutable/
+  )
+
+  const row = await db.query(`select customer_name from invoices where id = $1`, [id])
+  assert.equal(row.rows[0].customer_name, 'Kundin')
+})
+
+test('an issued invoice number cannot be reused', async () => {
+  const db = await freshDb()
+  const a = await db.query(
+    `insert into invoices (proposed_number, invoice_date, customer_name)
+     values ('2026-001', '2026-08-08', 'A') returning id`
+  )
+  const b = await db.query(
+    `insert into invoices (proposed_number, invoice_date, customer_name)
+     values ('2026-001', '2026-08-08', 'B') returning id`
+  )
+  await db.query(
+    `update invoices set status = 'issued', invoice_number = '2026-001'
+     where id = $1 and status = 'draft'`,
+    [a.rows[0].id]
+  )
+  await assert.rejects(
+    () =>
+      db.query(
+        `update invoices set status = 'issued', invoice_number = '2026-001'
+         where id = $1 and status = 'draft'`,
+        [b.rows[0].id]
+      ),
+    /duplicate key|unique/i
+  )
+})
+
+test('deleting a draft cascades to its line items', async () => {
+  const db = await freshDb()
+  const draft = await db.query(
+    `insert into invoices (proposed_number, invoice_date, customer_name)
+     values ('2026-002', '2026-08-08', 'A') returning id`
+  )
+  const id = draft.rows[0].id
+  await db.query(
+    `insert into invoice_items (invoice_id, line_no, description, unit_price, net_amount)
+     values ($1, 1, 'Entwicklung', 80.50, 80.50)`,
+    [id]
+  )
+  await db.query(`delete from invoices where id = $1 and status = 'draft'`, [id])
+  const items = await db.query(
+    `select count(*)::int as n from invoice_items where invoice_id = $1`,
+    [id]
+  )
+  assert.equal(items.rows[0].n, 0)
+})
+
+// Documents the driver behaviour the repository modules must handle: money
+// arrives as a STRING, so arithmetic on a raw column value would concatenate.
+test('numeric columns are returned as strings, not numbers', async () => {
+  const db = await freshDb()
+  const invoice = await db.query(
+    `insert into invoices (proposed_number, invoice_date, customer_name)
+     values ('2026-003', '2026-08-08', 'A') returning id`
+  )
+  await db.query(
+    `insert into invoice_items (invoice_id, line_no, description, quantity, unit_price, net_amount)
+     values ($1, 1, 'Entwicklung', 2, 80.50, 161.00)`,
+    [invoice.rows[0].id]
+  )
+  const items = await db.query(`select quantity, unit_price from invoice_items`)
+  assert.equal(typeof items.rows[0].quantity, 'string')
+  assert.equal(typeof items.rows[0].unit_price, 'string')
+})
+```
+
+- [ ] **Step 3: Add the script to `package.json`**
+
+```json
+"test:schema": "node --test db/schema.test.mjs"
+```
+
+- [ ] **Step 4: Run it**
+
+```bash
+npm run test:schema
+```
+
+Expected: 6 tests pass. Then prove the immutability test has teeth: comment out the
+`create trigger invoices_immutable_when_issued` statement in a **copy** of `db/schema.sql` under `/tmp`,
+point a scratch script at that copy, and confirm the "cannot be updated or deleted" test fails. Restore
+nothing in the repo — the copy is in `/tmp`. Report both outcomes.
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add db/schema.test.mjs package.json package-lock.json
+git commit -m "test(db): assert schema guarantees against in-process Postgres
+
+Immutability of issued invoices and the nullable invoice_number that
+keeps numbering gapless are database guarantees, and nothing tested
+them — a migration could drop the trigger with every test still green.
+PGlite runs PostgreSQL 18 in WASM, so these hold without provisioning,
+credentials or network. Also pins the driver behaviour that numeric
+columns come back as strings."
+```
+
+---
+
+## Task 22: Close two immutability gaps in the schema
+
+**Files:**
+- Modify: `db/schema.sql` (three new `-- @@` statements plus one comment), `db/schema.test.mjs` (three new tests)
+
+**Interfaces:**
+- Consumes: the existing schema from Task 2 and the PGlite harness from Task 21.
+- Produces: no new exports. The schema goes from 9 statements to 13.
+
+**Why.** Task 2's review found that the immutability trigger guards the `invoices` row but **not
+`invoice_items`**. An issued invoice's line items could therefore be updated, deleted, or added to —
+prices, quantities and descriptions altered — while the parent row still read `status = 'issued'`. The
+invoice would appear frozen while its contents were not, which defeats the reason this design was chosen
+over storing JSON files. The same review noted nothing forces an issued row to actually *have* its number,
+`issued_at` and `sender_snapshot`, so a row could be frozen in an incomplete state and then be unfixable
+by the very trigger protecting it.
+
+Both fixes below were prototyped against PGlite before this task was written: the item guard blocks
+UPDATE, DELETE and INSERT on an issued invoice's items, still allows editing a draft's items, and still
+allows a draft's cascade delete.
+
+- [ ] **Step 1: Add the line-item guard to `db/schema.sql`**
+
+Append these as three new `-- @@`-separated statements, after the existing trigger.
+
+```sql
+-- @@
+-- The invoices trigger alone is not enough: without this, an issued invoice's
+-- line items could still be edited, deleted or added to, leaving a row that
+-- says 'issued' above contents that changed.
+create or replace function forbid_issued_invoice_item_changes() returns trigger as $$
+declare
+  parent_status text;
+begin
+  if tg_op in ('UPDATE','DELETE') then
+    select status into parent_status from invoices where id = old.invoice_id;
+    if parent_status = 'issued' then
+      raise exception 'invoice % is issued; its line items are immutable', old.invoice_id;
+    end if;
+  end if;
+  if tg_op in ('INSERT','UPDATE') then
+    select status into parent_status from invoices where id = new.invoice_id;
+    if parent_status = 'issued' then
+      raise exception 'invoice % is issued; its line items are immutable', new.invoice_id;
+    end if;
+  end if;
+  -- A missing parent means the invoice is being deleted in this same
+  -- transaction (a draft's cascade), which is legitimate and falls through.
+  return case when tg_op = 'DELETE' then old else new end;
+end;
+$$ language plpgsql
+-- @@
+drop trigger if exists invoice_items_immutable_when_issued on invoice_items
+-- @@
+create trigger invoice_items_immutable_when_issued
+  before insert or update or delete on invoice_items
+  for each row execute function forbid_issued_invoice_item_changes()
+```
+
+- [ ] **Step 2: Add the issued-completeness constraint to `db/schema.sql`**
+
+One more `-- @@` statement. Wrapped in a `do` block because `alter table ... add constraint` has no
+`if not exists`, and every statement in this file must be re-runnable.
+
+```sql
+-- @@
+-- An issued invoice must be complete, or the trigger above would freeze a row
+-- that is missing its own number, timestamp or sender snapshot — unfixable
+-- afterwards without DDL.
+do $$
+begin
+  if not exists (select 1 from pg_constraint where conname = 'invoices_issued_complete') then
+    alter table invoices add constraint invoices_issued_complete check (
+      status = 'draft'
+      or (invoice_number is not null and issued_at is not null and sender_snapshot is not null)
+    );
+  end if;
+end $$
+```
+
+- [ ] **Step 3: Note the one bypass that remains**
+
+Add this comment directly above the `invoices` trigger definition, so the guarantee is not overstated:
+
+```sql
+-- Note: row-level triggers do not fire for TRUNCATE. That is not reachable
+-- through the application's SQL, but a manual TRUNCATE would bypass both
+-- guards.
+```
+
+- [ ] **Step 4: Add three tests to `db/schema.test.mjs`**
+
+```js
+test('an issued invoice\'s line items cannot be changed, deleted or added to', async () => {
+  const db = await freshDb()
+  const invoice = await db.query(
+    `insert into invoices (proposed_number, invoice_date, customer_name)
+     values ('2026-010', '2026-08-08', 'Kundin') returning id`
+  )
+  const id = invoice.rows[0].id
+  await db.query(
+    `insert into invoice_items (invoice_id, line_no, description, quantity, unit_price, vat_rate, net_amount)
+     values ($1, 1, 'Entwicklung', 2, 80.50, 19, 161.00)`,
+    [id]
+  )
+  // Editable while the invoice is still a draft.
+  await db.query(`update invoice_items set unit_price = 90.00 where invoice_id = $1`, [id])
+
+  await db.query(
+    `update invoices set status = 'issued', invoice_number = '2026-010',
+     issued_at = now(), sender_snapshot = '{"name":"X"}'::jsonb
+     where id = $1 and status = 'draft'`,
+    [id]
+  )
+
+  await assert.rejects(
+    () => db.query(`update invoice_items set unit_price = 1 where invoice_id = $1`, [id]),
+    /line items are immutable/
+  )
+  await assert.rejects(
+    () => db.query(`delete from invoice_items where invoice_id = $1`, [id]),
+    /line items are immutable/
+  )
+  await assert.rejects(
+    () =>
+      db.query(
+        `insert into invoice_items (invoice_id, line_no, description, unit_price, net_amount)
+         values ($1, 2, 'Zusatz', 999, 999)`,
+        [id]
+      ),
+    /line items are immutable/
+  )
+
+  const items = await db.query(
+    `select unit_price from invoice_items where invoice_id = $1`,
+    [id]
+  )
+  assert.equal(items.rows.length, 1)
+  assert.equal(items.rows[0].unit_price, '90.00')
+})
+
+test('an invoice cannot be issued without a number, timestamp and snapshot', async () => {
+  const db = await freshDb()
+  const invoice = await db.query(
+    `insert into invoices (proposed_number, invoice_date, customer_name)
+     values ('2026-011', '2026-08-08', 'A') returning id`
+  )
+  await assert.rejects(
+    () => db.query(`update invoices set status = 'issued' where id = $1`, [invoice.rows[0].id]),
+    /invoices_issued_complete|check constraint/i
+  )
+})
+
+test('the line-item guard does not block a draft cascade delete', async () => {
+  const db = await freshDb()
+  const draft = await db.query(
+    `insert into invoices (proposed_number, invoice_date, customer_name)
+     values ('2026-012', '2026-08-08', 'A') returning id`
+  )
+  const id = draft.rows[0].id
+  await db.query(
+    `insert into invoice_items (invoice_id, line_no, description, unit_price, net_amount)
+     values ($1, 1, 'Entwicklung', 5, 5)`,
+    [id]
+  )
+  await db.query(`delete from invoices where id = $1 and status = 'draft'`, [id])
+  const items = await db.query(
+    `select count(*)::int as n from invoice_items where invoice_id = $1`,
+    [id]
+  )
+  assert.equal(items.rows[0].n, 0)
+})
+```
+
+- [ ] **Step 5: Run the suite and prove the new guard has teeth**
+
+```bash
+npm run test:schema
+```
+
+Expected: 9 tests pass. Then copy `db/schema.sql` and `db/schema.test.mjs` to `/tmp`, comment out
+`create trigger invoice_items_immutable_when_issued` in the **copy**, and confirm the line-item test
+fails there. Report both runs. Never modify the repository's schema for this check.
+
+- [ ] **Step 6: Commit**
+
+```bash
+git add db/schema.sql db/schema.test.mjs
+git commit -m "fix(db): make an issued invoice's line items immutable too
+
+The invoices trigger guarded only the parent row, so an issued invoice's
+line items could still be updated, deleted or added to — prices and
+descriptions changed under a row that read 'issued'. That defeated the
+reason this schema was chosen over JSON files.
+
+Adds a matching guard on invoice_items covering INSERT, UPDATE and
+DELETE, which still allows editing a draft's items and still allows a
+draft's cascade delete. Adds a check constraint so an invoice cannot be
+issued without its number, issued_at and sender_snapshot — otherwise the
+trigger would freeze an incomplete row that nothing could then repair.
+
+Also records that row triggers do not fire for TRUNCATE."
+```
+
+---
+
+## Task 23: Close the issuing race in the line-item guard
+
+**Files:**
+- Modify: `db/schema.sql` (two `select` statements inside `forbid_issued_invoice_item_changes`)
+
+**Interfaces:** none change. The schema statement count stays at 13.
+
+**Why.** Task 22's review found that the line-item guard reads the parent's status with a plain,
+non-locking `select`. Under `READ COMMITTED` — Postgres's default — this interleaving is possible:
+
+1. Transaction A updates `invoice_items`; the trigger reads the parent and sees `status = 'draft'`, so it
+   allows the change.
+2. Transaction B issues that same invoice (`update invoices set status = 'issued' …`) and commits.
+3. Transaction A commits.
+
+The result is an issued invoice whose line items were altered after issuing — the exact outcome the guard
+exists to prevent. Writes to the parent row serialise against each other through the row lock that an
+`UPDATE` takes, but the item guard's lookup never locks, so item writes do not participate.
+
+This is reachable in this application: the print flow saves the draft and then issues it as **two**
+separate Server Action calls, so a double-click or a retry can overlap them.
+
+`for share` makes the trigger take a shared lock on the parent row. A concurrent issuing `UPDATE` needs an
+exclusive row lock, so it waits until the item transaction finishes — and then sees the final state.
+
+- [ ] **Step 1: Add `for share` to both parent lookups**
+
+In `db/schema.sql`, inside `forbid_issued_invoice_item_changes`, both `select status into parent_status`
+statements gain `for share`:
+
+```sql
+  if tg_op in ('UPDATE','DELETE') then
+    -- `for share` is load-bearing: without it this read does not serialise
+    -- against a concurrent `update invoices set status = 'issued'`, so an item
+    -- change could commit against an invoice that has just been issued.
+    select status into parent_status from invoices where id = old.invoice_id for share;
+    if parent_status = 'issued' then
+      raise exception 'invoice % is issued; its line items are immutable', old.invoice_id;
+    end if;
+  end if;
+  if tg_op in ('INSERT','UPDATE') then
+    select status into parent_status from invoices where id = new.invoice_id for share;
+    if parent_status = 'issued' then
+      raise exception 'invoice % is issued; its line items are immutable', new.invoice_id;
+    end if;
+  end if;
+```
+
+Change nothing else in the function — the `case when tg_op = 'DELETE' then old else new end` return and the
+fall-through on a missing parent both stay exactly as they are.
+
+- [ ] **Step 2: Confirm the existing guarantees still hold**
+
+```bash
+npm run test:schema
+```
+
+Expected: all 9 tests still pass. In particular the draft cascade-delete test must still pass — a lock
+taken on a parent row that is being deleted in the same transaction is held by that same transaction, so
+it does not block itself.
+
+**Note on what this step does and does not prove.** PGlite is a single-connection, in-process Postgres, so
+it cannot exercise two concurrent transactions and therefore cannot demonstrate the race or its fix. These
+tests confirm only that `for share` breaks nothing. The race itself is argued from Postgres locking
+semantics, and the fix is standard practice for exactly this pattern. Record that limitation plainly in
+the report rather than implying the race was reproduced.
+
+- [ ] **Step 3: Commit**
+
+```bash
+git add db/schema.sql
+git commit -m "fix(db): lock the parent row when checking issued status
+
+The line-item guard read the parent invoice's status without locking, so
+under READ COMMITTED an item change could be validated against a draft
+while a concurrent transaction issued that same invoice — both commit,
+and an issued invoice ends up with items altered afterwards.
+
+Reachable here: the print flow saves the draft and issues it as two
+separate Server Action calls, so a double-click can overlap them.
+
+`for share` makes the check serialise against the issuing UPDATE, which
+needs an exclusive row lock and therefore waits."
+```
+
+---
+
+## Task 24: Keep `/admin/*` 404s out of the marketing chrome
+
+**Files:**
+- Create: `app/admin/not-found.tsx`, `app/admin/[...adminNotFound]/page.tsx`
+
+**Interfaces:** none change.
+
+**Why.** Task 7's verification found that an unmatched path under `/admin` — say `/admin/nonexistent` —
+renders the **root** `app/not-found.tsx`, which Task 19 deliberately gave the full marketing navbar and
+footer. Confirmed by curl: `HTTP 404` with one `<nav>` and one `<footer>` in the body. That contradicts the
+plan's constraint that no marketing chrome appears under `/admin`. It leaks no data, but it is visibly
+wrong.
+
+**The approach was determined experimentally, because the obvious one does not work.** In Next 16 an
+unmatched URL renders the root `not-found`, so an `app/admin/not-found.tsx` alone is never reached —
+verified: the marker never appeared and `<nav>` was still present. A catch-all route under `/admin` that
+calls `notFound()` *does* route into the admin-scoped boundary. Verified with both files in place:
+`/admin/nonexistent` → 404 with `nav: 0` and the admin marker rendered, while `/admin/login` stayed 200
+with `nav: 0`, `/admin` still redirected 307, and the public `/typo` kept its navbar and footer.
+
+- [ ] **Step 1: Create `app/admin/not-found.tsx`**
+
+It renders inside `app/admin/layout.tsx`, so it inherits the bare, light-only admin shell and the
+`robots: noindex` metadata. German, like the rest of the admin UI.
+
+```tsx
+import Link from 'next/link'
+
+export default function AdminNotFound() {
+  return (
+    <main className="mx-auto flex min-h-[60vh] max-w-md flex-col items-center justify-center px-6 text-center">
+      <p className="mb-2 font-mono text-sm text-gray-400">404</p>
+      <h1 className="mb-3 text-xl font-semibold">Seite nicht gefunden</h1>
+      <p className="mb-8 text-sm text-gray-500">
+        Diese Seite existiert in der Verwaltung nicht.
+      </p>
+      <Link
+        href="/admin"
+        className="rounded border border-[#1f5f4f] px-4 py-2 text-sm font-medium text-[#1f5f4f]"
+      >
+        Zur Verwaltung
+      </Link>
+    </main>
+  )
+}
+```
+
+- [ ] **Step 2: Create `app/admin/[...adminNotFound]/page.tsx`**
+
+```tsx
+import { notFound } from 'next/navigation'
+
+// An unmatched URL renders the ROOT not-found page, which carries the marketing
+// chrome by design (Task 19). This catch-all exists so that /admin/* misses
+// throw into the admin-scoped not-found boundary instead, keeping the admin
+// area free of the site navbar and footer. A segment-level not-found.tsx alone
+// does not achieve this — unmatched paths never reach it.
+export default function AdminCatchAll() {
+  notFound()
+}
+```
+
+More specific routes take precedence over a catch-all, so `/admin` and `/admin/login` are unaffected —
+confirmed by the verification below.
+
+- [ ] **Step 3: Verify all four behaviours**
+
+```bash
+npm run build && npm run lint
+npm run dev &
+sleep 15
+```
+
+```bash
+curl -s -o /dev/null -w "admin 404: HTTP %{http_code}\n" http://localhost:3000/admin/nonexistent
+curl -s http://localhost:3000/admin/nonexistent | grep -c "<nav"
+curl -s http://localhost:3000/admin/nonexistent | grep -c "Seite nicht gefunden"
+curl -s -o /dev/null -w "login: HTTP %{http_code}\n" http://localhost:3000/admin/login
+curl -s http://localhost:3000/admin/login | grep -c "<nav"
+curl -s -o /dev/null -w "gate: HTTP %{http_code}\n" http://localhost:3000/admin
+curl -s http://localhost:3000/typo | grep -c "<nav"
+```
+
+Expected in order: `404`, `0`, `1`, `200`, `0`, `307`, `1`. The last one matters — the **public** 404 must
+keep its chrome, which the owner explicitly chose.
+
+Stop the dev server by PID rather than `pkill -f "next dev"`: that pattern also matches the shell running
+it and will kill your own session.
+
+- [ ] **Step 4: Commit**
+
+```bash
+git add app/admin/not-found.tsx "app/admin/[...adminNotFound]"
+git commit -m "fix(admin): scope /admin 404s to the admin layout
+
+An unmatched path under /admin rendered the root not-found page, which
+carries the marketing navbar and footer by design, contradicting the rule
+that no site chrome appears under /admin.
+
+A segment-level not-found.tsx alone is not reached for unmatched URLs, so
+a catch-all route calling notFound() routes /admin/* misses into the
+admin-scoped boundary. The public 404 keeps its chrome unchanged."
+```
+
+---
+
+## Task 25: Print an issued invoice from its frozen sender snapshot
+
+**Files:**
+- Modify: `lib/invoice/types.ts` (add `senderSnapshot` to `InvoiceDraft`), `lib/db/invoices.ts` (select and map it), `components/admin/AdminApp.tsx` (use it when issued; harden the print flow), `tests/e2e/invoice.spec.ts` (add the regression test)
+
+**Interfaces:**
+- Produces: `InvoiceDraft.senderSnapshot: MasterDataInvoiceVisible | null` — the sender block as frozen at issuing.
+
+**Why.** Task 16's review found `sender_snapshot` is **write-only**: `issueInvoice` stores it, but `loadInvoice`
+never selects it and `AdminApp` passes live `masterData.invoiceVisible` to `InvoiceSheet` regardless of
+status. So issuing an invoice, later changing an address or bank detail in Stammdaten, then reprinting
+that invoice renders the **current** sender — not the one the customer received. The spec's stated reason
+for the column ("Change your address next year and old invoices still print correctly — legally they
+must") is therefore not delivered, and the database's immutability guarantees hide the problem: the stored
+row is correct while the printed document is wrong.
+
+The same review found two further defects, fixed here because they sit in the same flow.
+
+- [ ] **Step 1: Add `senderSnapshot` to `InvoiceDraft` in `lib/invoice/types.ts`**
+
+```ts
+import type { MasterDataInvoiceVisible } from '../db/masterData.ts'
+```
+
+and, in the `InvoiceDraft` type:
+
+```ts
+  /**
+   * The sender block as frozen when the invoice was issued. Null for drafts,
+   * which render live master data. An issued invoice MUST print from this, or
+   * a later Stammdaten edit would silently rewrite documents already sent.
+   */
+  senderSnapshot: MasterDataInvoiceVisible | null
+```
+
+`emptyInvoice()` sets `senderSnapshot: null`.
+
+**Note on the import:** it is `import type`, so it is erased at compile time and does not pull
+`masterData.ts`'s `server-only` marker into the client bundle. `npm run build` is the check — if it
+complains about a server-only module reaching client code, stop and instead extract the two master-data
+types into a new pure module (`lib/masterDataTypes.ts`) that both `masterData.ts` and `types.ts` import,
+and report the change.
+
+- [ ] **Step 2: Select and map it in `loadInvoice` (`lib/db/invoices.ts`)**
+
+Add `sender_snapshot` to the enumerated column list, and to the returned object:
+
+```ts
+    // jsonb arrives already parsed by the driver.
+    senderSnapshot: (r.sender_snapshot as MasterDataInvoiceVisible | null) ?? null,
+```
+
+`listInvoices` does not need it — the archive table shows no sender.
+
+- [ ] **Step 3: Render from the snapshot when issued (`components/admin/AdminApp.tsx`)**
+
+```tsx
+          <InvoiceSheet
+            invoice={invoice}
+            // An issued invoice prints the sender frozen into it; a draft
+            // follows live master data so Stammdaten edits show up immediately.
+            sender={
+              invoice.status === 'issued' && invoice.senderSnapshot
+                ? invoice.senderSnapshot
+                : masterData.invoiceVisible
+            }
+            totals={totals}
+            readOnly={invoice.status === 'issued'}
+            onChange={updateInvoice}
+          />
+```
+
+And when issuing succeeds, record locally what was frozen, so an immediate reprint already uses it:
+
+```tsx
+      setInvoice({
+        ...invoice,
+        id: saved.id,
+        status: 'issued',
+        invoiceNumber: issued.invoiceNumber,
+        senderSnapshot: masterData.invoiceVisible,
+      })
+```
+
+- [ ] **Step 4: Stop the print flow from wedging the UI**
+
+`issueInvoiceAction` calls `loadMasterData()` unguarded, and `setBusy(false)` sits after the awaited call.
+If that throws — database hiccup at exactly the wrong moment — `busy` stays `true` forever: both buttons
+stay disabled, the label sticks on "Speichere …", no message appears, and only a page reload recovers.
+Wrap the whole draft branch so the flag is always released:
+
+```tsx
+    if (invoice.status === 'draft') {
+      const confirmed = confirm(
+        'Rechnung festschreiben? Danach ist sie nicht mehr änderbar. ' +
+          'Eine Korrektur erfolgt später über eine neue Rechnung.'
+      )
+      if (!confirmed) return
+
+      setBusy(true)
+      try {
+        const saved = await saveDraftAction(invoice)
+        if (!saved.ok) return setNotice(saved.error)
+
+        const issued = await issueInvoiceAction(saved.id, invoice.proposedNumber)
+        if (!issued.ok) {
+          await refreshArchive() // the draft was saved, so the archive changed
+          return setNotice(issued.error)
+        }
+
+        setInvoice({
+          ...invoice,
+          id: saved.id,
+          status: 'issued',
+          invoiceNumber: issued.invoiceNumber,
+          senderSnapshot: masterData.invoiceVisible,
+        })
+        await refreshArchive()
+        setNotice(`Festgeschrieben als ${issued.invoiceNumber}.`)
+      } catch {
+        setNotice('Festschreiben fehlgeschlagen. Bitte Verbindung prüfen und erneut versuchen.')
+        return
+      } finally {
+        setBusy(false)
+      }
+    }
+
+    window.print()
+```
+
+Note the `return` inside `catch`: a failure must not fall through to `window.print()`, or a document would
+reach paper with no record of having been issued.
+
+- [ ] **Step 5: Clear the validation panel when the invoice changes**
+
+`printErrors` persists after the owner fixes the missing fields, so the red panel keeps accusing them
+until they click again. In `updateInvoice`, clear it:
+
+```tsx
+  function updateInvoice(next: InvoiceDraft) {
+    if (next.paymentTerms !== invoice.paymentTerms) setTermsTouched(true)
+    if (printErrors.length) setPrintErrors([])
+    setInvoice(next)
+  }
+```
+
+- [ ] **Step 6: Add the regression test to `tests/e2e/invoice.spec.ts`**
+
+This is the test that would have caught the write-only snapshot. It must fail if step 3 is reverted.
+
+```ts
+test('an issued invoice keeps printing its frozen sender after Stammdaten changes', async ({ page }) => {
+  await page.goto('/admin')
+
+  // Set a sender, then issue an invoice carrying it.
+  await page.getByRole('button', { name: 'Stammdaten' }).click()
+  await page.getByLabel('Name / Firmenbezeichnung').fill('SNAPSHOT Sender Alt')
+  await page.getByRole('button', { name: 'Stammdaten speichern' }).click()
+  await expect(page.getByText('Gespeichert.')).toBeVisible()
+
+  await page.getByRole('button', { name: 'Rechnung erstellen' }).click()
+  await fillInvoice(page, 'Testkunde Snapshot')
+  const number = `E2E-SNAP-${Date.now()}`
+  await page.getByLabel('Rechnungsnummer').fill(number)
+  page.once('dialog', (dialog) => dialog.accept())
+  await page.getByRole('button', { name: 'Drucken / PDF' }).click()
+  await expect(page.getByText(new RegExp(`Festgeschrieben als ${number}`))).toBeVisible()
+
+  // Now change the sender. The issued invoice must not follow.
+  await page.getByRole('button', { name: 'Stammdaten' }).click()
+  await page.getByLabel('Name / Firmenbezeichnung').fill('SNAPSHOT Sender Neu')
+  await page.getByRole('button', { name: 'Stammdaten speichern' }).click()
+  await expect(page.getByText('Gespeichert.')).toBeVisible()
+
+  // Reload it from the archive, so it comes back through loadInvoice.
+  await page.getByRole('button', { name: 'Meine Rechnungen' }).click()
+  await page.getByRole('row', { name: /Testkunde Snapshot/ }).getByRole('button', { name: 'Laden' }).click()
+
+  const sheet = page.locator('article')
+  await expect(sheet).toContainText('SNAPSHOT Sender Alt')
+  await expect(sheet).not.toContainText('SNAPSHOT Sender Neu')
+})
+```
+
+The suite's existing cleanup removes `E2E-`-prefixed invoices; this test's number carries that prefix, and
+its master-data changes must be restored by the suite's own teardown.
+
+Task 17's other reported weaknesses are **not** part of this task — they are Task 26.
+
+- [ ] **Step 7: Verify**
+
+```bash
+npm test && npx tsc --noEmit && npm run build && npm run lint
+npm run test:e2e
+```
+
+Then prove the new test has teeth: revert step 3's `sender` expression to plain
+`masterData.invoiceVisible` in a scratch copy of the working tree (or temporarily, restoring
+immediately), confirm the new test FAILS, and restore. Report both runs.
+
+- [ ] **Step 8: Commit**
+
+```bash
+git add lib/invoice/types.ts lib/db/invoices.ts components/admin/AdminApp.tsx tests/e2e/invoice.spec.ts
+git commit -m "fix(invoice): print issued invoices from their frozen sender snapshot
+
+sender_snapshot was written at issuing but never read: loadInvoice did
+not select it and the sheet always rendered live master data. Changing an
+address in Stammdaten therefore rewrote the sender on invoices already
+sent — the exact retroactive change the column exists to prevent.
+
+Also stops the print flow wedging the UI when the master-data load throws
+(busy stayed true forever with no message), refreshes the archive when
+issuing fails after a successful save, and clears the validation panel
+once the owner fixes the fields."
+```
+
+---
+
+## Task 26: Harden the end-to-end suite
+
+**Files:**
+- Create: `tests/e2e/global.teardown.ts`, `tests/e2e/db.ts`
+- Modify: `playwright.config.ts`, `tests/e2e/auth.setup.ts`, `tests/e2e/auth.spec.ts`, `tests/e2e/invoice.spec.ts`, `tests/e2e/print.spec.ts`
+
+**Why.** Task 17's review found five assertions that cannot fail, a cleanup step that only exists as a
+manual script, and a way for the suite to lock itself out. A suite with tautologies is worse than none: it
+manufactures confidence. Every change below either makes a test able to fail, or stops the suite
+sabotaging itself.
+
+**Run Task 25 first** — both tasks edit `tests/e2e/invoice.spec.ts`.
+
+- [ ] **Step 1: Stop the suite locking itself out**
+
+The login gate rejects an IP after 8 failed attempts in 15 minutes, checked **before** the password. Locally
+every request shares one IP, and `auth.spec.ts`'s wrong-password test contributes one failure per run — so
+the eighth `npm run test:e2e` inside 15 minutes locks the *real* login used by `auth.setup.ts`, and the
+whole project fails with an error that looks nothing like its cause.
+
+Create `tests/e2e/db.ts` — a tiny helper the suite can use, importing by **relative** path because the
+`@/` alias does not resolve outside Next:
+
+```ts
+import { sql } from '../../lib/db/client.ts'
+
+/** Attempt records are a rate-limit ledger with 24h retention; clearing them in
+ *  a test environment is harmless, and leaving them lets the suite lock itself
+ *  out after eight runs in fifteen minutes. */
+export async function clearLoginAttempts(): Promise<void> {
+  await sql`delete from login_attempts`
+}
+
+export async function countInvoices(): Promise<number> {
+  const rows = await sql`select count(*)::int as n from invoices`
+  return rows[0].n as number
+}
+
+/** Removes only rows this suite created. Every issued E2E invoice carries the
+ *  `E2E-` prefix, so this can never touch a real invoice. */
+export async function cleanupE2eRows(): Promise<void> {
+  await sql`delete from invoices where status = 'draft' and customer_name like 'Testkunde%'`
+
+  // The disable statements sit INSIDE the try. Outside it, a failure on the
+  // second disable would leave the first trigger off with nothing to restore
+  // it — and a disabled trigger silently removes the immutability guarantee
+  // from the owner's real invoices. `enable trigger` on an already-enabled
+  // trigger is a harmless no-op, so an unconditional finally is safe.
+  try {
+    await sql`alter table invoices disable trigger invoices_immutable_when_issued`
+    await sql`alter table invoice_items disable trigger invoice_items_immutable_when_issued`
+    await sql`delete from invoices where status = 'issued' and invoice_number like 'E2E-%'`
+  } finally {
+    await sql`alter table invoices enable trigger invoices_immutable_when_issued`
+    await sql`alter table invoice_items enable trigger invoice_items_immutable_when_issued`
+  }
+}
+```
+
+Call `clearLoginAttempts()` at the start of `auth.setup.ts`, before the login.
+
+- [ ] **Step 1b: Protect the owner's real master data from a crashed test run**
+
+The snapshot test edits `master_data` and restores it inline. If any test throws between those two points,
+the owner's row is left holding test values — and once they have entered their real IBAN and tax numbers,
+that is destructive. Inline restoration is not enough; the backup must be taken before the run and replayed
+unconditionally at the end.
+
+Add to `tests/e2e/db.ts`:
+
+```ts
+import type { MasterData } from '../../lib/db/masterData.ts'
+import { loadMasterData, saveMasterData } from '../../lib/db/masterData.ts'
+
+const BACKUP = new URL('./.auth/master-data-backup.json', import.meta.url)
+
+/** Snapshot the owner's real master data before the suite touches it.
+ *
+ *  A surviving backup file means a previous run failed to restore. Overwriting
+ *  it would replace the owner's real values with the polluted test state and
+ *  lose them permanently across two runs — so restore from it first, which
+ *  removes it, and only then take a fresh snapshot. */
+export async function backupMasterData(): Promise<void> {
+  const { writeFile } = await import('node:fs/promises')
+  const { existsSync } = await import('node:fs')
+  if (existsSync(BACKUP)) await restoreMasterData()
+  await writeFile(BACKUP, JSON.stringify(await loadMasterData()), 'utf8')
+}
+
+/** Replay it unconditionally, even if a test threw mid-edit. */
+export async function restoreMasterData(): Promise<void> {
+  const { readFile, unlink } = await import('node:fs/promises')
+  try {
+    const saved = JSON.parse(await readFile(BACKUP, 'utf8')) as MasterData
+    await saveMasterData(saved)
+    await unlink(BACKUP)
+  } catch {
+    // No backup means the suite never got far enough to edit anything.
+  }
+}
+```
+
+`tests/e2e/.auth/` is already gitignored, so the backup never reaches the repository — which matters,
+because it contains the owner's real tax numbers and IBAN.
+
+Call `backupMasterData()` in `auth.setup.ts` (after clearing attempts, before logging in) and
+`restoreMasterData()` in the teardown from step 2. Then verify the guarantee: set a recognisable fake
+value, make a test throw deliberately mid-run, and confirm the teardown still restores the original.
+
+- [ ] **Step 2: Clean up automatically, not by hand**
+
+`tests/e2e/global.teardown.ts`:
+
+```ts
+import { test as teardown, expect } from '@playwright/test'
+import { cleanupE2eRows, clearLoginAttempts } from './db.ts'
+import { sql } from '../../lib/db/client.ts'
+
+teardown('remove rows this suite created', async () => {
+  // The restore MUST run even if cleanup throws. Without this finally, a
+  // failure above skips it, and the next run's backup overwrites the surviving
+  // file with the polluted state — losing the owner's real IBAN and tax numbers
+  // permanently, across two runs, with nothing to notice.
+  try {
+    await cleanupE2eRows()
+    await clearLoginAttempts()
+  } finally {
+    await restoreMasterData()
+  }
+
+  // Leaving a trigger disabled would silently remove the immutability guarantee
+  // for real invoices. Assert both by NAME and that they are enabled — a loop
+  // over the result set would pass vacuously if the query returned nothing,
+  // which is the same tautology this task exists to remove.
+  const triggers = await sql`
+    select tgname, tgenabled from pg_trigger where not tgisinternal order by 1
+  `
+  const state = new Map(triggers.map((r) => [r.tgname as string, r.tgenabled as string]))
+  expect(state.get('invoices_immutable_when_issued')).toBe('O')
+  expect(state.get('invoice_items_immutable_when_issued')).toBe('O')
+})
+```
+
+Register it in `playwright.config.ts` as a project with `teardown` wired to the chromium project, so it
+runs even when tests fail.
+
+- [ ] **Step 3: Make the five weak assertions able to fail**
+
+Each of these currently passes with the feature removed.
+
+**(a) `print.spec.ts` — "empty optional fields print nothing".** `optional` is a placeholder *attribute*,
+never rendered text, so the assertion holds regardless. The real behaviour is that the whole row
+disappears:
+
+```ts
+  test('empty optional rows are removed entirely, not left with a bare label', async ({ page }) => {
+    // A printed label with no value reads as an error on a customer's invoice.
+    //
+    // The count assertion comes FIRST and is not optional: `:visible` with
+    // `toHaveCount(0)` is satisfied by zero matches, so deleting the
+    // `.admin-optional` markup outright would pass too. Asserting the wrappers
+    // exist, then that none is visible, is what makes this able to fail.
+    await expect(page.locator('.admin-optional')).toHaveCount(2)
+    await expect(page.locator('.admin-optional:visible')).toHaveCount(0)
+    await expect(page.getByText('Kundennummer')).toBeHidden()
+  })
+```
+
+**(b) `auth.spec.ts` — the unauthenticated Server-Action probe.** A non-200 is also what a malformed
+request returns, so it proves nothing about the boundary. Assert the *effect*:
+
+```ts
+  test('a Server Action without a session changes nothing', async ({ request }) => {
+    const before = await countInvoices()
+    const response = await request.post('/admin', {
+      headers: { 'Next-Action': 'probe', 'Content-Type': 'text/plain;charset=UTF-8' },
+      data: '[]',
+      maxRedirects: 0,
+    })
+    expect(response.status()).not.toBe(200)
+    expect(await countInvoices()).toBe(before)
+  })
+```
+
+**(c) `invoice.spec.ts` — the issued row's missing delete button.** `toHaveCount(0)` also passes if the row
+itself vanished. Assert the row exists first:
+
+```ts
+    const row = page.getByRole('row', { name: /Testkunde Festschreiben/ })
+    await expect(row).toBeVisible()
+    await expect(row.getByRole('button', { name: /löschen/ })).toHaveCount(0)
+```
+
+**(d) `print.spec.ts` — the hidden empty line row.** `toBeHidden()` is satisfied by zero matches, so
+deleting the `data-empty` attribute would not fail it. Assert the row exists and is hidden:
+
+```ts
+    const emptyRow = page.locator('tr[data-empty="true"]')
+    await expect(emptyRow).toHaveCount(1) // the attribute must still be produced
+    await expect(emptyRow).toBeHidden()   // and print CSS must still hide it
+```
+
+**(e) `invoice.spec.ts` — the issued-invoice counter.** `Festgeschriebene Rechnungen: [1-9]` is satisfied by
+a leftover row from an earlier run. Read the count before issuing and assert it incremented by exactly one.
+
+- [ ] **Step 4: Verify, then prove the suite has teeth**
+
+```bash
+npm run test:e2e
+```
+
+Then, one at a time and restoring after each, revert these three production changes and confirm a test
+fails. Report which test failed in each case:
+
+1. `data-empty` on the line-item row (`components/admin/ItemsTable.tsx`) → (d) must fail.
+2. The `sender` expression added by Task 25 (`components/admin/AdminApp.tsx`) → Task 25's snapshot test
+   must fail.
+3. The `.admin-optional:has(.admin-print-only:empty)` rule (`app/admin/admin.css`) → (a) must fail.
+
+If any of them leaves the suite green, that assertion is still a tautology — fix it and re-check.
+
+Finally, run the suite **twice in a row** and confirm the second run passes, proving the teardown works and
+the lockout no longer accumulates.
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add tests playwright.config.ts
+git commit -m "test(e2e): make five assertions able to fail, and clean up automatically
+
+Task 17's review found five assertions that pass with the feature removed,
+a cleanup step that existed only as a manual script, and a way for the
+suite to lock itself out: the wrong-password test adds a failed attempt
+per run, so the eighth run within fifteen minutes locked the real login.
+
+Adds an automatic teardown that removes only E2E- prefixed rows and
+asserts both immutability triggers end up enabled, clears the attempt
+ledger before login, and rewrites the weak assertions to check the
+behaviour rather than a placeholder attribute or a zero match."
+```
+
+---
+
+## Task 27: Make a reprint byte-for-byte what was issued
+
+**Files:**
+- Modify: `app/admin/(protected)/actions.ts`, `lib/invoice/types.ts`, `lib/db/invoices.ts`, `components/admin/AdminApp.tsx`, `components/admin/TotalsBlock.tsx` (props only), `tests/e2e/invoice.spec.ts`
+
+**Why.** Task 25 stopped an issued invoice following later Stammdaten edits, and Task 25's own review then
+found two narrower paths by which a printed invoice can still differ from the record the customer received.
+Both have the same shape as the original defect: the stored row stays correct, so nothing looks broken, and
+only the paper is wrong.
+
+**Path 1 — the client's idea of the snapshot, not the server's.** `AdminApp` sets `senderSnapshot` from its
+own `masterData.invoiceVisible`, while the database freezes what `loadMasterData()` returns — the last
+**saved** value. The Stammdaten form updates client state on every keystroke, independent of the save
+button (and an existing test documents unsaved edits surviving a tab switch as normal). So editing an
+address without saving, switching tabs, and issuing an invoice prints the unsaved edit while the record
+holds the saved one.
+
+**Path 2 — totals recomputed instead of read.** The sheet always calls `computeTotals(invoice.items)`.
+Today that agrees with the stored `net_total` / `vat_total` / `gross_total`, because issued items are
+immutable and the function has not changed. But `round2` **was** changed during this project (to round
+symmetrically for negative amounts); had that landed after invoices were issued, every historical reprint
+would have shifted by a cent, with no cross-check to notice.
+
+**Run after Task 26** — both edit `tests/e2e/invoice.spec.ts`.
+
+- [ ] **Step 1: Have the server report what it froze**
+
+In `app/admin/(protected)/actions.ts`, widen the success result so the client never has to guess:
+
+```ts
+export async function issueInvoiceAction(
+  id: string,
+  proposedNumber: string
+): Promise<
+  | { ok: true; invoiceNumber: string; senderSnapshot: MasterDataInvoiceVisible }
+  | { ok: false; error: string }
+> {
+```
+
+and, on success, return the same object that was written:
+
+```ts
+  refresh()
+  // The snapshot the DATABASE froze, so the client cannot render a sender that
+  // differs from the record — an unsaved Stammdaten edit lives only in client
+  // state and must not reach the printed document.
+  return { ok: true, invoiceNumber: number, senderSnapshot: masterData.invoiceVisible }
+```
+
+- [ ] **Step 2: Carry the stored totals on the draft**
+
+In `lib/invoice/types.ts`, add to `InvoiceDraft`:
+
+```ts
+  /**
+   * Totals as stored when the invoice was issued. Null for drafts, which
+   * recompute live. An issued invoice MUST print these rather than recomputing:
+   * a future change to the rounding rules would otherwise silently restate
+   * documents already sent.
+   */
+  storedTotals: InvoiceTotals | null
+```
+
+`emptyInvoice()` sets `storedTotals: null`. Import `InvoiceTotals` from `./totals.ts`.
+
+- [ ] **Step 3: Select them in `loadInvoice`**
+
+Add `net_total`, `vat_total`, `gross_total` and `vat_breakdown` to the enumerated columns, and map them —
+remembering that `numeric` arrives as a **string** and `jsonb` arrives already parsed:
+
+```ts
+    storedTotals: {
+      // lineNets are not stored; the items carry their own net_amount, and the
+      // sheet only needs the per-row value it already renders.
+      lineNets: items.map((i) => Number(i.net_amount)),
+      groups: (r.vat_breakdown as VatGroup[] | null) ?? [],
+      netTotal: Number(r.net_total),
+      vatTotal: Number(r.vat_total),
+      grossTotal: Number(r.gross_total),
+    },
+```
+
+Set `storedTotals` to `null` when `status === 'draft'`, so a loaded draft still recomputes as the owner
+edits it.
+
+- [ ] **Step 4: Render stored totals for an issued invoice**
+
+In `AdminApp`:
+
+```tsx
+  const liveTotals = useMemo(() => computeTotals(invoice.items), [invoice.items])
+  // An issued invoice prints the figures it was issued with; a draft recomputes.
+  const totals = invoice.status === 'issued' && invoice.storedTotals ? invoice.storedTotals : liveTotals
+```
+
+and set both fields from the server's answer when issuing succeeds:
+
+```tsx
+        setInvoice({
+          ...invoice,
+          id: saved.id,
+          status: 'issued',
+          invoiceNumber: issued.invoiceNumber,
+          senderSnapshot: issued.senderSnapshot,
+          storedTotals: liveTotals,
+        })
+```
+
+`storedTotals: liveTotals` is correct here: the same values were just written by `saveDraft`, which computed
+them with this very function moments earlier.
+
+- [ ] **Step 5: Add the regression test**
+
+```ts
+test('an unsaved Stammdaten edit never reaches an issued invoice', async ({ page }) => {
+  await page.goto('/admin')
+
+  // Save a known sender.
+  await page.getByRole('button', { name: 'Stammdaten' }).click()
+  await page.getByLabel('Name / Firmenbezeichnung').fill('SNAPSHOT Gespeichert')
+  await page.getByRole('button', { name: 'Stammdaten speichern' }).click()
+  await expect(page.getByText('Gespeichert.')).toBeVisible()
+
+  // Type a different one WITHOUT saving, then leave the tab.
+  await page.getByLabel('Name / Firmenbezeichnung').fill('SNAPSHOT Ungespeichert')
+  await page.getByRole('button', { name: 'Rechnung erstellen' }).click()
+
+  await fillInvoice(page, 'Testkunde Unsaved')
+  const number = `E2E-UNSAVED-${Date.now()}`
+  await page.getByLabel('Rechnungsnummer').fill(number)
+  page.once('dialog', (dialog) => dialog.accept())
+  await page.getByRole('button', { name: 'Drucken / PDF' }).click()
+  await expect(page.getByText(new RegExp(`Festgeschrieben als ${number}`))).toBeVisible()
+
+  // The printed sender must match what the database froze — the SAVED value.
+  const sheet = page.locator('article')
+  await expect(sheet).toContainText('SNAPSHOT Gespeichert')
+  await expect(sheet).not.toContainText('SNAPSHOT Ungespeichert')
+})
+```
+
+- [ ] **Step 6: Verify, and prove both fixes have teeth**
+
+```bash
+npm test && npx tsc --noEmit && npm run build && npm run lint
+npm run test:e2e
+```
+
+Then, restoring after each:
+
+1. Revert step 1/4 so `senderSnapshot` comes from `masterData.invoiceVisible` again → the new test must fail.
+2. Change `round2` to truncate instead of round (e.g. `Math.trunc`) in a scratch edit, issue an invoice,
+   reload it from the archive, and confirm the reprint still shows the **originally issued** gross — proving
+   stored totals are being read. Restore `round2` immediately; do not commit it.
+
+Report both.
+
+- [ ] **Step 7: Commit**
+
+```bash
+git add app/admin lib/invoice/types.ts lib/db/invoices.ts components/admin tests/e2e/invoice.spec.ts
+git commit -m "fix(invoice): reprint exactly what was issued, not what is current
+
+Two paths could still make a printed invoice differ from the record the
+customer received.
+
+The sender snapshot was taken from client state, but the Stammdaten form
+updates that on every keystroke, independent of the save button — so an
+unsaved edit reached the printed document while the database froze the last
+saved value. The action now returns the snapshot it actually wrote.
+
+Totals were always recomputed from the line items. That agreed with the
+stored columns only because computeTotals had not changed; round2 was in
+fact changed during this project, and had that landed after invoices were
+issued, every historical reprint would have shifted by a cent. An issued
+invoice now prints its stored totals."
+```
+
+---
+
+## Task 28: Quantize money and quantity at the input boundary
+
+**Files:** Modify `components/admin/ItemsTable.tsx`; add cases to `lib/invoice/totals.test.ts`
+
+**Why.** `parseNum` commits the raw parsed value into state at full precision, but three consumers
+quantize: the printed price span (`formatAmount`, 2 dp), the printed quantity (`formatQuantity`, 3 dp), and
+the columns `unit_price numeric(12,2)` / `quantity numeric(12,3)`. `computeTotals` then works from the
+unquantized value, so the printed line does not equal printed price × printed quantity. Verified:
+**8 × 0,125 € prints as "8 × 0,13 € = 1,00 €"** — it should read 1,04 €. The database stores the rounded
+price beside the unrounded net, so an issued invoice reprints that contradiction forever.
+
+Worse, a price typed as `0,004` stores as `0.00`, and `validateForPrint`'s `unitPrice > 0` runs again on
+every reprint — so the issued invoice can **never be printed again**.
+
+- [ ] **Step 1: Quantize in `numericCell`'s `onChange`**
+
+```tsx
+          onChange={(e) => {
+            setDrafts((d) => ({ ...d, [key]: e.target.value }))
+            // Quantize to the precision that will actually be printed and
+            // stored, so the printed line always equals printed price ×
+            // printed quantity. Committing full precision makes
+            // 8 × 0,125 € print as "8 × 0,13 € = 1,00 €".
+            const parsed = parseNum(e.target.value)
+            const value = field === 'unitPrice' ? round2(parsed) : round3(parsed)
+            update(index, { [field]: value })
+          }}
+```
+
+Import `round2` from `@/lib/invoice/totals.ts`, and add `round3` beside it, built the same way as
+`round2` so it inherits the same NaN guards and symmetric rounding:
+
+```ts
+/** Quantities are numeric(12,3); the same decimal-string shift as round2. */
+export function round3(value: number): number {
+  if (!Number.isFinite(value)) return 0
+  const away = (n: number) => (n < 0 ? -Math.round(-n) : Math.round(n))
+  const shifted = Number(`${value}e+3`)
+  if (!Number.isFinite(shifted)) return away(value * 1000) / 1000
+  return Number(`${away(shifted)}e-3`)
+}
+```
+
+- [ ] **Step 2: Add the cases that would have caught this**
+
+```ts
+test('round3 quantizes quantities to the stored scale', () => {
+  assert.equal(round3(0.0004), 0)
+  assert.equal(round3(1.23456), 1.235)
+  assert.equal(round3(-1.23456), -1.235)
+  assert.equal(round3(Number.NaN), 0)
+})
+
+// The printed line must equal printed price × printed quantity.
+test('a sub-cent price cannot make the printed line disagree', () => {
+  const totals = computeTotals([
+    { description: 'x', quantity: 8, unit: 'Std', unitPrice: round2(0.125), vatRate: 19 },
+  ])
+  // 0,125 quantizes to 0,13, and 8 × 0,13 = 1,04 — which is what prints.
+  assert.equal(totals.lineNets[0], 1.04)
+})
+```
+
+- [ ] **Step 3: Verify** — `npm test`, `npx tsc --noEmit`, `npm run build`, `npm run lint`. Then type
+`0,125` into a price with quantity 8 in the browser and confirm the field shows `0,13` on blur and the line
+reads `1,04 €`.
+
+---
+
+## Task 29: Validate the sender before an invoice can be issued
+
+**Files:** Modify `lib/invoice/validate.ts`, `lib/invoice/validate.test.ts`, `components/admin/AdminApp.tsx`
+
+**Why.** `validateForPrint` checks the customer, number, dates and line items but never the sender. With
+`master_data` empty — its state right now — issuing produces a permanently frozen invoice with a blank
+sender block and a footer reading `Steuernummer: · USt-IdNr.: ·`. That fails § 14 UStG, and the row is
+immutable by design, so the only remedy is voiding it with another invoice. The database cannot catch it:
+`invoices_issued_complete` only requires `sender_snapshot is not null`, and an all-empty object is non-null.
+Print-time validation is the only place this can be caught. The spec's own Section 7 list omitted the
+sender, so this is a spec defect that shaped the code.
+
+- [ ] **Step 1: Take the sender as a parameter and validate what will actually print**
+
+```ts
+export function validateForPrint(
+  invoice: InvoiceDraft,
+  sender: MasterDataInvoiceVisible,
+  /** Sender fields are enforced only on the draft→issued transition: an
+   *  invoice issued while Stammdaten were incomplete must stay reprintable,
+   *  or it becomes a legal document that can never be produced again. */
+  options: { enforceSender: boolean }
+): string[] {
+```
+
+Add, when `options.enforceSender`:
+
+```ts
+  if (!filled(sender.name)) errors.push('Stammdaten: Name fehlt.')
+  if (!filled(sender.street) || !filled(sender.zipCity)) {
+    errors.push('Stammdaten: eigene Adresse ist unvollständig.')
+  }
+  if (!filled(sender.taxNumber) && !filled(sender.vatId)) {
+    errors.push('Stammdaten: Steuernummer oder USt-IdNr. fehlt (§ 14 UStG).')
+  }
+```
+
+`taxNumber` **or** `vatId` satisfies § 14; requiring both would be wrong.
+
+- [ ] **Step 2: Call it with the sender that will print**
+
+In `AdminApp.printInvoice`:
+
+```tsx
+    const sender =
+      invoice.status === 'issued' && invoice.senderSnapshot
+        ? invoice.senderSnapshot
+        : masterData.invoiceVisible
+    const errors = validateForPrint(invoice, sender, {
+      enforceSender: invoice.status === 'draft',
+    })
+```
+
+- [ ] **Step 3: Tests** — add cases for a missing sender name, an incomplete sender address, neither tax
+number nor VAT ID (an error) and either one alone (no error), and that an **issued** invoice with an empty
+sender still validates, so it stays reprintable. Update the existing fixtures for the new signature.
+
+- [ ] **Step 4: Verify** — `npm test`, `npx tsc --noEmit`, `npm run build`, `npm run lint`,
+`npm run test:e2e`. Then confirm in the browser that issuing with empty Stammdaten is refused with the
+German messages, and that filling only the Steuernummer (no USt-IdNr.) is accepted.
+
+---
+
+## Task 30: Stop the test suite from touching real invoicing data
+
+**Files:** Modify `tests/e2e/db.ts`, `playwright.config.ts` (or add `tests/e2e/guard.setup.ts`),
+`package.json`; document the second connection string in `README.md`
+
+**Why.** `npm run test:e2e` runs against `DATABASE_URL` from `.env.local` — the same database the admin app
+uses. The suite **disables both immutability triggers**, deletes rows, and overwrites `master_data`, with
+`tests/e2e/.auth/master-data-backup.json` as the only copy of the owner's IBAN, tax numbers and
+Sozialversicherungsnummer for the duration of a run. That file is gitignored and untracked, so
+`git clean -xfd` removes it; a crash plus a clean means permanent, silent loss. This is currently harmless
+only because `master_data` is empty and no real invoice exists — which is about to change.
+
+- [ ] **Step 1: A guard that refuses to run against real data**
+
+Before anything else in the suite (a setup project that other projects depend on):
+
+```ts
+import { sql } from '../../lib/db/client.ts'
+
+setup('refuse to run against real invoicing data', async () => {
+  const issued = await sql`
+    select count(*)::int as n from invoices
+    where status = 'issued' and (invoice_number is null or invoice_number not like 'E2E-%')
+  `
+  expect(
+    issued[0].n,
+    'This database holds issued invoices that are not E2E test data. The suite ' +
+      'disables the immutability triggers and overwrites master data — point ' +
+      'E2E_DATABASE_URL at a separate Neon branch instead.'
+  ).toBe(0)
+})
+```
+
+- [ ] **Step 2: A separate connection string**
+
+Have the suite prefer `E2E_DATABASE_URL` and fall back to `DATABASE_URL` **only** when the guard above
+passes. Document in `README.md` how to create a Neon branch for it (`vercel integration` / the Neon
+dashboard) and add it to `.env.local`.
+
+- [ ] **Step 3: Fix the third copy of the master-data column mapping**
+
+`tests/e2e/db.ts` mirrors the `master_data` columns in hand-written SQL. It is the third copy after
+`masterData.ts` and the schema, and drift there makes the teardown restore leave polluted values in real
+data. Either derive the column list from one place or add a test that fails when the counts diverge.
+
+- [ ] **Step 4: Small correctness items from the same review**
+
+- `print.spec.ts` uses the customer name `'Druck Testkunde'`, which `cleanupE2eRows`' `like 'Testkunde%'`
+  does not match. Rename it to `Testkunde Druck`.
+- Add the missing `window.print()` `addInitScript` stub to the one issuing test lacking it.
+
+- [ ] **Step 5: Verify** — with a deliberately non-`E2E-` issued invoice present, confirm the suite refuses
+to start; remove it and confirm the suite runs. Then run it twice consecutively.
+
+---
+
 ## Self-Review
 
 **Spec coverage** — every spec section maps to a task:
@@ -4201,4 +6106,4 @@ const results = await sql.transaction([
 
 It runs the array as one non-interactive HTTP transaction, which is what item replacement needs. If a future version changes this, the fallback is a `Pool` client with explicit `BEGIN`/`COMMIT`/`ROLLBACK`.
 
-**Numbering has one source of truth:** `highestIssuedNumber()` on the server, reached through `nextNumberAction()`. No client component derives an invoice number from its own copy of the archive.
+**Numbering has one source of truth:** `lastIssuedNumber()` on the server, reached through `nextNumberAction()`. No client component derives an invoice number from its own copy of the archive.

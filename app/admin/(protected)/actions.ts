@@ -1,0 +1,123 @@
+'use server'
+
+import { refresh } from 'next/cache'
+import { redirect } from 'next/navigation'
+import { clearSessionCookie, requireSession } from '@/lib/admin/session.ts'
+import {
+  loadMasterData,
+  saveMasterData,
+  type MasterData,
+  type MasterDataInvoiceVisible,
+} from '@/lib/db/masterData.ts'
+import {
+  deleteDraft,
+  issueInvoice,
+  lastIssuedNumber,
+  listInvoices,
+  loadInvoice,
+  saveDraft,
+} from '@/lib/db/invoices.ts'
+import { nextInvoiceNumber } from '@/lib/invoice/numbering.ts'
+import type { InvoiceDraft, InvoiceSummary } from '@/lib/invoice/types.ts'
+
+export async function logoutAction(): Promise<void> {
+  await requireSession()
+  await clearSessionCookie()
+  redirect('/admin/login')
+}
+
+export async function saveMasterDataAction(
+  data: MasterData
+): Promise<{ ok: boolean; error?: string }> {
+  await requireSession() // first statement: actions are directly reachable POST endpoints
+  try {
+    await saveMasterData(data)
+    refresh()
+    return { ok: true }
+  } catch (error) {
+    console.error('saveMasterData failed', error)
+    return { ok: false, error: 'Speichern fehlgeschlagen.' }
+  }
+}
+
+export async function saveDraftAction(
+  draft: InvoiceDraft
+): Promise<{ ok: true; id: string } | { ok: false; error: string }> {
+  await requireSession()
+  try {
+    const id = await saveDraft(draft)
+    refresh()
+    return { ok: true, id }
+  } catch (error) {
+    console.error('saveDraft failed', error)
+    return { ok: false, error: 'Speichern fehlgeschlagen. Festgeschriebene Rechnungen sind unveränderbar.' }
+  }
+}
+
+export async function loadInvoiceAction(id: string): Promise<InvoiceDraft | null> {
+  await requireSession()
+  return loadInvoice(id)
+}
+
+export async function deleteDraftAction(
+  id: string
+): Promise<{ ok: boolean; error?: string }> {
+  await requireSession()
+  try {
+    await deleteDraft(id)
+    refresh()
+    return { ok: true }
+  } catch (error) {
+    console.error('deleteDraft failed', error)
+    return { ok: false, error: 'Löschen fehlgeschlagen.' }
+  }
+}
+
+export async function listInvoicesAction(): Promise<InvoiceSummary[]> {
+  await requireSession()
+  return listInvoices()
+}
+
+// Single source of truth for numbering: the client never derives the next
+// number from its own copy of the archive.
+export async function nextNumberAction(): Promise<string> {
+  await requireSession()
+  return nextInvoiceNumber(await lastIssuedNumber(), new Date().getFullYear())
+}
+
+export async function issueInvoiceAction(
+  id: string,
+  proposedNumber: string
+): Promise<
+  | { ok: true; invoiceNumber: string; senderSnapshot: MasterDataInvoiceVisible }
+  | { ok: false; error: string }
+> {
+  await requireSession()
+
+  // The number is claimed here, never by a draft: that is what keeps the
+  // sequence gapless when a draft is deleted.
+  const number =
+    proposedNumber.trim() ||
+    nextInvoiceNumber(await lastIssuedNumber(), new Date().getFullYear())
+
+  const masterData = await loadMasterData()
+  // Only the invoice-visible half is frozen into the snapshot.
+  const result = await issueInvoice(id, number, masterData.invoiceVisible)
+
+  if (!result.ok) {
+    refresh()
+    return {
+      ok: false,
+      error:
+        result.error === 'number_taken'
+          ? `Die Rechnungsnummer ${number} ist bereits vergeben. Bitte eine andere Nummer wählen.`
+          : 'Diese Rechnung ist bereits festgeschrieben.',
+    }
+  }
+
+  refresh()
+  // The snapshot the DATABASE froze, so the client cannot render a sender that
+  // differs from the record — an unsaved Stammdaten edit lives only in client
+  // state and must not reach the printed document.
+  return { ok: true, invoiceNumber: number, senderSnapshot: masterData.invoiceVisible }
+}
