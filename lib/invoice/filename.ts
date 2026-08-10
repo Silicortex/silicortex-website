@@ -1,10 +1,14 @@
 // The PDF file name.
 //
-//   RE-2026-001_2026-08-10_Beispiel-GmbH.pdf
+//   RE-2026-001_2026-08-10_Beispiel-GmbH_Silicortex.pdf
+//   └── number ──┘ └─ date ┘ └ customer ┘ └ company ┘
 //
 // Number first: it is the key the Steuerberater references, and within a year it
-// sorts chronologically anyway. Then the ISO date, which sorts correctly and
-// cannot be misread as an American date. Then the customer.
+// sorts chronologically anyway. It stays ONE token — RE-2026-001 is the legal
+// identifier under § 14 Abs. 4 Nr. 4 UStG, and splitting the prefix from the
+// counter across the date would both break that and stop the files sorting by
+// number. Then the ISO date, which sorts correctly and cannot be misread as an
+// American date. Then the customer, then the issuing company.
 
 /** Reduces any string to `[A-Za-z0-9-]`.
  *
@@ -38,6 +42,13 @@ export function slug(value: unknown): string {
   )
 }
 
+/** The trading name that closes every file name.
+ *
+ *  Not taken from Stammdaten: the `name` field there is the legal issuer
+ *  ("Mohamad Katramez") which § 14 requires ON the invoice, while this is the
+ *  brand the file is recognised by. One constant, one place to change it. */
+export const COMPANY_FILE_NAME = 'Silicortex'
+
 /** The file name without the extension — also what `document.title` is set to
  *  before printing, since Chrome uses the title as the default name in its
  *  "Save as PDF" dialog. */
@@ -45,6 +56,7 @@ export function invoiceFileBase(args: {
   invoiceNumber: string
   invoiceDate: string // ISO yyyy-mm-dd
   customerName: string
+  companyName?: string
 }): string {
   // Every segment is slugged, not just the customer. The invoice number is a
   // free-text field the owner can type into, and a number containing a slash
@@ -54,6 +66,7 @@ export function invoiceFileBase(args: {
     slug(args.invoiceNumber),
     slug(args.invoiceDate),
     slug(args.customerName),
+    slug(args.companyName),
   ].filter(Boolean) // an empty customer must not leave a dangling underscore
 
   // Everything empty would otherwise produce a file called ".pdf", which is
@@ -67,6 +80,7 @@ export function invoiceFileName(args: {
   invoiceNumber: string
   invoiceDate: string
   customerName: string
+  companyName?: string
 }): string {
   return `${invoiceFileBase(args)}.pdf`
 }

@@ -23,7 +23,7 @@ import {
   saveDraftAction,
 } from '@/app/admin/(protected)/actions.ts'
 import { validateForPrint } from '@/lib/invoice/validate.ts'
-import { invoiceFileBase } from '@/lib/invoice/filename.ts'
+import { COMPANY_FILE_NAME, invoiceFileBase } from '@/lib/invoice/filename.ts'
 import { ArchiveTable } from './ArchiveTable.tsx'
 import { NumberJournal, type JournalEntry } from './NumberJournal.tsx'
 import { InvoiceSheet } from './InvoiceSheet.tsx'
@@ -81,6 +81,7 @@ export function AdminApp({
         invoiceNumber: invoice.invoiceNumber ?? invoice.proposedNumber,
         invoiceDate: invoice.invoiceDate,
         customerName: invoice.customerName,
+        companyName: COMPANY_FILE_NAME,
       }),
     [invoice.invoiceNumber, invoice.proposedNumber, invoice.invoiceDate, invoice.customerName]
   )

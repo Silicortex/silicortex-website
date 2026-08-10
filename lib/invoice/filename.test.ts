@@ -1,6 +1,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import {
+  COMPANY_FILE_NAME,
   FORBIDDEN_IN_FILENAME,
   invoiceFileBase,
   invoiceFileName,
@@ -26,7 +27,56 @@ test('runs of punctuation collapse to one hyphen and never dangle', () => {
   assert.equal(slug(undefined), '')
 })
 
-test('the full file name puts number, ISO date and customer in that order', () => {
+test('the full file name is number, ISO date, customer, company', () => {
+  assert.equal(
+    invoiceFileName({
+      invoiceNumber: 'RE-2026-001',
+      invoiceDate: '2026-08-10',
+      customerName: 'Beispiel GmbH',
+      companyName: 'Silicortex',
+    }),
+    'RE-2026-001_2026-08-10_Beispiel-GmbH_Silicortex.pdf'
+  )
+})
+
+test('the invoice number stays one token, never split across the date', () => {
+  // RE-2026-001 is the legal identifier under § 14 Abs. 4 Nr. 4 UStG. Splitting
+  // it into RE_<date>_2026-001 would also stop the files sorting by number.
+  const name = invoiceFileName({
+    invoiceNumber: 'RE-2026-001',
+    invoiceDate: '2026-08-11',
+    customerName: 'Beispiel GmbH',
+    companyName: COMPANY_FILE_NAME,
+  })
+  assert.match(name, /^RE-2026-001_/)
+  assert.equal(name.split('_').length, 4)
+  assert.equal(name.split('_')[0], 'RE-2026-001')
+})
+
+test('an empty customer collapses rather than doubling the underscore', () => {
+  // With a company segment following it, an empty customer would otherwise
+  // produce "…_2026-08-10__Silicortex".
+  assert.equal(
+    invoiceFileName({
+      invoiceNumber: 'RE-2026-001',
+      invoiceDate: '2026-08-10',
+      customerName: '',
+      companyName: 'Silicortex',
+    }),
+    'RE-2026-001_2026-08-10_Silicortex.pdf'
+  )
+  // Whitespace-only is the same case, and is what an accidentally spaced field
+  // actually contains.
+  assert.equal(
+    invoiceFileName({
+      invoiceNumber: 'RE-2026-001',
+      invoiceDate: '2026-08-10',
+      customerName: '  ',
+      companyName: 'Silicortex',
+    }),
+    'RE-2026-001_2026-08-10_Silicortex.pdf'
+  )
+  // And with no company passed at all, the name simply ends at the customer.
   assert.equal(
     invoiceFileName({
       invoiceNumber: 'RE-2026-001',
@@ -34,19 +84,6 @@ test('the full file name puts number, ISO date and customer in that order', () =
       customerName: 'Beispiel GmbH',
     }),
     'RE-2026-001_2026-08-10_Beispiel-GmbH.pdf'
-  )
-})
-
-test('an empty customer leaves no dangling underscore', () => {
-  assert.equal(
-    invoiceFileName({ invoiceNumber: 'RE-2026-001', invoiceDate: '2026-08-10', customerName: '' }),
-    'RE-2026-001_2026-08-10.pdf'
-  )
-  // Whitespace-only is the same case, and is what an accidentally spaced field
-  // actually contains.
-  assert.equal(
-    invoiceFileName({ invoiceNumber: 'RE-2026-001', invoiceDate: '2026-08-10', customerName: '  ' }),
-    'RE-2026-001_2026-08-10.pdf'
   )
 })
 
@@ -75,6 +112,7 @@ test('no forbidden character survives in any segment', () => {
     invoiceNumber: hostile,
     invoiceDate: hostile,
     customerName: hostile,
+    companyName: hostile,
   })
   for (const character of FORBIDDEN_IN_FILENAME) {
     assert.ok(!name.includes(character), `file name contains ${JSON.stringify(character)}: ${name}`)
@@ -87,6 +125,7 @@ test('the printed title is the file name without the extension', () => {
     invoiceNumber: 'RE-2026-001',
     invoiceDate: '2026-08-10',
     customerName: 'Beispiel GmbH',
+    companyName: COMPANY_FILE_NAME,
   }
   assert.equal(`${invoiceFileBase(args)}.pdf`, invoiceFileName(args))
 })

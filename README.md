@@ -147,9 +147,14 @@ the original stays immutable.
 
 ### PDF file name
 
-`RE-2026-001_2026-08-10_Beispiel-GmbH.pdf` — number first (the key the
-Steuerberater references), then the ISO date (sorts correctly, cannot be misread
-as an American date), then the customer. Every segment is sanitised to
+`RE-2026-001_2026-08-10_Beispiel-GmbH_Silicortex.pdf` — invoice number, invoice
+date, customer, company. The number comes first because it is the key the
+Steuerberater references, and it stays one token: `RE-2026-001` is the legal
+identifier under § 14 Abs. 4 Nr. 4 UStG, and splitting the prefix from the counter
+across the date would also stop the files sorting by number. The date is ISO so it
+sorts correctly and cannot be misread as an American date. The company segment is
+the trading name (`COMPANY_FILE_NAME` in `lib/invoice/filename.ts`), not the legal
+issuer name from Stammdaten, which appears on the invoice itself. Every segment is sanitised to
 `[A-Za-z0-9-]`, umlauts transliterated the German way (`Müller` → `Mueller`), so
 the name can never contain a path separator. `document.title` is set to this name
 on `beforeprint`, because Chrome uses the title as the default name in its "Save

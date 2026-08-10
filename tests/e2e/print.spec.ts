@@ -106,7 +106,7 @@ test.describe('print output', () => {
     // BOTH of them — so any assertion after it would only ever see the restored
     // title and could never fail.
     await page.evaluate(() => window.dispatchEvent(new Event('beforeprint')))
-    expect(await page.title()).toBe('RE-2026-001_2026-08-10_Mueller-Soehne-KG')
+    expect(await page.title()).toBe('RE-2026-001_2026-08-10_Mueller-Soehne-KG_Silicortex')
 
     await page.evaluate(() => window.dispatchEvent(new Event('afterprint')))
     expect(await page.title()).toBe(original)
