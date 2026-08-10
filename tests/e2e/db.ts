@@ -2,6 +2,40 @@ import { join } from 'node:path'
 import { sql } from '../../lib/db/client.ts'
 import type { MasterData } from '../../lib/db/masterData.ts'
 
+/** The identity of the database we are connected to, for the backup file to
+ *  record. Host plus database name is enough to tell the e2e database from the
+ *  real one without ever writing a credential to disk. */
+export async function databaseIdentity(): Promise<string> {
+  const rows = await sql`
+    select current_database() as db,
+           coalesce(inet_server_addr()::text, 'local') as host
+  `
+  return `${rows[0].host}/${rows[0].db}`
+}
+
+/** Refuses to proceed unless this database is free of real invoices.
+ *
+ *  Shared by the guard project and by the destructive helpers themselves, so a
+ *  direct `--project=cleanup` (or any future caller) cannot bypass the check by
+ *  skipping the guard. Deliberately does NOT look at master_data: the suite's
+ *  own tests legitimately fill it, so the teardown runs with test values in
+ *  place. The guard project checks master_data separately, before any test has
+ *  written to it. */
+export async function assertNoRealInvoices(): Promise<void> {
+  const rows = await sql`
+    select count(*)::int as n from invoices
+    where status = 'issued'
+      and (invoice_number is null or invoice_number not like 'E2E-%')
+  `
+  if (rows[0].n > 0) {
+    throw new Error(
+      `Refusing to touch this database: it holds ${rows[0].n} issued invoice(s) ` +
+        'that are not E2E test data. Point E2E_DATABASE_URL at the isolated ' +
+        'e2e database (see README).'
+    )
+  }
+}
+
 /** Attempt records are a rate-limit ledger with 24h retention; clearing them in
  *  a test environment is harmless, and leaving them lets the suite lock itself
  *  out after eight runs in fifteen minutes. */
@@ -23,6 +57,11 @@ export async function countInvoices(): Promise<number> {
  *  from the owner's real invoices. `enable trigger` on an already-enabled
  *  trigger is a harmless no-op, so an unconditional finally is safe. */
 export async function cleanupE2eRows(): Promise<void> {
+  // Defence in depth: Playwright runs a teardown project even when the guard
+  // that should have stopped the run failed, so this cannot rely on the guard
+  // having passed.
+  await assertNoRealInvoices()
+
   await sql`delete from invoices where status = 'draft' and customer_name like 'Testkunde%'`
 
   try {
@@ -134,7 +173,11 @@ export async function backupMasterData(): Promise<void> {
   const { writeFile } = await import('node:fs/promises')
   const { existsSync } = await import('node:fs')
   if (existsSync(BACKUP)) await restoreMasterData()
-  await writeFile(BACKUP, JSON.stringify(await readMasterDataRow()), 'utf8')
+  // The target database varies run to run (playwright.config.ts redirects
+  // DATABASE_URL), so the snapshot records where it came from. Without that, a
+  // backup taken from the e2e database could be replayed over the real one.
+  const payload = { database: await databaseIdentity(), data: await readMasterDataRow() }
+  await writeFile(BACKUP, JSON.stringify(payload), 'utf8')
 }
 
 /** Replay it unconditionally, even if a test threw mid-edit. Only a missing
@@ -143,13 +186,26 @@ export async function backupMasterData(): Promise<void> {
  *  while this looks like it succeeded. */
 export async function restoreMasterData(): Promise<void> {
   const { readFile, unlink } = await import('node:fs/promises')
-  let saved: MasterData
+  let payload: { database?: string; data: MasterData }
   try {
-    saved = JSON.parse(await readFile(BACKUP, 'utf8')) as MasterData
+    payload = JSON.parse(await readFile(BACKUP, 'utf8')) as typeof payload
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code === 'ENOENT') return
     throw error
   }
-  await writeMasterDataRow(saved)
+
+  // Replaying a snapshot into a different database would silently overwrite one
+  // database's master data with another's — the owner's IBAN and tax numbers
+  // replaced by test values, with nothing left to detect it.
+  const current = await databaseIdentity()
+  if (payload.database && payload.database !== current) {
+    throw new Error(
+      `Refusing to restore master data: the backup was taken from ` +
+        `${payload.database} but this connection is ${current}. Delete ` +
+        `tests/e2e/.auth/master-data-backup.json only if you are certain it is stale.`
+    )
+  }
+
+  await writeMasterDataRow(payload.data)
   await unlink(BACKUP)
 }

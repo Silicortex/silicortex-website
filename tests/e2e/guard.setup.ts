@@ -1,58 +1,78 @@
 import { test as setup, expect } from '@playwright/test'
 import { sql } from '../../lib/db/client.ts'
+import { assertNoRealInvoices } from './db.ts'
 
 // The suite disables both immutability triggers, deletes invoices, and
-// overwrites master_data. Running it against the real invoicing database
-// would be destructive, so this project runs before everything else and
-// aborts the run unless the target database is demonstrably test data.
+// overwrites master_data. Running it against the real invoicing database would
+// be destructive, so this project runs before everything else and aborts the
+// run unless the target database is demonstrably test data.
 //
 // It executes AFTER playwright.config.ts redirected DATABASE_URL to
-// E2E_DATABASE_URL, so normally it checks the isolated database — where both
-// assertions hold trivially. Its real job is the abnormal cases: the env var
-// missing (suite falls through to the real database) or pointing somewhere
-// wrong.
+// E2E_DATABASE_URL, so normally it checks the isolated database — where every
+// assertion holds trivially. Its job is the abnormal case: the variable
+// pointing somewhere it should not.
 setup('refuse to run against real invoicing data', async () => {
-  const issued = await sql`
-    select count(*)::int as n from invoices
-    where status = 'issued'
-      and (invoice_number is null or invoice_number not like 'E2E-%')
-  `
-  expect(
-    issued[0].n,
-    'This database holds issued invoices that are not E2E test data. The ' +
-      'suite disables the immutability triggers and overwrites master data — ' +
-      'set E2E_DATABASE_URL to the isolated e2e database (see README).'
-  ).toBe(0)
+  // Shared with the destructive helpers themselves, so the check cannot be
+  // bypassed by invoking a teardown project directly.
+  await assertNoRealInvoices()
 
-  // Real master data is the owner's IBAN and tax numbers. The suite's own
-  // backup/restore protects it, but only against failures INSIDE a run — not
-  // against pointing the whole suite at the wrong database. A filled-in
-  // Steuer-IdNr. or Sozialversicherungsnummer means this is not a test
-  // database, whatever the invoices table says.
-  const [md] = await sql`
-    select personal_tax_id, social_security_no from master_data where id = 1
+  // Every master-data field the suite overwrites, not just the two optional
+  // personal identifiers. Checking only those left the realistic early case
+  // unguarded: a real name, IBAN and Steuernummer entered, no invoice issued
+  // yet, and no personal identifiers — which passed, and the suite then
+  // overwrote the row.
+  //
+  // Valid only here, before any test has written to master_data. The teardown
+  // legitimately runs with test values in place, which is why it uses the
+  // narrower invoice check plus the backup's own database identity.
+  const rows = await sql`
+    select name, street, zip_city, tax_number, vat_id, iban, account_holder,
+           personal_tax_id, social_security_no, birth_date
+    from master_data where id = 1
   `
+  const row = rows[0]
   expect(
-    md.personal_tax_id === '' && md.social_security_no === '',
-    'master_data holds real personal identifiers — this is not a test ' +
-      'database. Set E2E_DATABASE_URL to the isolated e2e database.'
-  ).toBe(true)
+    row,
+    'master_data row 1 is missing — run npm run db:migrate against this database'
+  ).toBeTruthy()
+
+  const filled = Object.entries(row)
+    .filter(([, value]) => String(value ?? '').trim() !== '')
+    .map(([column]) => column)
+  expect(
+    filled,
+    `master_data holds real values (${filled.join(', ')}) — this is not a test ` +
+      'database. Point E2E_DATABASE_URL at the isolated e2e database.'
+  ).toEqual([])
 })
 
 // The master_data column mapping exists in THREE places: db/schema.sql,
-// lib/db/masterData.ts, and the raw-SQL mirror in tests/e2e/db.ts (which
-// cannot import masterData.ts — its server-only marker throws outside Next).
-// If a column is added and the mirror is not updated, backup/restore would
-// silently restore the owner's row incompletely, which is worse than not
-// restoring at all. This pin fails the whole run instead.
+// lib/db/masterData.ts, and the raw-SQL mirror in tests/e2e/db.ts (which cannot
+// import masterData.ts — its server-only marker throws outside Next). If a
+// column is added, renamed or dropped and the mirror is not updated, the
+// backup/restore would silently restore the owner's row incompletely, which is
+// worse than not restoring at all. This pin fails the whole run instead.
 setup('the master_data mirror in db.ts has not drifted from the schema', async () => {
-  const [c] = await sql`
-    select count(*)::int as n from information_schema.columns
-    where table_name = 'master_data'
+  const rows = await sql`
+    select column_name from information_schema.columns
+    where table_schema = 'public' and table_name = 'master_data'
+    order by column_name
   `
+  // A bare count could not catch a RENAME, and without the schema filter a
+  // second master_data in any other schema double-counted and aborted every run
+  // with a misleading drift message.
+  const actual = rows.map((r) => r.column_name as string)
+  const mirrored = [
+    'account_holder', 'activity', 'activity_start', 'bank_name', 'bic',
+    'birth_date', 'business_id', 'country', 'default_vat_rate', 'email', 'iban',
+    'id', 'name', 'payment_terms_days', 'personal_tax_id', 'phone',
+    'profit_determination', 'social_security_no', 'status_label', 'street',
+    'tax_number', 'tax_office', 'taxation_type', 'updated_at', 'vat_id',
+    'vat_scheme', 'website', 'zip_city',
+  ]
   expect(
-    c.n,
-    'master_data changed shape. Update the column mapping in ' +
-      'tests/e2e/db.ts (and lib/db/masterData.ts), then update this pin.'
-  ).toBe(28) // id + 26 mapped fields + updated_at
+    actual,
+    'master_data changed shape. Update the column mapping in tests/e2e/db.ts ' +
+      '(and lib/db/masterData.ts), then update this list.'
+  ).toEqual(mirrored)
 })

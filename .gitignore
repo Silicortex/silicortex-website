@@ -54,3 +54,6 @@ next-env.d.ts
 /test-results/
 /playwright-report/
 /tests/e2e/.auth/
+
+# throwaway verification scripts
+*.tmp.mjs

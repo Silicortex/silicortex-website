@@ -5,7 +5,7 @@ test.describe('print output', () => {
     await page.goto('/admin')
     // "Testkunde …", not "… Testkunde": cleanupE2eRows removes drafts by
     // `like 'Testkunde%'`, which a leading "Druck" would silently escape.
-    await page.getByLabel('Kundenname').fill('Testkunde Druck')
+    await page.getByLabel('Kundenname').fill(`Testkunde Druck ${Date.now()}`)
     await page.getByLabel('Kundenstraße').fill('Teststr. 1')
     await page.getByLabel('Kunden-PLZ und Ort').fill('65195 Wiesbaden')
     await page.getByLabel('Leistungsdatum oder Leistungszeitraum').fill('Juli 2026')

@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { computeTotals, round2, round3, type InvoiceItemInput } from './totals.ts'
+import { computeTotals, round1, round2, round3, type InvoiceItemInput } from './totals.ts'
 
 function item(partial: Partial<InvoiceItemInput>): InvoiceItemInput {
   return { description: 'Leistung', quantity: 1, unit: 'Std', unitPrice: 0, vatRate: 19, ...partial }
@@ -151,4 +151,49 @@ test('a sub-cent price rounds to zero rather than storing an invisible value', (
   // print validation's `unitPrice > 0` passed at issue time and failed on every
   // later reprint — an issued invoice that could never be printed again.
   assert.equal(round2(0.004), 0)
+})
+
+// A code review found round2 and round3 returning NaN for magnitudes around
+// 1e18-1e21: the input guards passed, but the ROUNDED value stringified in
+// exponential form, so the closing template literal read "1e+21e-2". Reachable
+// from the UI — pasting a 20-digit price yields a finite 1.2e19 — and Postgres
+// accepts NaN into a numeric column, so it would have been stored and
+// reprinted rather than failing loudly.
+test('the rounding helpers never return NaN, at any magnitude', () => {
+  assert.equal(round2(1e19), 1e19)
+  assert.equal(round3(1e18), 1e18)
+  assert.equal(round2(-1e19), -1e19)
+
+  // Every scale, across the whole double range that can reach these functions.
+  for (let exponent = -12; exponent <= 25; exponent += 1) {
+    for (const mantissa of [1, 1.5, 3.14159, 9.99]) {
+      for (const value of [mantissa * 10 ** exponent, -mantissa * 10 ** exponent]) {
+        for (const round of [round1, round2, round3]) {
+          assert.ok(
+            !Number.isNaN(round(value)),
+            `NaN for ${value} at scale of ${round.name || 'roundTo'}`
+          )
+        }
+      }
+    }
+  }
+})
+
+// Values that force exponential notation are already integers, so rounding is a
+// no-op. Multiplying instead lost precision: 1e21 came back as
+// 999999999999999900000.
+test('huge magnitudes pass through exactly, not via lossy multiplication', () => {
+  assert.equal(round2(1e21), 1e21)
+  assert.equal(round3(1e21), 1e21)
+  assert.equal(round2(-1e21), -1e21)
+})
+
+test('round1 quantizes VAT rates to the numeric(4,1) column scale', () => {
+  // A rate the column cannot hold would print at 7,55 % and store as 7,6 % on
+  // the same immutable document.
+  assert.equal(round1(7.55), 7.6)
+  assert.equal(round1(19), 19)
+  assert.equal(round1(7), 7)
+  assert.equal(round1(-7.55), -7.6)
+  assert.equal(round1(Number.NaN), 0)
 })

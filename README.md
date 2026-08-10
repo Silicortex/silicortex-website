@@ -83,8 +83,14 @@ same Neon instance, created with:
 CREATE DATABASE e2e_tests;  -- then apply db/schema.sql to it via db/migrate.mjs
 ```
 
-and stored in `.env.local` as `DATABASE_URL` with the database name swapped to
-`e2e_tests`. `playwright.config.ts` redirects `DATABASE_URL` to it for both the test
+and stored in `.env.local` as **`E2E_DATABASE_URL`** — the same connection string as
+`DATABASE_URL` with the database name swapped to `e2e_tests`. Leave `DATABASE_URL`
+itself pointing at the real database; `npm run dev` by hand must serve that one.
+Apply the schema to the new database with
+`DATABASE_URL="<the e2e url>" node db/migrate.mjs`.
+
+The suite refuses to start if `E2E_DATABASE_URL` is missing or empty, rather than
+falling back to `DATABASE_URL`. `playwright.config.ts` redirects `DATABASE_URL` to it for both the test
 process and the dev server it launches, and `tests/e2e/guard.setup.ts` aborts any run
 whose target database contains non-`E2E-` issued invoices or filled-in personal
 identifiers — so even a missing env var cannot make the suite touch real data.

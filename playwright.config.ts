@@ -9,12 +9,20 @@ const baseURL = 'http://localhost:3000'
 // points BOTH consumers at it: the test helpers in tests/e2e/db.ts (which
 // import lib/db/client.ts in this process) and the dev server below (which
 // inherits this process's environment).
-if (process.env.E2E_DATABASE_URL) {
-  process.env.DATABASE_URL = process.env.E2E_DATABASE_URL
+// Absent or empty, this is refused outright rather than falling back to
+// DATABASE_URL. A silent fallback made the real invoicing database the target,
+// leaving only a heuristic guard between a test run and the owner's invoices —
+// and `E2E_DATABASE_URL=` from a scaffolded .env line reads as the empty
+// string, which a truthiness check would also skip.
+if (!process.env.E2E_DATABASE_URL?.trim()) {
+  throw new Error(
+    'E2E_DATABASE_URL is not set. The suite disables the invoice immutability ' +
+      'triggers, deletes rows and overwrites master data, so it must never run ' +
+      'against the invoicing database. See the README for creating the isolated ' +
+      'e2e database.'
+  )
 }
-// With no E2E_DATABASE_URL the suite would hit the real database, so the
-// guard project below is the only thing standing between a test run and the
-// owner's invoices. It refuses to proceed if the target holds real data.
+process.env.DATABASE_URL = process.env.E2E_DATABASE_URL
 
 export default defineConfig({
   testDir: './tests/e2e',
@@ -26,6 +34,14 @@ export default defineConfig({
     // database containing non-E2E issued invoices or filled-in master data.
     { name: 'guard', testMatch: /guard\.setup\.ts/ },
     { name: 'setup', testMatch: /auth\.setup\.ts/, dependencies: ['guard'], teardown: 'cleanup' },
+    // This teardown CANNOT be gated with `dependencies: ['guard']` — Playwright
+    // rejects the config outright ("Teardown project cleanup must not have
+    // dependencies"). And it runs even when the guard project failed, which was
+    // verified by planting a marker row and watching the teardown wipe it.
+    //
+    // So the gate lives in the code instead: global.teardown.ts asserts the
+    // database is free of real invoices before touching anything, and
+    // cleanupE2eRows() re-asserts for any other caller.
     { name: 'cleanup', testMatch: /global\.teardown\.ts/ },
     {
       name: 'chromium',

@@ -6,21 +6,27 @@ import type { InvoiceDraft } from './types.ts'
 export function validateForPrint(
   invoice: InvoiceDraft,
   sender: MasterDataInvoiceVisible,
-  // Sender fields are enforced ONLY on the draft -> issued transition. An
-  // invoice issued while the Stammdaten were still incomplete must stay
-  // reprintable: it is immutable by design, so refusing to print it would
-  // leave a legal document that can never be produced again — worse than the
-  // incomplete sender it was trying to prevent.
+  // Validation gates the draft -> issued transition, nothing else.
+  //
+  // An ISSUED invoice is immutable by design, so refusing to print one leaves a
+  // legal document that can never be produced again — worse than any field it
+  // was trying to police. That applies to EVERY rule, not just the sender: an
+  // invoice issued before prices were quantized can hold a sub-cent line stored
+  // as 0.00, which `unitPrice > 0` would reject on every later reprint.
+  //
+  // So a reprint validates nothing, and the transition validates everything.
   options: { enforceSender: boolean }
 ): string[] {
   const errors: string[] = []
   const filled = (value: string) => value.trim().length > 0
 
+  // Already issued: it exists, it is immutable, and it must always print.
+  if (invoice.status === 'issued') return errors
+
   if (options.enforceSender) {
     // Nothing in the database can catch an empty sender: the
     // invoices_issued_complete constraint only requires sender_snapshot to be
-    // non-null, and an all-empty object satisfies that. This is the only place
-    // it can be caught before the row becomes immutable.
+    // non-null, and an all-empty object satisfies that.
     if (!filled(sender.name)) errors.push('Stammdaten: Name fehlt.')
     if (!filled(sender.street) || !filled(sender.zipCity)) {
       errors.push('Stammdaten: eigene Adresse ist unvollständig.')
@@ -37,7 +43,7 @@ export function validateForPrint(
     errors.push('Adresse des Kunden ist unvollständig.')
   }
 
-  const number = invoice.status === 'issued' ? (invoice.invoiceNumber ?? '') : invoice.proposedNumber
+  const number = invoice.proposedNumber
   if (!filled(number)) errors.push('Rechnungsnummer fehlt.')
   if (!filled(invoice.invoiceDate)) errors.push('Rechnungsdatum fehlt.')
   if (!filled(invoice.serviceDate)) errors.push('Leistungsdatum bzw. Leistungszeitraum fehlt.')

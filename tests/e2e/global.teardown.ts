@@ -1,11 +1,23 @@
 import { test as teardown, expect } from '@playwright/test'
-import { cleanupE2eRows, clearLoginAttempts, restoreMasterData } from './db.ts'
 import { sql } from '../../lib/db/client.ts'
+import { assertNoRealInvoices, cleanupE2eRows, clearLoginAttempts, restoreMasterData } from './db.ts'
 
 teardown('remove rows this suite created', async () => {
-  // The restore MUST run even if cleanup throws. Without this finally, a
-  // failure above skips it, and the next run's backup overwrites the surviving
-  // file with the polluted state — losing the owner's real IBAN and tax numbers
+  // FIRST, and deliberately outside the try below.
+  //
+  // Playwright runs a teardown project even when the guard project failed, and
+  // it refuses `dependencies` on a teardown project, so this is the only place
+  // the check can live. Verified: before this existed, a failing guard still let
+  // the teardown disable the real immutability triggers and wipe the real
+  // rate-limit ledger.
+  //
+  // Throwing here also skips restoreMasterData in the finally — correct, since
+  // replaying a snapshot into the wrong database is the worst outcome available.
+  await assertNoRealInvoices()
+
+  // The restore MUST run even if cleanup throws. Without this finally, a failure
+  // above skips it, and the next run's backup overwrites the surviving file with
+  // the polluted state — losing the owner's real IBAN and tax numbers
   // permanently, across two runs, with nothing to notice.
   try {
     await cleanupE2eRows()
@@ -17,7 +29,7 @@ teardown('remove rows this suite created', async () => {
   // Leaving a trigger disabled would silently remove the immutability guarantee
   // for real invoices. Assert both by NAME and that they are enabled — a loop
   // over the result set would pass vacuously if the query returned nothing,
-  // which is the same tautology this task exists to remove.
+  // which is the same tautology this suite exists to remove.
   const triggers = await sql`
     select tgname, tgenabled from pg_trigger where not tgisinternal order by 1
   `

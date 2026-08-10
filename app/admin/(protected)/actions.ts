@@ -18,6 +18,7 @@ import {
   saveDraft,
 } from '@/lib/db/invoices.ts'
 import { nextInvoiceNumber } from '@/lib/invoice/numbering.ts'
+import { validateForPrint } from '@/lib/invoice/validate.ts'
 import type { InvoiceDraft, InvoiceSummary } from '@/lib/invoice/types.ts'
 
 export async function logoutAction(): Promise<void> {
@@ -101,6 +102,33 @@ export async function issueInvoiceAction(
     nextInvoiceNumber(await lastIssuedNumber(), new Date().getFullYear())
 
   const masterData = await loadMasterData()
+
+  // The § 14 sender check must happen HERE, against the row the database is
+  // about to freeze — not only in the client.
+  //
+  // The Stammdaten form pushes every keystroke into client state, independent
+  // of its save button. So typing a name and address without saving, then
+  // issuing, passed the client-side check on values that were never persisted
+  // while this action froze the still-empty saved row. The result was exactly
+  // the defect the client check was added to prevent: an immutable, § 14-invalid
+  // invoice, correctable only by voiding it.
+  //
+  // validateForPrint is a pure function, so the same rule runs on both sides.
+  // Server-side is the authoritative one: it is the only check a caller cannot
+  // bypass, since Server Actions are directly reachable POST endpoints.
+  const invoice = await loadInvoice(id)
+  if (!invoice) return { ok: false, error: 'Rechnung nicht gefunden.' }
+
+  const senderErrors = validateForPrint(invoice, masterData.invoiceVisible, {
+    enforceSender: true,
+  })
+  if (senderErrors.length > 0) {
+    return {
+      ok: false,
+      error: `Festschreiben nicht möglich: ${senderErrors.join(' ')}`,
+    }
+  }
+
   // Only the invoice-visible half is frozen into the snapshot.
   const result = await issueInvoice(id, number, masterData.invoiceVisible)
 

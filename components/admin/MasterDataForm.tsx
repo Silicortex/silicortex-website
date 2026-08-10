@@ -8,6 +8,7 @@ import type {
 } from '@/lib/db/masterData.ts'
 import { saveMasterDataAction } from '@/app/admin/(protected)/actions.ts'
 import { parseNum } from '@/lib/invoice/parseNum.ts'
+import { round1 } from '@/lib/invoice/totals.ts'
 
 type TextKey = Exclude<keyof MasterDataInvoiceVisible, 'defaultVatRate' | 'paymentTermsDays'>
 
@@ -125,7 +126,10 @@ export function MasterDataForm({
                 ...masterData,
                 invoiceVisible: {
                   ...masterData.invoiceVisible,
-                  defaultVatRate: parseNum(e.target.value),
+                  // numeric(4,1): an unquantized 7,55 would print at 7,55 % while
+                  // invoice_items.vat_rate stored 7,6 — two rates on one
+                  // immutable document.
+                  defaultVatRate: round1(parseNum(e.target.value)),
                 },
               })
             }}
