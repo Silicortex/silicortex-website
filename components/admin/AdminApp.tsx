@@ -30,7 +30,8 @@ import { COMPANY_FILE_NAME, invoiceFileBase } from '@/lib/invoice/filename.ts'
 import { nextNumber as nextNumberInRange, parseInvoiceNumber } from '@/lib/invoice/numbering.ts'
 import { ArchiveTable } from './ArchiveTable.tsx'
 import { NumberJournal, type JournalEntry } from './NumberJournal.tsx'
-import { EuSalesReport, type EuSaleRow } from './EuSalesReport.tsx'
+import { EuSalesReport } from './EuSalesReport.tsx'
+import type { EuSaleMonthRow } from '@/lib/invoice/euSales.ts'
 import { InvoiceSheet } from './InvoiceSheet.tsx'
 import { MasterDataForm } from './MasterDataForm.tsx'
 
@@ -53,7 +54,7 @@ export function AdminApp({
   invoices: InvoiceSummary[]
   nextNumber: string
   journal: JournalEntry[]
-  euSales: EuSaleRow[]
+  euSales: EuSaleMonthRow[]
 }) {
   const [tab, setTab] = useState<Tab>('invoice')
   const [masterData, setMasterData] = useState(initialMasterData)

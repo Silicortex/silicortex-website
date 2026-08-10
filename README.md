@@ -203,8 +203,15 @@ domestic 0 % line means "not taxable here"; reverse charge means "the recipient
 owes the tax".
 
 *Meine Rechnungen* shows a **Zusammenfassende Meldung** section: issued
-reverse-charge invoices grouped by quarter and customer USt-IdNr., with net sums.
-It is a report only. The app does not file the ZM with the BZSt, and it does not
+reverse-charge invoices grouped by customer USt-IdNr., switchable between
+**monthly** and **quarterly**. Quarterly filing is allowed while intra-EU supplies
+stay under €50,000 in a quarter; above that the ZM is due monthly — which is why
+both views exist rather than one being chosen for you.
+
+The query groups by month and quarters are derived from those rows, so the two
+views cannot disagree about a period's total, and summed amounts are re-rounded to
+the cent (adding exact 2-decimal amounts in binary floating point does not stay
+exact). It is a report only. The app does not file the ZM with the BZSt, and it does not
 confirm any VAT ID against BZSt/VIES — obtaining that confirmation and keeping the
 evidence stays manual, and matters, because an invalid customer VAT ID makes the
 VAT the supplier's.

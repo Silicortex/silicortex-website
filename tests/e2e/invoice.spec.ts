@@ -320,9 +320,37 @@ test('an issued reverse-charge invoice appears in the EU sales report', async ({
 
   await page.getByRole('button', { name: 'Meine Rechnungen' }).click()
   const report = page.locator('section', { hasText: 'Zusammenfassende Meldung' })
-  await expect(report.getByRole('row', { name: /ATU12345678/ })).toBeVisible()
-  // Grouped by quarter: an invoice dated in Q3 is reported under Q3.
-  await expect(report.getByRole('row', { name: /ATU12345678/ })).toContainText('161,00')
+  const row = report.getByRole('row', { name: /ATU12345678/ })
+  await expect(row).toBeVisible()
+  await expect(row).toContainText('161,00')
+
+  // Quarterly is the default view.
+  //
+  // The month comes from the invoice's OWN date field, not from the host clock:
+  // `toISOString()` is UTC, and just after midnight in Germany on the 1st of a
+  // month that is still the previous month — which would fail only on those few
+  // hours, a few times a year.
+  await page.getByRole('button', { name: 'Rechnung erstellen' }).click()
+  const invoiceMonth = (await page.getByLabel('Rechnungsdatum').inputValue()).slice(0, 7)
+  await page.getByRole('button', { name: 'Meine Rechnungen' }).click()
+  const quarter = `${invoiceMonth.slice(0, 4)}-Q${Math.floor((Number(invoiceMonth.slice(5, 7)) - 1) / 3) + 1}`
+  await expect(report.getByRole('button', { name: 'Quartalsweise' })).toHaveAttribute(
+    'aria-pressed',
+    'true'
+  )
+  await expect(row).toContainText(quarter)
+
+  // The monthly view reports the same invoice under its own month, with the sum
+  // unchanged — a quarter is exactly the sum of its months.
+  await report.getByRole('button', { name: 'Monatlich' }).click()
+  await expect(report.getByRole('button', { name: 'Monatlich' })).toHaveAttribute(
+    'aria-pressed',
+    'true'
+  )
+  const monthlyRow = report.getByRole('row', { name: /ATU12345678/ })
+  await expect(monthlyRow).toContainText(invoiceMonth)
+  await expect(monthlyRow).toContainText('161,00')
+  await expect(monthlyRow).not.toContainText(quarter)
 })
 
 test('a number can be recorded as used with no invoice behind it', async ({ page }) => {

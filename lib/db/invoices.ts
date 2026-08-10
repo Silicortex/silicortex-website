@@ -13,6 +13,7 @@ import {
   type RangePrefix,
 } from '../invoice/numbering.ts'
 import { todayIso } from '../invoice/format.ts'
+import type { EuSaleMonthRow } from '../invoice/euSales.ts'
 import type { InvoiceDraft, InvoiceStatus, InvoiceSummary } from '../invoice/types.ts'
 import type { MasterDataInvoiceVisible } from './masterData.ts'
 
@@ -318,23 +319,22 @@ export async function issueInvoice(
   }
 }
 
-/** Issued intra-EU invoices, grouped by calendar quarter and customer VAT ID.
+/** Issued intra-EU invoices, per MONTH and customer VAT ID.
  *
- *  A REPORT, not a filing. The Zusammenfassende Meldung goes to the BZSt
- *  electronically and the reporting period depends on thresholds this app cannot
- *  determine, so it shows the figures and files nothing. Quarters are shown
- *  because that is the common period; the constituent months stay visible in the
- *  invoice list itself.
+ *  Monthly is the finest period the Zusammenfassende Meldung is ever filed for,
+ *  so quarters are derived from these rows in `aggregateEuSales` rather than
+ *  queried separately. One source, so the two views cannot disagree.
+ *
+ *  A REPORT, not a filing. The ZM goes to the BZSt electronically and the period
+ *  depends on thresholds this app cannot determine, so it shows figures and files
+ *  nothing.
  *
  *  Only ISSUED invoices count — a draft is not a reportable transaction. Stornos
  *  are included with their negative amounts, which is exactly right: they reduce
  *  the reported total for the period they fall in. */
-export async function listEuSales(): Promise<
-  { quarter: string; customerVatId: string; net: number; count: number }[]
-> {
+export async function listEuSales(): Promise<EuSaleMonthRow[]> {
   const rows = await sql`
-    select to_char(invoice_date, 'YYYY') || '-Q' ||
-             to_char(invoice_date, 'Q') as quarter,
+    select to_char(invoice_date, 'YYYY-MM') as month,
            upper(replace(replace(customer_vat_id, ' ', ''), '.', '')) as vat_id,
            sum(net_total)::text as net,
            count(*)::int as n
@@ -344,8 +344,10 @@ export async function listEuSales(): Promise<
     order by 1 desc, 2
   `
   return rows.map((r) => ({
-    quarter: r.quarter as string,
+    month: r.month as string,
     customerVatId: r.vat_id as string,
+    // numeric arrives as a string from the driver; sum() would otherwise be read
+    // as NaN.
     net: Number(r.net),
     count: r.n as number,
   }))
