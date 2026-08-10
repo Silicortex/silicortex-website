@@ -17,6 +17,15 @@ export type InvoiceDraft = {
   customerCountry: string
   customerVatId: string
   paymentTerms: string
+  /**
+   * The number of the invoice this document corrects, from the RE- range, or ''.
+   * Stored as a field rather than only as the printed reference line, so the
+   * link survives independently of the layout — a Storno's legal meaning is the
+   * link, not the sentence.
+   */
+  stornoFor: string
+  /** The referenced invoice's date, frozen when the Storno was written. */
+  stornoForDate: string
   items: InvoiceItemInput[]
   /**
    * The sender block as frozen when the invoice was issued. Null for drafts,
@@ -40,6 +49,7 @@ export type InvoiceSummary = {
   proposedNumber: string
   invoiceDate: string
   customerName: string
+  stornoFor: string
   netTotal: number
   vatTotal: number
   grossTotal: number
@@ -101,6 +111,8 @@ export function emptyInvoice(args: {
     customerCountry: 'Deutschland',
     customerVatId: '',
     paymentTerms: args.paymentTerms,
+    stornoFor: '',
+    stornoForDate: '',
     items: [emptyItem(args.vatRate)],
     senderSnapshot: null,
     storedTotals: null,

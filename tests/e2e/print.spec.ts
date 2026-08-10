@@ -93,6 +93,25 @@ test.describe('print output', () => {
     expect(totals).toContain('222,90') // 161,00 + 49,90 + 12,00
   })
 
+  test('the print dialog is handed the invoice file name as its default', async ({ page }) => {
+    await page.emulateMedia({ media: 'screen' })
+    await page.getByLabel('Rechnungsnummer').fill('RE-2026-001')
+    await page.getByLabel('Rechnungsdatum').fill('2026-08-10')
+    await page.getByLabel('Kundenname').fill('Müller & Söhne KG')
+
+    const original = await page.title()
+    expect(original).not.toContain('RE-2026-001')
+
+    // The events are dispatched directly rather than via page.pdf(), which fires
+    // BOTH of them — so any assertion after it would only ever see the restored
+    // title and could never fail.
+    await page.evaluate(() => window.dispatchEvent(new Event('beforeprint')))
+    expect(await page.title()).toBe('RE-2026-001_2026-08-10_Mueller-Soehne-KG')
+
+    await page.evaluate(() => window.dispatchEvent(new Event('afterprint')))
+    expect(await page.title()).toBe(original)
+  })
+
   test('toolbar, tabs and inputs are hidden', async ({ page }) => {
     await expect(page.getByRole('button', { name: 'Drucken / PDF' })).toBeHidden()
     await expect(page.getByRole('button', { name: 'Meine Rechnungen' })).toBeHidden()

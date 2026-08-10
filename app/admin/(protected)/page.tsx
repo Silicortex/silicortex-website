@@ -1,21 +1,28 @@
 import { requireSession } from '@/lib/admin/session.ts'
 import { loadMasterData } from '@/lib/db/masterData.ts'
-import { lastIssuedNumber, listInvoices } from '@/lib/db/invoices.ts'
-import { nextInvoiceNumber } from '@/lib/invoice/numbering.ts'
+import { listInvoices, listNumberJournal, nextNumberFor } from '@/lib/db/invoices.ts'
+import { todayIso } from '@/lib/invoice/format.ts'
 import { AdminApp } from '@/components/admin/AdminApp.tsx'
 
 export default async function AdminHomePage() {
   await requireSession()
-  const [masterData, invoices, highest] = await Promise.all([
+  // The year comes from the German calendar date, not the host clock: Vercel
+  // Functions run in UTC, so for the first hours after midnight in Germany
+  // `new Date().getFullYear()` would still be the old year on 1 January — and
+  // the counter restarts with the year.
+  const year = Number(todayIso().slice(0, 4))
+  const [masterData, invoices, nextNumber, journal] = await Promise.all([
     loadMasterData(),
     listInvoices(),
-    lastIssuedNumber(),
+    nextNumberFor('RE', year),
+    listNumberJournal(),
   ])
   return (
     <AdminApp
       masterData={masterData}
       invoices={invoices}
-      nextNumber={nextInvoiceNumber(highest, new Date().getFullYear())}
+      nextNumber={nextNumber}
+      journal={journal}
     />
   )
 }

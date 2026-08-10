@@ -108,3 +108,49 @@ database, so Playwright always starts its own.
 ## 🚀 Deployment
 
 The easiest way to deploy your Next.js app is to use the Vercel Platform from the creators of Next.js. Check out the Next.js deployment documentation for more details.
+
+## Invoice numbering
+
+Numbers look like `RE-2026-001`: a document-type prefix, the four-digit year of
+the invoice date, and a counter that restarts at 001 every 1 January.
+
+| Prefix | Document |
+|---|---|
+| `RE-` | Rechnung |
+| `GS-` | Gutschrift / Storno |
+| `AN-` | Angebot |
+
+Each prefix is its own number range (Nummernkreis) with an independent counter.
+Separate ranges are permitted for organisationally delimited areas, so per-type
+and per-year ranges are safe. A range that passes 999 in one year widens to four
+digits from the following January, never mid-year.
+
+**Uniqueness is mandatory; gaplessness is not.** § 14 Abs. 4 Nr. 4 UStG requires a
+number assigned *einmalig* — once, ever. UStAE 14.5 Abs. 10 is explicit that a
+gapless run is not required: *"Eine lückenlose Abfolge der ausgestellten
+Rechnungsnummern ist nicht zwingend."* Nothing renumbers, backfills, or refuses to
+continue because a number is missing.
+
+Uniqueness is enforced by `issued_numbers`, an append-only journal with the
+number as its primary key and a trigger forbidding UPDATE and DELETE. It has no
+foreign key to `invoices` on purpose: the journal must outlive the invoice, so a
+number stays used even if its row is gone.
+
+Because unexplained gaps have prompted Schätzungen, *Meine Rechnungen* shows each
+range's next number, its gaps, and every number ever assigned. A number used up
+without a document — a discarded draft, a test run, something cancelled before
+sending — is recorded there with a mandatory reason.
+
+A correction never edits or reuses a number. *Storno* on an issued invoice opens a
+new document from the `GS-` range that references the original (`storno_for`), and
+the original stays immutable.
+
+### PDF file name
+
+`RE-2026-001_2026-08-10_Beispiel-GmbH.pdf` — number first (the key the
+Steuerberater references), then the ISO date (sorts correctly, cannot be misread
+as an American date), then the customer. Every segment is sanitised to
+`[A-Za-z0-9-]`, umlauts transliterated the German way (`Müller` → `Mueller`), so
+the name can never contain a path separator. `document.title` is set to this name
+on `beforeprint`, because Chrome uses the title as the default name in its "Save
+as PDF" dialog, and restored on `afterprint`.

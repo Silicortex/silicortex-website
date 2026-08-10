@@ -5,6 +5,8 @@ import { ItemsTable } from './ItemsTable.tsx'
 import { TotalsBlock } from './TotalsBlock.tsx'
 import type { InvoiceItemInput, InvoiceTotals } from '@/lib/invoice/totals.ts'
 import type { InvoiceDraft } from '@/lib/invoice/types.ts'
+import { stornoReference } from '@/lib/invoice/numbering.ts'
+import { formatDateDe } from '@/lib/invoice/format.ts'
 // Only the invoice-visible half of the master data reaches this component.
 import type { MasterDataInvoiceVisible } from '@/lib/db/masterData.ts'
 
@@ -42,8 +44,23 @@ export function InvoiceSheet({
           <p>{sender.zipCity}</p>
           <p>{sender.country}</p>
         </div>
-        <h2 className="admin-accent text-2xl font-bold tracking-[0.2em]">RECHNUNG</h2>
+        {/* A cancellation must not be titled RECHNUNG: the heading is how the
+            recipient — and the Steuerberater — tells the two documents apart at
+            a glance, and a Storno that looks like an invoice reads as a second
+            demand for the same money. */}
+        <h2 className="admin-accent text-2xl font-bold tracking-[0.2em]">
+          {invoice.stornoFor ? 'STORNO' : 'RECHNUNG'}
+        </h2>
       </header>
+
+      {/* Printed as well as shown: the reference is what connects this document
+          to the invoice it reverses. The link is also stored as a field, so
+          this line is presentation, not the record. */}
+      {invoice.stornoFor && (
+        <p className="mt-6 font-medium">
+          {stornoReference(invoice.stornoFor, formatDateDe(invoice.stornoForDate))}
+        </p>
+      )}
 
       <section className="mt-12 leading-relaxed">
         <EditableField

@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import type { MasterData } from '@/lib/db/masterData.ts'
 import { computeTotals } from '@/lib/invoice/totals.ts'
 import { todayIso } from '@/lib/invoice/format.ts'
@@ -12,15 +12,20 @@ import {
   type InvoiceSummary,
 } from '@/lib/invoice/types.ts'
 import {
+  burnNumberAction,
+  createStornoAction,
   deleteDraftAction,
   issueInvoiceAction,
   listInvoicesAction,
   loadInvoiceAction,
   nextNumberAction,
+  numberJournalAction,
   saveDraftAction,
 } from '@/app/admin/(protected)/actions.ts'
 import { validateForPrint } from '@/lib/invoice/validate.ts'
+import { invoiceFileBase } from '@/lib/invoice/filename.ts'
 import { ArchiveTable } from './ArchiveTable.tsx'
+import { NumberJournal, type JournalEntry } from './NumberJournal.tsx'
 import { InvoiceSheet } from './InvoiceSheet.tsx'
 import { MasterDataForm } from './MasterDataForm.tsx'
 
@@ -36,10 +41,12 @@ export function AdminApp({
   masterData: initialMasterData,
   invoices,
   nextNumber,
+  journal: initialJournal,
 }: {
   masterData: MasterData
   invoices: InvoiceSummary[]
   nextNumber: string
+  journal: JournalEntry[]
 }) {
   const [tab, setTab] = useState<Tab>('invoice')
   const [masterData, setMasterData] = useState(initialMasterData)
@@ -59,9 +66,44 @@ export function AdminApp({
   const totals = invoice.status === 'issued' && invoice.storedTotals ? invoice.storedTotals : liveTotals
 
   const [archive, setArchive] = useState(invoices)
+  const [journal, setJournal] = useState(initialJournal)
   const [notice, setNotice] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const [printErrors, setPrintErrors] = useState<string[]>([])
+
+  // Chrome uses document.title as the default file name in its "Save as PDF"
+  // dialog, and there is no other way to influence it. Note this sets only the
+  // TITLE on beforeprint — the printed CONTENT is plain render (print twins), so
+  // no DOM mutation races the print.
+  const fileBase = useMemo(
+    () =>
+      invoiceFileBase({
+        invoiceNumber: invoice.invoiceNumber ?? invoice.proposedNumber,
+        invoiceDate: invoice.invoiceDate,
+        customerName: invoice.customerName,
+      }),
+    [invoice.invoiceNumber, invoice.proposedNumber, invoice.invoiceDate, invoice.customerName]
+  )
+
+  useEffect(() => {
+    // Captured after the previous cleanup has already restored it, so this is
+    // always the real page title and never a file name left over from a
+    // re-render during printing.
+    const original = document.title
+    const onBeforePrint = () => {
+      document.title = fileBase
+    }
+    const onAfterPrint = () => {
+      document.title = original
+    }
+    window.addEventListener('beforeprint', onBeforePrint)
+    window.addEventListener('afterprint', onAfterPrint)
+    return () => {
+      window.removeEventListener('beforeprint', onBeforePrint)
+      window.removeEventListener('afterprint', onAfterPrint)
+      document.title = original
+    }
+  }, [fileBase])
 
   function updateInvoice(next: InvoiceDraft) {
     if (next.paymentTerms !== invoice.paymentTerms) setTermsTouched(true)
@@ -81,7 +123,12 @@ export function AdminApp({
   }
 
   async function refreshArchive() {
-    setArchive(await listInvoicesAction())
+    const [invoiceList, journalList] = await Promise.all([
+      listInvoicesAction(),
+      numberJournalAction(),
+    ])
+    setArchive(invoiceList)
+    setJournal(journalList)
   }
 
   async function saveToArchive() {
@@ -113,6 +160,11 @@ export function AdminApp({
       id: newInvoiceId(),
       status: 'draft',
       invoiceNumber: null,
+      // A copy is a new invoice, never a Storno: without this, copying a Storno
+      // would print the STORNO heading and its reference line under a fresh RE-
+      // number, claiming to cancel an invoice it has nothing to do with.
+      stornoFor: '',
+      stornoForDate: '',
       // Asked of the server, not derived from the client's archive copy.
       proposedNumber: await nextNumberAction(),
       invoiceDate: todayIso(),
@@ -123,6 +175,25 @@ export function AdminApp({
     setTermsTouched(true)
     setTab('invoice')
     setNotice('Kopie erstellt.')
+  }
+
+  /** A Storno never edits or reuses the original's number: this opens a NEW
+   *  document from the GS- range that points back at it. Nothing is written
+   *  until the owner saves, so a misclick burns no number. */
+  async function stornoFromArchive(id: string) {
+    const storno = await createStornoAction(id)
+    if (!storno) return setNotice('Nur festgeschriebene Rechnungen können storniert werden.')
+    setInvoice(storno)
+    setTermsTouched(true)
+    setTab('invoice')
+    setNotice(`Storno-Entwurf zu ${storno.stornoFor} erstellt. Nummer ${storno.proposedNumber}.`)
+  }
+
+  async function burnNumberFromJournal(number: string, reason: string) {
+    const result = await burnNumberAction(number, reason)
+    if (!result.ok) return setNotice(result.error ?? 'Fehler.')
+    await refreshArchive()
+    setNotice(`Nummer ${number.trim()} als vergeben vermerkt.`)
   }
 
   async function deleteFromArchive(id: string) {
@@ -269,12 +340,20 @@ export function AdminApp({
         </>
       )}
       {tab === 'archive' && (
-        <ArchiveTable
-          invoices={archive}
-          onLoad={loadFromArchive}
-          onCopy={copyFromArchive}
-          onDelete={deleteFromArchive}
-        />
+        <>
+          <ArchiveTable
+            invoices={archive}
+            onLoad={loadFromArchive}
+            onCopy={copyFromArchive}
+            onStorno={stornoFromArchive}
+            onDelete={deleteFromArchive}
+          />
+          <NumberJournal
+            journal={journal}
+            year={Number(invoice.invoiceDate.slice(0, 4))}
+            onBurn={burnNumberFromJournal}
+          />
+        </>
       )}
       {tab === 'master' && (
         <MasterDataForm masterData={masterData} onChange={updateMasterData} />

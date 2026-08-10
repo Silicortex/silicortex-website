@@ -10,14 +10,18 @@ import {
   type MasterDataInvoiceVisible,
 } from '@/lib/db/masterData.ts'
 import {
+  buildStornoDraft,
+  burnNumber,
   deleteDraft,
   issueInvoice,
-  lastIssuedNumber,
   listInvoices,
+  listNumberJournal,
   loadInvoice,
+  nextNumberFor,
   saveDraft,
 } from '@/lib/db/invoices.ts'
-import { nextInvoiceNumber } from '@/lib/invoice/numbering.ts'
+import { todayIso } from '@/lib/invoice/format.ts'
+import type { RangePrefix } from '@/lib/invoice/numbering.ts'
 import { validateForPrint } from '@/lib/invoice/validate.ts'
 import type { InvoiceDraft, InvoiceSummary } from '@/lib/invoice/types.ts'
 
@@ -81,9 +85,49 @@ export async function listInvoicesAction(): Promise<InvoiceSummary[]> {
 
 // Single source of truth for numbering: the client never derives the next
 // number from its own copy of the archive.
-export async function nextNumberAction(): Promise<string> {
+export async function nextNumberAction(prefix: RangePrefix = 'RE'): Promise<string> {
   await requireSession()
-  return nextInvoiceNumber(await lastIssuedNumber(), new Date().getFullYear())
+  return nextNumberFor(prefix, currentYear())
+}
+
+// From the German calendar date, not the host clock — see page.tsx.
+function currentYear(): number {
+  return Number(todayIso().slice(0, 4))
+}
+
+export async function numberJournalAction() {
+  await requireSession()
+  return listNumberJournal()
+}
+
+/** Records a number as used with no invoice behind it. The reason is required:
+ *  an unexplained gap is the thing that invites a Schätzung. */
+export async function burnNumberAction(
+  number: string,
+  reason: string
+): Promise<{ ok: boolean; error?: string }> {
+  await requireSession()
+  if (!number.trim()) return { ok: false, error: 'Keine Nummer angegeben.' }
+
+  const result = await burnNumber(number.trim(), reason)
+  if (result.ok) {
+    refresh()
+    return { ok: true }
+  }
+  return {
+    ok: false,
+    error:
+      result.error === 'no_reason'
+        ? 'Bitte einen Grund angeben, warum die Nummer nicht verwendet wurde.'
+        : `Die Nummer ${number.trim()} ist bereits vergeben.`,
+  }
+}
+
+/** Builds the Storno for an issued invoice. Nothing is written until the owner
+ *  saves it, so an accidental click leaves no trace and burns no number. */
+export async function createStornoAction(originalId: string): Promise<InvoiceDraft | null> {
+  await requireSession()
+  return buildStornoDraft(originalId)
 }
 
 export async function issueInvoiceAction(
@@ -97,9 +141,9 @@ export async function issueInvoiceAction(
 
   // The number is claimed here, never by a draft: that is what keeps the
   // sequence gapless when a draft is deleted.
-  const number =
-    proposedNumber.trim() ||
-    nextInvoiceNumber(await lastIssuedNumber(), new Date().getFullYear())
+  const invoiceForRange = await loadInvoice(id)
+  const range: RangePrefix = invoiceForRange?.stornoFor ? 'GS' : 'RE'
+  const number = proposedNumber.trim() || (await nextNumberFor(range, currentYear()))
 
   const masterData = await loadMasterData()
 

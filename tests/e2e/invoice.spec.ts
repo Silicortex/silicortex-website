@@ -140,6 +140,65 @@ test('an issued invoice cannot be edited or deleted', async ({ page }) => {
   await expect(page.getByText(new RegExp(`Festgeschriebene Rechnungen:\\s*${before + 1}$`))).toBeVisible()
 })
 
+test('a Storno is a new GS- document that references the original', async ({ page }) => {
+  await page.addInitScript(() => {
+    window.print = () => {}
+  })
+  await page.goto('/admin')
+  await saveSender(page, 'E2E Sender Storno')
+
+  await page.getByRole('button', { name: 'Rechnung erstellen' }).click()
+  await fillInvoice(page, `Testkunde Storno ${RUN}`)
+  const original = `E2E-STORNO-${RUN}`
+  await page.getByLabel('Rechnungsnummer').fill(original)
+  page.once('dialog', (dialog) => dialog.accept())
+  await page.getByRole('button', { name: 'Drucken / PDF' }).click()
+  await expect(page.getByText(`Festgeschrieben als ${original}.`)).toBeVisible()
+
+  await page.getByRole('button', { name: 'Meine Rechnungen' }).click()
+  // The number the invoice was issued under is now in the journal.
+  await expect(
+    page.getByRole('row', { name: new RegExp(original) }).filter({ hasText: 'Rechnung' }).first()
+  ).toBeVisible()
+
+  const row = page.getByRole('row', { name: new RegExp(`Testkunde Storno ${RUN}`) })
+  await row.getByRole('button', { name: 'Storno' }).click()
+
+  // Its own number from the GS- range — never the original's, and never an edit
+  // of it.
+  await expect(page.getByText(/Storno-Entwurf zu E2E-STORNO-/)).toBeVisible()
+  await expect(page.getByLabel('Rechnungsnummer')).toHaveValue(/^GS-\d{4}-\d{3,}$/)
+  // The heading distinguishes it from an invoice, and the reference names what
+  // it cancels.
+  await expect(page.locator('.admin-sheet h2')).toHaveText('STORNO')
+  await expect(page.getByText(`Storno zu Rechnung ${original} vom`)).toBeVisible()
+
+  // Deliberately NOT issued. A GS- number carries no E2E- prefix, so cleanup
+  // could not remove it and the next run's guard would refuse to start.
+})
+
+test('a number can be recorded as used with no invoice behind it', async ({ page }) => {
+  await page.goto('/admin')
+  await page.getByRole('button', { name: 'Meine Rechnungen' }).click()
+
+  const burned = `E2E-BURN-${RUN}`
+  await page.getByLabel('Zu verbrauchende Nummer').fill(burned)
+  await page.getByLabel('Grund').fill('Entwurf verworfen')
+  await page.getByRole('button', { name: 'Nummer verbrauchen' }).click()
+
+  await expect(page.getByText(`Nummer ${burned} als vergeben vermerkt.`)).toBeVisible()
+  // The point of the log: the gap is visible AND carries its reason.
+  await expect(
+    page.getByRole('row', { name: new RegExp(burned) }).getByText('Ohne Rechnung — Entwurf verworfen')
+  ).toBeVisible()
+
+  // And it can never be handed out again.
+  await page.getByLabel('Zu verbrauchende Nummer').fill(burned)
+  await page.getByLabel('Grund').fill('nochmal')
+  await page.getByRole('button', { name: 'Nummer verbrauchen' }).click()
+  await expect(page.getByText(`Die Nummer ${burned} ist bereits vergeben.`)).toBeVisible()
+})
+
 /** Empties the sender through the UI, so the § 14 refusal can be observed. The
  *  suite's teardown restores the real row from its backup afterwards. */
 async function clearSender(page: import('@playwright/test').Page) {

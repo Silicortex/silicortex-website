@@ -57,6 +57,21 @@ export async function assertNoRealInvoices(): Promise<void> {
         'e2e database (see README).'
     )
   }
+
+  // The journal outlives the invoices by design, so a database whose invoices
+  // were cleared can still be the real one. Checking only `invoices` would look
+  // clean and then let the suite delete the owner's permanent number record —
+  // the one thing here that cannot be reconstructed.
+  const journal = await sql`
+    select count(*)::int as n from issued_numbers where number not like 'E2E-%'
+  `
+  if (journal[0].n > 0) {
+    throw new Error(
+      `Refusing to touch this database: its number journal holds ${journal[0].n} ` +
+        'entr(ies) that are not E2E test data. Point E2E_DATABASE_URL at the ' +
+        'isolated e2e database (see README).'
+    )
+  }
 }
 
 /** Attempt records are a rate-limit ledger with 24h retention; clearing them in
@@ -90,10 +105,15 @@ export async function cleanupE2eRows(): Promise<void> {
   try {
     await sql`alter table invoices disable trigger invoices_immutable_when_issued`
     await sql`alter table invoice_items disable trigger invoice_items_immutable_when_issued`
+    // The journal is append-only for the application; only the suite's own
+    // rows are removed, and only with the trigger off.
+    await sql`alter table issued_numbers disable trigger issued_numbers_immutable`
     await sql`delete from invoices where status = 'issued' and invoice_number like 'E2E-%'`
+    await sql`delete from issued_numbers where number like 'E2E-%'`
   } finally {
     await sql`alter table invoices enable trigger invoices_immutable_when_issued`
     await sql`alter table invoice_items enable trigger invoice_items_immutable_when_issued`
+    await sql`alter table issued_numbers enable trigger issued_numbers_immutable`
   }
 }
 

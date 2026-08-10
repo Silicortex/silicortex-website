@@ -7,11 +7,13 @@ export function ArchiveTable({
   invoices,
   onLoad,
   onCopy,
+  onStorno,
   onDelete,
 }: {
   invoices: InvoiceSummary[]
   onLoad: (id: string) => void
   onCopy: (id: string) => void
+  onStorno: (id: string) => void
   onDelete: (id: string) => void
 }) {
   // Drafts are not revenue: the strip counts issued invoices only.
@@ -69,6 +71,17 @@ export function ArchiveTable({
                 <button type="button" onClick={() => onCopy(invoice.id)} className="px-2 text-blue-600 underline decoration-blue-300 underline-offset-4 transition hover:text-blue-500">
                   Kopie
                 </button>
+                {/* Only an issued invoice can be cancelled: a draft is edited
+                    or deleted, and a Storno of a Storno is not a correction. */}
+                {invoice.status === 'issued' && !invoice.stornoFor && (
+                  <button
+                    type="button"
+                    onClick={() => onStorno(invoice.id)}
+                    className="px-2 text-blue-600 underline decoration-blue-300 underline-offset-4 transition hover:text-blue-500"
+                  >
+                    Storno
+                  </button>
+                )}
                 {invoice.status === 'draft' && (
                   <button
                     type="button"

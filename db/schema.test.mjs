@@ -31,7 +31,7 @@ test('the schema applies, and applies again unchanged', async () => {
   )
   assert.deepEqual(
     tables.rows.map((r) => r.table_name),
-    ['invoice_items', 'invoices', 'login_attempts', 'master_data']
+    ['invoice_items', 'invoices', 'issued_numbers', 'login_attempts', 'master_data']
   )
   const seeded = await db.query('select count(*)::int as n from master_data')
   assert.equal(seeded.rows[0].n, 1)
@@ -226,4 +226,121 @@ test('the line-item guard does not block a draft cascade delete', async () => {
     [id]
   )
   assert.equal(items.rows[0].n, 0)
+})
+
+// § 14 Abs. 4 Nr. 4 UStG requires a number assigned EINMALIG — once, ever. The
+// invoices table alone cannot promise that, because a row can go away.
+test('a number stays used after its invoice is gone', async () => {
+  const db = await freshDb()
+  const invoice = await db.query(
+    `insert into invoices (status, invoice_number, invoice_date, issued_at, sender_snapshot)
+     values ('issued', 'RE-2026-001', '2026-08-10', now(), '{}'::jsonb) returning id`
+  )
+  const id = invoice.rows[0].id
+  await db.query(
+    `insert into issued_numbers (number, prefix, year, seq, invoice_id)
+     values ('RE-2026-001', 'RE', 2026, 1, $1)`,
+    [id]
+  )
+
+  // Remove the invoice the way only a direct operator could: the trigger blocks
+  // the application from doing this at all.
+  await db.exec('alter table invoices disable trigger invoices_immutable_when_issued')
+  await db.query('delete from invoices where id = $1', [id])
+  await db.exec('alter table invoices enable trigger invoices_immutable_when_issued')
+
+  // The journal entry survives — no foreign key could have taken it along.
+  const left = await db.query('select count(*)::int as n from issued_numbers')
+  assert.equal(left.rows[0].n, 1)
+
+  // And the number cannot come back.
+  await assert.rejects(
+    () =>
+      db.query(
+        `insert into issued_numbers (number, prefix, year, seq)
+         values ('RE-2026-001', 'RE', 2026, 1)`
+      ),
+    /duplicate key|unique/i
+  )
+})
+
+test('a journal entry cannot be edited or deleted', async () => {
+  const db = await freshDb()
+  await db.query(
+    `insert into issued_numbers (number, prefix, year, seq, reason)
+     values ('RE-2026-007', 'RE', 2026, 7, 'Entwurf verworfen')`
+  )
+  await assert.rejects(
+    () => db.query(`update issued_numbers set reason = 'anders' where number = 'RE-2026-007'`),
+    /permanent record/
+  )
+  await assert.rejects(
+    () => db.query(`delete from issued_numbers where number = 'RE-2026-007'`),
+    /permanent record/
+  )
+})
+
+test('the same sequence cannot be reached twice in one range and year', async () => {
+  const db = await freshDb()
+  await db.query(
+    `insert into issued_numbers (number, prefix, year, seq) values ('RE-2026-001', 'RE', 2026, 1)`
+  )
+  // A differently written number that resolves to the same position in the range
+  // is still the same number, and the composite unique catches it.
+  await assert.rejects(
+    () =>
+      db.query(
+        `insert into issued_numbers (number, prefix, year, seq)
+         values ('RE-2026-0001', 'RE', 2026, 1)`
+      ),
+    /duplicate key|unique/i
+  )
+  // Different range, same sequence: allowed, they are independent counters.
+  await db.query(
+    `insert into issued_numbers (number, prefix, year, seq) values ('GS-2026-001', 'GS', 2026, 1)`
+  )
+  // Different year, same sequence: allowed, the counter restarts in January.
+  await db.query(
+    `insert into issued_numbers (number, prefix, year, seq) values ('RE-2027-001', 'RE', 2027, 1)`
+  )
+})
+
+test('a hand-typed number outside any managed range is still recorded and unique', async () => {
+  const db = await freshDb()
+  // prefix/year/seq are null, so the composite unique cannot apply — the primary
+  // key on the number itself is what keeps these unique.
+  await db.query(`insert into issued_numbers (number) values ('Sonderrechnung 1')`)
+  await db.query(`insert into issued_numbers (number) values ('Sonderrechnung 2')`)
+  await assert.rejects(
+    () => db.query(`insert into issued_numbers (number) values ('Sonderrechnung 1')`),
+    /duplicate key|unique/i
+  )
+})
+
+test('a Storno is a separate invoice that points at the original', async () => {
+  const db = await freshDb()
+  await db.query(
+    `insert into invoices (status, invoice_number, invoice_date, issued_at, sender_snapshot)
+     values ('issued', 'RE-2026-001', '2026-08-10', now(), '{}'::jsonb)`
+  )
+  await db.query(
+    `insert into invoices (status, invoice_number, invoice_date, issued_at, sender_snapshot,
+                           storno_for, storno_for_date)
+     values ('issued', 'GS-2026-001', '2026-08-11', now(), '{}'::jsonb,
+             'RE-2026-001', '2026-08-10')`
+  )
+  const rows = await db.query(
+    `select invoice_number, storno_for from invoices order by invoice_number`
+  )
+  assert.deepEqual(rows.rows, [
+    { invoice_number: 'GS-2026-001', storno_for: 'RE-2026-001' },
+    { invoice_number: 'RE-2026-001', storno_for: '' },
+  ])
+
+  // The original is untouched by the correction — it is immutable, and the
+  // correction is a new document, never an edit.
+  await assert.rejects(
+    () => db.query(`update invoices set customer_name = 'x' where invoice_number = 'RE-2026-001'`),
+    /immutable|issued/i
+  )
 })

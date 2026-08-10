@@ -142,3 +142,57 @@ begin
     );
   end if;
 end $$
+-- @@
+-- A permanent journal of every number ever issued, separate from the invoices
+-- table. § 14 Abs. 4 Nr. 4 UStG requires each number to be assigned EINMALIG —
+-- once, ever. The invoices table alone cannot guarantee that: deleting a row
+-- would free its number for reuse. This table is append-only, so a number stays
+-- burned regardless of what happens to the invoice.
+--
+-- UStAE 14.5 Abs. 10 says the opposite about gaps: "Eine lückenlose Abfolge der
+-- ausgestellten Rechnungsnummern ist nicht zwingend." So gaps are legal and are
+-- never backfilled. Because unexplained gaps have prompted Schätzungen, a
+-- number burned WITHOUT an invoice carries a reason.
+--
+-- invoice_id is deliberately NOT a foreign key. `on delete cascade` would
+-- destroy the permanent record, and `on delete set null` would UPDATE this row —
+-- which the trigger below forbids, so it would instead block the invoice
+-- deletion with a confusing error. A dangling id is the correct outcome here:
+-- the journal outlives the invoice by design.
+create table if not exists issued_numbers (
+  number     text primary key,
+  prefix     text,
+  year       integer,
+  seq        integer,
+  invoice_id uuid,
+  reason     text not null default '',
+  created_at timestamptz not null default now(),
+  -- Only numbers in a managed range carry a parsed prefix/year/seq. A
+  -- hand-typed number that does not match the format is still recorded (and
+  -- still unique, via the primary key) with all three left null.
+  unique (prefix, year, seq)
+)
+-- @@
+create or replace function forbid_issued_number_changes() returns trigger as $$
+begin
+  raise exception
+    'invoice number % is a permanent record and cannot be changed or deleted',
+    old.number;
+end;
+$$ language plpgsql
+-- @@
+drop trigger if exists issued_numbers_immutable on issued_numbers
+-- @@
+create trigger issued_numbers_immutable
+  before update or delete on issued_numbers
+  for each row execute function forbid_issued_number_changes()
+-- @@
+-- A Storno/Gutschrift never reuses or edits the number it corrects: it gets its
+-- own number from the GS- range and points at the original. Stored as a field,
+-- not only as display text, so the link survives independently of the layout.
+alter table invoices add column if not exists storno_for text not null default ''
+-- @@
+-- The referenced invoice's date, frozen at the moment the Storno is written.
+-- Same principle as sender_snapshot: an issued document must print what it was
+-- issued with, never a value re-derived later.
+alter table invoices add column if not exists storno_for_date text not null default ''

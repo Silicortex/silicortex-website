@@ -6,7 +6,12 @@ import { sql } from './client.ts'
 // plan (it reads `@/lib/…` as an invalid bare package name). The rest of
 // `lib/` already imports relatively for the same reason.
 import { computeTotals, type VatGroup } from '../invoice/totals.ts'
-import { compareInvoiceNumbers } from '../invoice/numbering.ts'
+import {
+  compareInvoiceNumbers,
+  nextNumberFromMax,
+  parseInvoiceNumber,
+  type RangePrefix,
+} from '../invoice/numbering.ts'
 import { todayIso } from '../invoice/format.ts'
 import type { InvoiceDraft, InvoiceStatus, InvoiceSummary } from '../invoice/types.ts'
 import type { MasterDataInvoiceVisible } from './masterData.ts'
@@ -33,7 +38,7 @@ export async function listInvoices(): Promise<InvoiceSummary[]> {
   const rows = await sql`
     select id, status, invoice_number, proposed_number,
            invoice_date::text as invoice_date,
-           customer_name, net_total, vat_total, gross_total
+           customer_name, storno_for, net_total, vat_total, gross_total
     from invoices
   `
   return rows
@@ -44,6 +49,7 @@ export async function listInvoices(): Promise<InvoiceSummary[]> {
       proposedNumber: r.proposed_number as string,
       invoiceDate: isoDate(r.invoice_date),
       customerName: r.customer_name as string,
+      stornoFor: r.storno_for as string,
       netTotal: Number(r.net_total),
       vatTotal: Number(r.vat_total),
       grossTotal: Number(r.gross_total),
@@ -64,7 +70,7 @@ export async function loadInvoice(id: string): Promise<InvoiceDraft | null> {
            invoice_date::text as invoice_date,
            service_date, customer_number, customer_name, customer_street,
            customer_zip_city, customer_country, customer_vat_id, payment_terms,
-           sender_snapshot, net_total, vat_total, gross_total, vat_breakdown
+           storno_for, storno_for_date, sender_snapshot, net_total, vat_total, gross_total, vat_breakdown
     from invoices where id = ${id}
   `
   const r = rows[0]
@@ -89,6 +95,8 @@ export async function loadInvoice(id: string): Promise<InvoiceDraft | null> {
     customerCountry: r.customer_country as string,
     customerVatId: r.customer_vat_id as string,
     paymentTerms: r.payment_terms as string,
+    stornoFor: r.storno_for as string,
+    stornoForDate: r.storno_for_date as string,
     // jsonb arrives already parsed by the driver.
     senderSnapshot: (r.sender_snapshot as MasterDataInvoiceVisible | null) ?? null,
     items: items.map((i) => ({
@@ -128,12 +136,14 @@ export async function saveDraft(draft: InvoiceDraft): Promise<string> {
         id, status, proposed_number, invoice_date, service_date,
         customer_number, customer_name, customer_street, customer_zip_city,
         customer_country, customer_vat_id, payment_terms,
+        storno_for, storno_for_date,
         net_total, vat_total, gross_total, vat_breakdown
       ) values (
         ${id}, 'draft', ${draft.proposedNumber}, ${invoiceDate}, ${draft.serviceDate},
         ${draft.customerNumber}, ${draft.customerName}, ${draft.customerStreet},
         ${draft.customerZipCity}, ${draft.customerCountry}, ${draft.customerVatId},
-        ${draft.paymentTerms}, ${totals.netTotal}, ${totals.vatTotal}, ${totals.grossTotal},
+        ${draft.paymentTerms}, ${draft.stornoFor}, ${draft.stornoForDate},
+        ${totals.netTotal}, ${totals.vatTotal}, ${totals.grossTotal},
         ${JSON.stringify(totals.groups)}::jsonb
       )
       on conflict (id) do update set
@@ -147,6 +157,8 @@ export async function saveDraft(draft: InvoiceDraft): Promise<string> {
         customer_country = excluded.customer_country,
         customer_vat_id = excluded.customer_vat_id,
         payment_terms = excluded.payment_terms,
+        storno_for = excluded.storno_for,
+        storno_for_date = excluded.storno_for_date,
         net_total = excluded.net_total,
         vat_total = excluded.vat_total,
         gross_total = excluded.gross_total,
@@ -174,24 +186,70 @@ export async function deleteDraft(id: string): Promise<void> {
   await sql`delete from invoices where id = ${id} and status = 'draft'`
 }
 
-// The number to continue from is the one on the invoice most recently ISSUED —
-// not the "highest" by any string ordering.
+// The next number in a range, derived from the highest sequence the JOURNAL has
+// ever recorded for that prefix and year — not from the invoices table.
 //
-// Sorting the numbers was verified to be wrong: with `2026-050` and
-// `RE-2026-001` in the table, German collation ranks the letter-prefixed one
-// last, so it was treated as the highest and the next number came out as
-// `RE-2026-002` — BELOW the true `2026-050`, with no error raised. Because the
-// number is a free-text field the owner may edit, no string ordering can be
-// trusted across a change of prefix. `issued_at` always can: invoices are
-// issued one at a time, in time order.
-export async function lastIssuedNumber(): Promise<string | null> {
+// The journal is the right source because it outlives the invoices: a number
+// recorded there stays used even if no invoice carries it, which is what makes
+// "einmalig vergeben" hold. Two earlier approaches were verified wrong. Sorting
+// the numbers as strings ranked `RE-2026-001` above `2026-050`, so the next
+// number came out BELOW the true highest with no error raised. Reading the most
+// recently issued invoice was right only until a number was typed by hand out of
+// order. Asking Postgres for `max(seq)` within the parsed range is neither.
+export async function nextNumberFor(prefix: RangePrefix, year: number): Promise<string> {
   const rows = await sql`
-    select invoice_number from invoices
-    where status = 'issued' and invoice_number is not null
-    order by issued_at desc
-    limit 1
+    select coalesce(max(seq) filter (where year = ${year}), 0)::int as this_year,
+           coalesce(max(seq) filter (where year < ${year}), 0)::int as prior_years
+    from issued_numbers
+    where prefix = ${prefix}
   `
-  return (rows[0]?.invoice_number as string | undefined) ?? null
+  return nextNumberFromMax(prefix, year, Number(rows[0].this_year), Number(rows[0].prior_years))
+}
+
+/** Every number ever recorded, newest first, for the log the UI shows. */
+export async function listNumberJournal(): Promise<
+  { number: string; invoiceId: string | null; reason: string; createdAt: string }[]
+> {
+  const rows = await sql`
+    select number, invoice_id, reason, created_at::text as created_at
+    from issued_numbers
+    order by created_at desc, number desc
+  `
+  return rows.map((r) => ({
+    number: r.number as string,
+    invoiceId: (r.invoice_id as string | null) ?? null,
+    reason: r.reason as string,
+    createdAt: (r.created_at as string).slice(0, 10),
+  }))
+}
+
+/** Records a number as used WITHOUT an invoice behind it — a discarded draft, a
+ *  test run, something cancelled before sending.
+ *
+ *  Gaps are legal (UStAE 14.5 Abs. 10), but unexplained ones have prompted
+ *  Schätzungen, so the reason is mandatory rather than optional. */
+export async function burnNumber(
+  number: string,
+  reason: string
+): Promise<{ ok: true } | { ok: false; error: 'number_taken' | 'no_reason' }> {
+  if (!reason.trim()) return { ok: false, error: 'no_reason' }
+
+  const parsed = parseInvoiceNumber(number)
+  try {
+    await sql`
+      insert into issued_numbers (number, prefix, year, seq, invoice_id, reason)
+      values (
+        ${number}, ${parsed?.prefix ?? null}, ${parsed?.year ?? null},
+        ${parsed?.seq ?? null}, null, ${reason.trim()}
+      )
+    `
+    return { ok: true }
+  } catch (error) {
+    if ((error as { code?: string }).code === '23505') {
+      return { ok: false, error: 'number_taken' }
+    }
+    throw error
+  }
 }
 
 export async function issueInvoice(
@@ -199,26 +257,78 @@ export async function issueInvoice(
   invoiceNumber: string,
   snapshot: MasterDataInvoiceVisible
 ): Promise<{ ok: true } | { ok: false; error: 'number_taken' | 'not_draft' }> {
+  const parsed = parseInvoiceNumber(invoiceNumber)
   try {
-    // OLD.status is still 'draft' here, so the immutability trigger allows
-    // exactly this one transition and nothing after it.
-    const rows = await sql`
-      update invoices set
-        status = 'issued',
-        invoice_number = ${invoiceNumber},
-        issued_at = now(),
-        sender_snapshot = ${JSON.stringify(snapshot)}::jsonb,
-        updated_at = now()
-      where id = ${id} and status = 'draft'
-      returning id
-    `
-    if (rows.length === 0) return { ok: false, error: 'not_draft' }
+    // One transaction, because the two halves must not be able to disagree: an
+    // invoice issued without its journal entry would have a reusable number, and
+    // a journal entry without an invoice would be an unexplained burn.
+    const results = await sql.transaction([
+      // OLD.status is still 'draft' here, so the immutability trigger allows
+      // exactly this one transition and nothing after it.
+      sql`
+        update invoices set
+          status = 'issued',
+          invoice_number = ${invoiceNumber},
+          issued_at = now(),
+          sender_snapshot = ${JSON.stringify(snapshot)}::jsonb,
+          updated_at = now()
+        where id = ${id} and status = 'draft'
+        returning id
+      `,
+      // `where exists` rather than an unconditional insert: if the update above
+      // matched nothing (already issued, or gone), this must not burn the number
+      // on an invoice that was never written.
+      sql`
+        insert into issued_numbers (number, prefix, year, seq, invoice_id, reason)
+        select ${invoiceNumber}, ${parsed?.prefix ?? null}, ${parsed?.year ?? null},
+               ${parsed?.seq ?? null}, ${id}, ''
+        where exists (
+          select 1 from invoices where id = ${id} and status = 'issued'
+        )
+      `,
+    ])
+
+    if ((results[0] as unknown[]).length === 0) return { ok: false, error: 'not_draft' }
     return { ok: true }
   } catch (error) {
-    const code = (error as { code?: string }).code
-    if (code === '23505' || String(error).includes('invoice_number')) {
+    // Matched by SQLSTATE alone. The previous version also matched the string
+    // "invoice_number" anywhere in the error, which would now misfire: the
+    // journal's own unique violation names `issued_numbers`, and a future
+    // unrelated error mentioning the column would be reported as a taken number.
+    if ((error as { code?: string }).code === '23505') {
       return { ok: false, error: 'number_taken' }
     }
     throw error
+  }
+}
+
+/** Builds — but does not save — the Storno that corrects an issued invoice.
+ *
+ *  Never reuses, edits or overwrites the original's number: the correction is a
+ *  new document with its own number from the GS- range, pointing back at the
+ *  original. The original itself is immutable and stays exactly as it was sent.
+ *
+ *  Amounts are copied unchanged rather than negated. A German Gutschrift states
+ *  the amounts it reverses, and the document's own heading and reference line
+ *  carry the meaning; negating them here would silently produce a document whose
+ *  arithmetic the recipient cannot reconcile against the invoice it cancels. */
+export async function buildStornoDraft(originalId: string): Promise<InvoiceDraft | null> {
+  const original = await loadInvoice(originalId)
+  if (!original) return null
+  // Only an issued invoice can be cancelled: a draft is simply edited or deleted.
+  if (original.status !== 'issued' || !original.invoiceNumber) return null
+
+  const today = todayIso()
+  return {
+    ...original,
+    id: randomUUID(),
+    status: 'draft',
+    invoiceNumber: null,
+    proposedNumber: await nextNumberFor('GS', Number(today.slice(0, 4))),
+    invoiceDate: today,
+    stornoFor: original.invoiceNumber,
+    stornoForDate: original.invoiceDate,
+    senderSnapshot: null,
+    storedTotals: null,
   }
 }
