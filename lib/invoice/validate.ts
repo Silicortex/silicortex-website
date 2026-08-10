@@ -1,5 +1,6 @@
 import type { MasterDataInvoiceVisible } from '../db/masterData.ts'
 import type { InvoiceDraft } from './types.ts'
+import { isOtherEuMemberState, vatIdPrefix } from './euVat.ts'
 
 // § 14 UStG mandatory fields, checked before printing. Validation happens on
 // the print button because a beforeprint handler cannot cancel a print.
@@ -36,6 +37,11 @@ export function validateForPrint(
     if (!filled(sender.taxNumber) && !filled(sender.vatId)) {
       errors.push('Stammdaten: Steuernummer oder USt-IdNr. fehlt (§ 14 UStG).')
     }
+    // An intra-EU invoice is the one case where the Steuernummer is not enough:
+    // the supplier's own USt-IdNr. must appear on it.
+    if (invoice.reverseCharge && !filled(sender.vatId)) {
+      errors.push('Stammdaten: eigene USt-IdNr. ist bei Reverse Charge zwingend.')
+    }
   }
 
   if (!filled(invoice.customerName)) errors.push('Kundenname fehlt.')
@@ -55,6 +61,29 @@ export function validateForPrint(
   const usable = invoice.items.filter((item) => filled(item.description) && item.unitPrice !== 0)
   if (usable.length === 0) {
     errors.push('Mindestens eine Position mit Beschreibung und einem Preis ungleich 0 € ist erforderlich.')
+  }
+
+  if (invoice.reverseCharge) {
+    // The UI locks the rate to 0 %, defaults new lines to 0 %, and rewrites
+    // existing lines when the switch is turned on. This check exists because all
+    // three of those must hold and only one of them has to break to produce an
+    // invoice carrying a 19 % line AND a reverse-charge note — invalid,
+    // immutable, and correctable only by a Stornorechnung.
+    if (invoice.items.some((item) => item.vatRate !== 0)) {
+      errors.push('Reverse Charge: alle Positionen müssen 0 % USt. haben.')
+    }
+    if (!filled(invoice.customerVatId)) {
+      errors.push('Reverse Charge: USt-IdNr. des Kunden ist zwingend.')
+    } else if (vatIdPrefix(invoice.customerVatId) === null) {
+      errors.push('Reverse Charge: USt-IdNr. des Kunden ist keine gültige Nummer.')
+    } else if (vatIdPrefix(invoice.customerVatId) === 'DE') {
+      // A German customer is a domestic sale, which carries German VAT.
+      errors.push('Reverse Charge gilt nicht für deutsche Kunden — bitte mit 19 % abrechnen.')
+    } else if (!isOtherEuMemberState(invoice.customerVatId)) {
+      errors.push(
+        `Reverse Charge: ${vatIdPrefix(invoice.customerVatId)} ist kein EU-Mitgliedstaat.`
+      )
+    }
   }
 
   return errors

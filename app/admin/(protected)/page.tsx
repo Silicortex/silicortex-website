@@ -1,6 +1,6 @@
 import { requireSession } from '@/lib/admin/session.ts'
 import { loadMasterData } from '@/lib/db/masterData.ts'
-import { listInvoices, listNumberJournal, nextNumberFor } from '@/lib/db/invoices.ts'
+import { listEuSales, listInvoices, listNumberJournal, nextNumberFor } from '@/lib/db/invoices.ts'
 import { todayIso } from '@/lib/invoice/format.ts'
 import { AdminApp } from '@/components/admin/AdminApp.tsx'
 
@@ -11,11 +11,12 @@ export default async function AdminHomePage() {
   // `new Date().getFullYear()` would still be the old year on 1 January — and
   // the counter restarts with the year.
   const year = Number(todayIso().slice(0, 4))
-  const [masterData, invoices, nextNumber, journal] = await Promise.all([
+  const [masterData, invoices, nextNumber, journal, euSales] = await Promise.all([
     loadMasterData(),
     listInvoices(),
     nextNumberFor('RE', year),
     listNumberJournal(),
+    listEuSales(),
   ])
   return (
     <AdminApp
@@ -23,6 +24,7 @@ export default async function AdminHomePage() {
       invoices={invoices}
       nextNumber={nextNumber}
       journal={journal}
+      euSales={euSales}
     />
   )
 }

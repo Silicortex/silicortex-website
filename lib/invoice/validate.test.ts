@@ -50,6 +50,7 @@ function invoice(patch: Partial<InvoiceDraft> = {}): InvoiceDraft {
     customerCountry: 'Deutschland',
     stornoFor: '',
     stornoForDate: '',
+    reverseCharge: false,
     customerVatId: '',
     paymentTerms: 'Zahlbar in 14 Tagen.',
     items: [{ description: 'Entwicklung', quantity: 2, unit: 'Std', unitPrice: 80.5, vatRate: 19 }],
@@ -156,4 +157,88 @@ test('a zero line is still refused', () => {
     items: [{ description: 'Entwicklung', quantity: 1, unit: 'Std', unitPrice: 0, vatRate: 19 }],
   })
   assert.ok(check(zero).some((e) => e.includes('ungleich 0')))
+})
+
+/** An intra-EU invoice needs the SENDER's own USt-IdNr., which the default
+ *  fixture deliberately leaves empty (§ 14 is satisfied by the Steuernummer
+ *  alone for a domestic invoice). */
+const euSender = () => sender({ vatId: 'DE464133329' })
+
+/** A complete intra-EU invoice: EU customer VAT ID, every line at 0 %. */
+function euInvoice(patch = {}) {
+  return invoice({
+    reverseCharge: true,
+    customerVatId: 'ATU12345678',
+    items: [{ description: 'Entwicklung', quantity: 1, unit: 'Std', unitPrice: 100, vatRate: 0 }],
+    ...patch,
+  })
+}
+
+test('a complete reverse-charge invoice passes', () => {
+  assert.deepEqual(check(euInvoice(), euSender()), [])
+})
+
+test('reverse charge with a German rate on any line is refused', () => {
+  // The guarantee, not the UI. Three UI paths keep the rate at 0 % — the toggle
+  // rewrite, the 0 % default for new lines, the locked select — and only one has
+  // to break to produce an invoice with a 19 % line AND the note.
+  const mixed = euInvoice({
+    items: [
+      { description: 'A', quantity: 1, unit: 'Std', unitPrice: 100, vatRate: 0 },
+      { description: 'B', quantity: 1, unit: 'Std', unitPrice: 50, vatRate: 19 },
+    ],
+  })
+  assert.ok(check(mixed, euSender()).some((e) => e.includes('alle Positionen müssen 0 %')))
+})
+
+test('reverse charge without the customer VAT ID is refused', () => {
+  assert.ok(
+    check(euInvoice({ customerVatId: '' }), euSender()).some((e) =>
+      e.includes('USt-IdNr. des Kunden ist zwingend')
+    )
+  )
+})
+
+test('reverse charge to a German customer is refused', () => {
+  // A domestic sale carries German VAT; the note would be wrong.
+  assert.ok(
+    check(euInvoice({ customerVatId: 'DE464133329' }), euSender()).some((e) =>
+      e.includes('nicht für deutsche Kunden')
+    )
+  )
+})
+
+test('reverse charge to a non-EU customer is refused', () => {
+  assert.ok(
+    check(euInvoice({ customerVatId: 'CH123456789' }), euSender()).some((e) =>
+      e.includes('kein EU-Mitgliedstaat')
+    )
+  )
+  // Only input that cannot be read as a VAT ID at all gets the format message.
+  // A word like "nonsense" uppercases to NO + NSENSE and is caught one branch
+  // later as a non-member state, which is also correct.
+  assert.ok(
+    check(euInvoice({ customerVatId: 'X1' }), euSender()).some((e) =>
+      e.includes('keine gültige Nummer')
+    )
+  )
+})
+
+test('reverse charge requires the sender\'s own USt-IdNr., not just a Steuernummer', () => {
+  const withoutVatId = sender({ vatId: '' })
+  const errors = check(euInvoice(), withoutVatId)
+  assert.ok(errors.some((e) => e.includes('eigene USt-IdNr. ist bei Reverse Charge zwingend')))
+  // The plain § 14 rule is still satisfied by the Steuernummer alone.
+  assert.ok(!errors.some((e) => e.includes('Steuernummer oder USt-IdNr. fehlt')))
+})
+
+test('an ISSUED reverse-charge invoice still reprints', () => {
+  // Immutable: refusing to print it would leave a legal document that can never
+  // be produced again, which is worse than any rule it breaks.
+  const broken = euInvoice({
+    status: 'issued',
+    customerVatId: '',
+    items: [{ description: 'A', quantity: 1, unit: 'Std', unitPrice: 100, vatRate: 19 }],
+  })
+  assert.deepEqual(check(broken, sender({ vatId: '' })), [])
 })

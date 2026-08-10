@@ -14,12 +14,14 @@ export function ItemsTable({
   items,
   lineNets,
   defaultVatRate,
+  reverseCharge = false,
   readOnly,
   onChange,
 }: {
   items: InvoiceItemInput[]
   lineNets: number[]
   defaultVatRate: number
+  reverseCharge?: boolean
   readOnly: boolean
   onChange: (items: InvoiceItemInput[]) => void
 }) {
@@ -33,9 +35,14 @@ export function ItemsTable({
   function removeRow(index: number) {
     const remaining = items.filter((_, i) => i !== index)
     // Deleting the last row immediately yields a fresh empty one.
-    onChange(remaining.length ? remaining : [emptyItem(defaultVatRate)])
+    onChange(remaining.length ? remaining : [emptyItem(newLineVatRate)])
     setDrafts({})
   }
+
+  // A line added to a reverse-charge invoice must start at 0 %, not at the
+  // Stammdaten default — otherwise "+ Position hinzufügen" silently reintroduces
+  // a 19 % line on a document that must carry none.
+  const newLineVatRate = reverseCharge ? 0 : defaultVatRate
 
   function numericCell(
     index: number,
@@ -128,7 +135,10 @@ export function ItemsTable({
                 <select
                   aria-label={`Steuersatz Position ${index + 1}`}
                   className="admin-field admin-no-print text-right [appearance:none]"
-                  disabled={readOnly}
+                  // Locked under reverse charge: the recipient owes the tax, so
+                  // no German rate may be picked. The validator enforces the same
+                  // rule — this only stops the mistake being made.
+                  disabled={readOnly || reverseCharge}
                   value={String(item.vatRate)}
                   onChange={(e) => update(index, { vatRate: Number(e.target.value) })}
                 >
@@ -161,7 +171,7 @@ export function ItemsTable({
       {!readOnly && (
         <button
           type="button"
-          onClick={() => onChange([...items, emptyItem(defaultVatRate)])}
+          onClick={() => onChange([...items, emptyItem(newLineVatRate)])}
           className="admin-no-print mt-3 text-sm text-blue-600 underline decoration-blue-300 underline-offset-4 transition hover:text-blue-500"
         >
           + Position hinzufügen

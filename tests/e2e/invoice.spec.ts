@@ -22,12 +22,20 @@ const RUN = Date.now()
  *  USt-IdNr., either satisfies the law). Without this, issuing is refused —
  *  which is deliberate: it would otherwise freeze a legally invalid invoice
  *  that is immutable and correctable only by voiding it. */
-async function saveSender(page: import('@playwright/test').Page, name: string) {
+async function saveSender(
+  page: import('@playwright/test').Page,
+  name: string,
+  // An intra-EU invoice is the one case where the Steuernummer is not enough:
+  // the supplier's own USt-IdNr. must be on it. Off by default, so the domestic
+  // tests keep exercising the Steuernummer-only path § 14 allows.
+  options: { vatId?: string } = {}
+) {
   await page.getByRole('button', { name: 'Stammdaten' }).click()
   await page.getByLabel('Name / Firmenbezeichnung').fill(name)
   await page.getByLabel('Straße und Hausnummer').fill('Teststraße 1')
   await page.getByLabel('PLZ und Ort').fill('00000 Teststadt')
   await page.getByLabel('Steuernummer').fill('TEST-000/000/00000')
+  if (options.vatId) await page.getByLabel('USt-IdNr. (§ 27a UStG)').fill(options.vatId)
   await page.getByRole('button', { name: 'Stammdaten speichern' }).click()
   await expect(page.getByText('Gespeichert.')).toBeVisible()
 }
@@ -243,6 +251,78 @@ test('skipping ahead warns before the number is claimed', async ({ page }) => {
   await expect(page.getByLabel('Kundenname')).not.toHaveAttribute('readonly', '')
   await page.getByRole('button', { name: 'Meine Rechnungen' }).click()
   await expect(page.getByRole('row', { name: /RE-2026-100/ })).toHaveCount(0)
+})
+
+test('reverse charge forces 0 %, prints the note and refuses a bad VAT ID', async ({ page }) => {
+  await page.addInitScript(() => {
+    window.print = () => {}
+  })
+  await page.goto('/admin')
+  await saveSender(page, 'E2E Sender Reverse', { vatId: 'DE999999999' })
+  await page.getByRole('button', { name: 'Rechnung erstellen' }).click()
+  await fillInvoice(page, `Testkunde EU ${RUN}`)
+
+  // Line 1 is at 19 % from the Stammdaten default before the switch is flipped.
+  await expect(page.getByLabel('Steuersatz Position 1')).toHaveValue('19')
+  await page.getByLabel('Reverse Charge (EU-Kunde)').check()
+
+  // Path 1: existing lines are rewritten to 0 %.
+  await expect(page.getByLabel('Steuersatz Position 1')).toHaveValue('0')
+  // Path 2: the select is locked, so no German rate can be chosen back.
+  await expect(page.getByLabel('Steuersatz Position 1')).toBeDisabled()
+  // Path 3: a newly added line starts at 0 %, not at the Stammdaten default.
+  await page.getByRole('button', { name: '+ Position hinzufügen' }).click()
+  await expect(page.getByLabel('Steuersatz Position 2')).toHaveValue('0')
+
+  // Without a customer VAT ID the invoice is refused before anything is claimed.
+  await page.getByRole('button', { name: 'Drucken / PDF' }).click()
+  await expect(page.getByText('Reverse Charge: USt-IdNr. des Kunden ist zwingend.')).toBeVisible()
+
+  // A German customer is a domestic sale, not a reverse-charge case.
+  await page.getByLabel('USt-IdNr. des Kunden').fill('DE464133329')
+  await page.getByRole('button', { name: 'Drucken / PDF' }).click()
+  await expect(page.getByText(/Reverse Charge gilt nicht für deutsche Kunden/)).toBeVisible()
+
+  // Nor is a non-EU one.
+  await page.getByLabel('USt-IdNr. des Kunden').fill('CH123456789')
+  await page.getByRole('button', { name: 'Drucken / PDF' }).click()
+  await expect(page.getByText(/CH ist kein EU-Mitgliedstaat/)).toBeVisible()
+
+  // An Austrian customer is valid, and the note must print.
+  await page.getByLabel('USt-IdNr. des Kunden').fill('ATU12345678')
+  await page.emulateMedia({ media: 'print' })
+  const sheet = await page.locator('.admin-sheet').innerText()
+  expect(sheet).toContain('Steuerschuldnerschaft des Leistungsempfängers (Reverse Charge)')
+  // No German rate row may survive: "Nettobetrag 0 % USt." would read as though
+  // a German zero rate applied.
+  expect(sheet).not.toContain('Nettobetrag')
+  expect(sheet).not.toContain('zzgl.')
+  // Net equals gross, because no VAT is charged here.
+  expect(sheet).toContain('161,00')
+  await page.emulateMedia({ media: 'screen' })
+})
+
+test('an issued reverse-charge invoice appears in the EU sales report', async ({ page }) => {
+  await page.addInitScript(() => {
+    window.print = () => {}
+  })
+  await page.goto('/admin')
+  await saveSender(page, 'E2E Sender ZM', { vatId: 'DE999999999' })
+  await page.getByRole('button', { name: 'Rechnung erstellen' }).click()
+  await fillInvoice(page, `Testkunde ZM ${RUN}`)
+  await page.getByLabel('Reverse Charge (EU-Kunde)').check()
+  await page.getByLabel('USt-IdNr. des Kunden').fill('ATU12345678')
+  await page.getByLabel('Rechnungsnummer').fill(`E2E-RC-${RUN}`)
+
+  page.once('dialog', (dialog) => dialog.accept())
+  await page.getByRole('button', { name: 'Drucken / PDF' }).click()
+  await expect(page.getByText(`Festgeschrieben als E2E-RC-${RUN}.`)).toBeVisible()
+
+  await page.getByRole('button', { name: 'Meine Rechnungen' }).click()
+  const report = page.locator('section', { hasText: 'Zusammenfassende Meldung' })
+  await expect(report.getByRole('row', { name: /ATU12345678/ })).toBeVisible()
+  // Grouped by quarter: an invoice dated in Q3 is reported under Q3.
+  await expect(report.getByRole('row', { name: /ATU12345678/ })).toContainText('161,00')
 })
 
 test('a number can be recorded as used with no invoice behind it', async ({ page }) => {

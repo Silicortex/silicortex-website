@@ -38,7 +38,8 @@ export async function listInvoices(): Promise<InvoiceSummary[]> {
   const rows = await sql`
     select id, status, invoice_number, proposed_number,
            invoice_date::text as invoice_date,
-           customer_name, storno_for, net_total, vat_total, gross_total
+           customer_name, customer_vat_id, storno_for, reverse_charge,
+           net_total, vat_total, gross_total
     from invoices
   `
   return rows
@@ -49,7 +50,9 @@ export async function listInvoices(): Promise<InvoiceSummary[]> {
       proposedNumber: r.proposed_number as string,
       invoiceDate: isoDate(r.invoice_date),
       customerName: r.customer_name as string,
+      customerVatId: r.customer_vat_id as string,
       stornoFor: r.storno_for as string,
+      reverseCharge: r.reverse_charge as boolean,
       netTotal: Number(r.net_total),
       vatTotal: Number(r.vat_total),
       grossTotal: Number(r.gross_total),
@@ -70,7 +73,7 @@ export async function loadInvoice(id: string): Promise<InvoiceDraft | null> {
            invoice_date::text as invoice_date,
            service_date, customer_number, customer_name, customer_street,
            customer_zip_city, customer_country, customer_vat_id, payment_terms,
-           storno_for, storno_for_date, sender_snapshot, net_total, vat_total, gross_total, vat_breakdown
+           storno_for, storno_for_date, reverse_charge, sender_snapshot, net_total, vat_total, gross_total, vat_breakdown
     from invoices where id = ${id}
   `
   const r = rows[0]
@@ -97,6 +100,7 @@ export async function loadInvoice(id: string): Promise<InvoiceDraft | null> {
     paymentTerms: r.payment_terms as string,
     stornoFor: r.storno_for as string,
     stornoForDate: r.storno_for_date as string,
+    reverseCharge: r.reverse_charge as boolean,
     // jsonb arrives already parsed by the driver.
     senderSnapshot: (r.sender_snapshot as MasterDataInvoiceVisible | null) ?? null,
     items: items.map((i) => ({
@@ -136,13 +140,14 @@ export async function saveDraft(draft: InvoiceDraft): Promise<string> {
         id, status, proposed_number, invoice_date, service_date,
         customer_number, customer_name, customer_street, customer_zip_city,
         customer_country, customer_vat_id, payment_terms,
-        storno_for, storno_for_date,
+        storno_for, storno_for_date, reverse_charge,
         net_total, vat_total, gross_total, vat_breakdown
       ) values (
         ${id}, 'draft', ${draft.proposedNumber}, ${invoiceDate}, ${draft.serviceDate},
         ${draft.customerNumber}, ${draft.customerName}, ${draft.customerStreet},
         ${draft.customerZipCity}, ${draft.customerCountry}, ${draft.customerVatId},
         ${draft.paymentTerms}, ${draft.stornoFor}, ${draft.stornoForDate},
+        ${draft.reverseCharge},
         ${totals.netTotal}, ${totals.vatTotal}, ${totals.grossTotal},
         ${JSON.stringify(totals.groups)}::jsonb
       )
@@ -159,6 +164,7 @@ export async function saveDraft(draft: InvoiceDraft): Promise<string> {
         payment_terms = excluded.payment_terms,
         storno_for = excluded.storno_for,
         storno_for_date = excluded.storno_for_date,
+        reverse_charge = excluded.reverse_charge,
         net_total = excluded.net_total,
         vat_total = excluded.vat_total,
         gross_total = excluded.gross_total,
@@ -310,6 +316,39 @@ export async function issueInvoice(
     }
     throw error
   }
+}
+
+/** Issued intra-EU invoices, grouped by calendar quarter and customer VAT ID.
+ *
+ *  A REPORT, not a filing. The Zusammenfassende Meldung goes to the BZSt
+ *  electronically and the reporting period depends on thresholds this app cannot
+ *  determine, so it shows the figures and files nothing. Quarters are shown
+ *  because that is the common period; the constituent months stay visible in the
+ *  invoice list itself.
+ *
+ *  Only ISSUED invoices count — a draft is not a reportable transaction. Stornos
+ *  are included with their negative amounts, which is exactly right: they reduce
+ *  the reported total for the period they fall in. */
+export async function listEuSales(): Promise<
+  { quarter: string; customerVatId: string; net: number; count: number }[]
+> {
+  const rows = await sql`
+    select to_char(invoice_date, 'YYYY') || '-Q' ||
+             to_char(invoice_date, 'Q') as quarter,
+           upper(replace(replace(customer_vat_id, ' ', ''), '.', '')) as vat_id,
+           sum(net_total)::text as net,
+           count(*)::int as n
+    from invoices
+    where status = 'issued' and reverse_charge = true
+    group by 1, 2
+    order by 1 desc, 2
+  `
+  return rows.map((r) => ({
+    quarter: r.quarter as string,
+    customerVatId: r.vat_id as string,
+    net: Number(r.net),
+    count: r.n as number,
+  }))
 }
 
 /** Builds — but does not save — the Storno that corrects an issued invoice.

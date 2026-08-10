@@ -6,7 +6,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "test": "node --experimental-strip-types --test lib/admin/password.test.ts lib/admin/token.test.ts lib/invoice/parseNum.test.ts lib/invoice/format.test.ts lib/invoice/totals.test.ts lib/invoice/numbering.test.ts lib/invoice/filename.test.ts lib/invoice/validate.test.ts",
+    "test": "node --experimental-strip-types --test lib/admin/password.test.ts lib/admin/token.test.ts lib/invoice/parseNum.test.ts lib/invoice/format.test.ts lib/invoice/totals.test.ts lib/invoice/numbering.test.ts lib/invoice/filename.test.ts lib/invoice/euVat.test.ts lib/invoice/validate.test.ts",
     "test:schema": "node --test db/schema.test.mjs",
     "test:e2e": "node --env-file=.env.local node_modules/@playwright/test/cli.js test",
     "lint": "eslint",

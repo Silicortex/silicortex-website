@@ -19,6 +19,7 @@ import {
   listInvoicesAction,
   loadInvoiceAction,
   nextNumberAction,
+  euSalesAction,
   numberJournalAction,
   saveDraftAction,
 } from '@/app/admin/(protected)/actions.ts'
@@ -29,6 +30,7 @@ import { COMPANY_FILE_NAME, invoiceFileBase } from '@/lib/invoice/filename.ts'
 import { nextNumber as nextNumberInRange, parseInvoiceNumber } from '@/lib/invoice/numbering.ts'
 import { ArchiveTable } from './ArchiveTable.tsx'
 import { NumberJournal, type JournalEntry } from './NumberJournal.tsx'
+import { EuSalesReport, type EuSaleRow } from './EuSalesReport.tsx'
 import { InvoiceSheet } from './InvoiceSheet.tsx'
 import { MasterDataForm } from './MasterDataForm.tsx'
 
@@ -45,11 +47,13 @@ export function AdminApp({
   invoices,
   nextNumber,
   journal: initialJournal,
+  euSales: initialEuSales,
 }: {
   masterData: MasterData
   invoices: InvoiceSummary[]
   nextNumber: string
   journal: JournalEntry[]
+  euSales: EuSaleRow[]
 }) {
   const [tab, setTab] = useState<Tab>('invoice')
   const [masterData, setMasterData] = useState(initialMasterData)
@@ -70,6 +74,7 @@ export function AdminApp({
 
   const [archive, setArchive] = useState(invoices)
   const [journal, setJournal] = useState(initialJournal)
+  const [euSales, setEuSales] = useState(initialEuSales)
   const [notice, setNotice] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const [printErrors, setPrintErrors] = useState<string[]>([])
@@ -137,6 +142,22 @@ export function AdminApp({
     )
   }
 
+  /** Turning reverse charge ON rewrites every existing line to 0 %.
+   *
+   *  Three paths have to hold for a reverse-charge invoice to carry no German
+   *  rate: this rewrite, the 0 % default for newly added lines, and the locked
+   *  rate select. `validateForPrint` checks the result anyway — one of the three
+   *  breaking would otherwise produce an invoice with a 19 % line AND the note,
+   *  which is invalid, immutable, and correctable only by a Stornorechnung. */
+  function toggleReverseCharge(on: boolean) {
+    setPrintErrors([])
+    setInvoice((current) => ({
+      ...current,
+      reverseCharge: on,
+      items: on ? current.items.map((item) => ({ ...item, vatRate: 0 })) : current.items,
+    }))
+  }
+
   function updateInvoice(next: InvoiceDraft) {
     if (next.paymentTerms !== invoice.paymentTerms) setTermsTouched(true)
     if (printErrors.length) setPrintErrors([])
@@ -155,12 +176,14 @@ export function AdminApp({
   }
 
   async function refreshArchive() {
-    const [invoiceList, journalList] = await Promise.all([
+    const [invoiceList, journalList, euSalesList] = await Promise.all([
       listInvoicesAction(),
       numberJournalAction(),
+      euSalesAction(),
     ])
     setArchive(invoiceList)
     setJournal(journalList)
+    setEuSales(euSalesList)
   }
 
   async function saveToArchive() {
@@ -342,6 +365,18 @@ export function AdminApp({
             >
               Drucken / PDF
             </button>
+            {/* Screen only — the document itself carries the note, not a
+                checkbox. */}
+            <label className="ml-auto flex items-center gap-2 text-sm text-slate-600">
+              <input
+                type="checkbox"
+                aria-label="Reverse Charge (EU-Kunde)"
+                checked={invoice.reverseCharge}
+                disabled={invoice.status === 'issued'}
+                onChange={(e) => toggleReverseCharge(e.target.checked)}
+              />
+              Reverse Charge (EU-Kunde)
+            </label>
           </div>
           {printErrors.length > 0 && (
             <div
@@ -385,6 +420,7 @@ export function AdminApp({
             year={Number(invoice.invoiceDate.slice(0, 4))}
             onBurn={burnNumberFromJournal}
           />
+          <EuSalesReport rows={euSales} />
         </>
       )}
       {tab === 'master' && (

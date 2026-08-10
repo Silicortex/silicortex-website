@@ -172,3 +172,39 @@ issuer name from Stammdaten, which appears on the invoice itself. Every segment 
 the name can never contain a path separator. `document.title` is set to this name
 on `beforeprint`, because Chrome uses the title as the default name in its "Save
 as PDF" dialog, and restored on `afterprint`.
+
+## Intra-EU B2B (reverse charge)
+
+For services to a business in another EU member state the recipient owes the VAT
+in their own country. Tick **Reverse Charge (EU-Kunde)** on the invoice and it:
+
+- rewrites every existing line to 0 %, locks the rate select, and starts newly
+  added lines at 0 %;
+- prints `Steuerschuldnerschaft des Leistungsempfängers (Reverse Charge)`;
+- drops the per-rate VAT rows, so `Gesamt netto` equals `Gesamtbetrag`.
+
+No statutory paragraph is printed. § 14a UStG requires an *indication* that the
+recipient owes the tax, not a citation — and § 13b would be plainly wrong here,
+since that is reverse charge on services **received** in Germany.
+
+`validateForPrint` is the guarantee, not the UI: issuing is refused unless every
+line is 0 %, the customer's USt-IdNr. is present and belongs to an EU member state
+other than Germany, and the sender's own USt-IdNr. is set (the Steuernummer alone
+is not enough on an intra-EU invoice). Three separate UI paths keep the rate at
+0 %; only one has to break to produce an invoice carrying a 19 % line *and* the
+note — invalid, immutable, and correctable only by a Stornorechnung.
+
+EU membership is derived from the VAT ID prefix, not the free-text country field.
+Greece is `EL`, not `GR`. `XI` (Northern Ireland) is excluded: it is in the EU VAT
+area for goods, not services.
+
+Reverse charge is stored per invoice and is **never inferred from a 0 % rate**. A
+domestic 0 % line means "not taxable here"; reverse charge means "the recipient
+owes the tax".
+
+*Meine Rechnungen* shows a **Zusammenfassende Meldung** section: issued
+reverse-charge invoices grouped by quarter and customer USt-IdNr., with net sums.
+It is a report only. The app does not file the ZM with the BZSt, and it does not
+confirm any VAT ID against BZSt/VIES — obtaining that confirmation and keeping the
+evidence stays manual, and matters, because an invalid customer VAT ID makes the
+VAT the supplier's.

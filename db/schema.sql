@@ -196,3 +196,13 @@ alter table invoices add column if not exists storno_for text not null default '
 -- Same principle as sender_snapshot: an issued document must print what it was
 -- issued with, never a value re-derived later.
 alter table invoices add column if not exists storno_for_date text not null default ''
+-- @@
+-- Intra-EU B2B services: the recipient owes the VAT in their own country, so the
+-- invoice carries 0 % and a note saying so. Stored per invoice, because it is a
+-- property of the transaction and must stay frozen on an issued document — the
+-- same reason sender_snapshot exists.
+--
+-- Deliberately NOT inferred from a 0 % rate. A domestic 0 % line means "not
+-- taxable here"; reverse charge means "the recipient owes the tax". Conflating
+-- them is the ambiguity this column exists to remove.
+alter table invoices add column if not exists reverse_charge boolean not null default false

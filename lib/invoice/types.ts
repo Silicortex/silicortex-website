@@ -26,6 +26,13 @@ export type InvoiceDraft = {
   stornoFor: string
   /** The referenced invoice's date, frozen when the Storno was written. */
   stornoForDate: string
+  /**
+   * Intra-EU B2B: the recipient owes the VAT in their own country, so every line
+   * is 0 % and the invoice carries the mandatory note. NOT inferrable from a 0 %
+   * rate — a domestic 0 % line means "not taxable here", this means "the
+   * recipient owes the tax".
+   */
+  reverseCharge: boolean
   items: InvoiceItemInput[]
   /**
    * The sender block as frozen when the invoice was issued. Null for drafts,
@@ -50,6 +57,8 @@ export type InvoiceSummary = {
   invoiceDate: string
   customerName: string
   stornoFor: string
+  reverseCharge: boolean
+  customerVatId: string
   netTotal: number
   vatTotal: number
   grossTotal: number
@@ -113,6 +122,7 @@ export function emptyInvoice(args: {
     paymentTerms: args.paymentTerms,
     stornoFor: '',
     stornoForDate: '',
+    reverseCharge: false,
     items: [emptyItem(args.vatRate)],
     senderSnapshot: null,
     storedTotals: null,

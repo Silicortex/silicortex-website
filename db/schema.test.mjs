@@ -440,3 +440,27 @@ test('the journal date is the German calendar date, not UTC', async () => {
     'the log must show the day the invoice itself is dated'
   )
 })
+
+test('reverse charge is stored per invoice and frozen once issued', async () => {
+  const db = await freshDb()
+  // Defaults to false: an existing invoice cannot silently become intra-EU.
+  const draft = await db.query(
+    `insert into invoices (invoice_date, customer_name) values ('2026-08-11', 'A')
+     returning id, reverse_charge`
+  )
+  assert.equal(draft.rows[0].reverse_charge, false)
+
+  await db.query(
+    `update invoices set reverse_charge = true, customer_vat_id = 'ATU12345678',
+            status = 'issued', invoice_number = 'RE-2026-001', issued_at = now(),
+            sender_snapshot = '{}'::jsonb
+     where id = $1`,
+    [draft.rows[0].id]
+  )
+  // Frozen with the rest of the document — the flag decides what the invoice
+  // says about who owes the tax, so it must not drift after issuing.
+  await assert.rejects(
+    () => db.query('update invoices set reverse_charge = false where id = $1', [draft.rows[0].id]),
+    /immutable|issued/i
+  )
+})

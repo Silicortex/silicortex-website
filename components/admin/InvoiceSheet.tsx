@@ -6,6 +6,7 @@ import { TotalsBlock } from './TotalsBlock.tsx'
 import type { InvoiceItemInput, InvoiceTotals } from '@/lib/invoice/totals.ts'
 import type { InvoiceDraft } from '@/lib/invoice/types.ts'
 import { stornoReference } from '@/lib/invoice/numbering.ts'
+import { REVERSE_CHARGE_NOTE } from '@/lib/invoice/euVat.ts'
 import { formatDateDe } from '@/lib/invoice/format.ts'
 // Only the invoice-visible half of the master data reaches this component.
 import type { MasterDataInvoiceVisible } from '@/lib/db/masterData.ts'
@@ -103,7 +104,11 @@ export function InvoiceSheet({
         <div className="admin-optional">
           <EditableField
             ariaLabel="USt-IdNr. des Kunden"
-            placeholder="USt-IdNr. des Kunden (optional)"
+            placeholder={
+              invoice.reverseCharge
+                ? 'USt-IdNr. des Kunden (bei Reverse Charge zwingend)'
+                : 'USt-IdNr. des Kunden (optional)'
+            }
             value={invoice.customerVatId}
             readOnly={readOnly}
             onChange={(v) => set('customerVatId', v)}
@@ -168,11 +173,22 @@ export function InvoiceSheet({
         items={invoice.items}
         lineNets={totals.lineNets}
         defaultVatRate={sender.defaultVatRate}
+        reverseCharge={invoice.reverseCharge}
         readOnly={readOnly}
         onChange={setItems}
       />
 
-      <TotalsBlock totals={totals} />
+      <TotalsBlock totals={totals} reverseCharge={invoice.reverseCharge} />
+
+      {/* Prints as well as shows. § 14a UStG requires an intra-EU invoice to
+          INDICATE that the recipient owes the tax; without this line the invoice
+          is formally defective. No statutory citation is printed — § 13b would be
+          plainly wrong here (that is reverse charge on services RECEIVED in
+          Germany) and even a correct cite is a liability on a document that does
+          not need one. */}
+      {invoice.reverseCharge && (
+        <p className="mt-6 font-medium">{REVERSE_CHARGE_NOTE}</p>
+      )}
 
       <section className="mt-10 flex justify-between gap-8">
         <div className="w-1/2">

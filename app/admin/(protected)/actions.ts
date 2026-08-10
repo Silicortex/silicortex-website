@@ -12,6 +12,7 @@ import {
 import {
   buildStornoDraft,
   burnNumber,
+  listEuSales,
   deleteDraft,
   issueInvoice,
   listInvoices,
@@ -98,6 +99,11 @@ function currentYear(): number {
 export async function numberJournalAction() {
   await requireSession()
   return listNumberJournal()
+}
+
+export async function euSalesAction() {
+  await requireSession()
+  return listEuSales()
 }
 
 /** Records a number as used with no invoice behind it. The reason is required:
