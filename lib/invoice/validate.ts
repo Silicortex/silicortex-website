@@ -12,7 +12,7 @@ export function validateForPrint(
   // legal document that can never be produced again — worse than any field it
   // was trying to police. That applies to EVERY rule, not just the sender: an
   // invoice issued before prices were quantized can hold a sub-cent line stored
-  // as 0.00, which `unitPrice > 0` would reject on every later reprint.
+  // as 0.00, which the non-zero price rule would reject on every later reprint.
   //
   // So a reprint validates nothing, and the transition validates everything.
   options: { enforceSender: boolean }
@@ -48,9 +48,13 @@ export function validateForPrint(
   if (!filled(invoice.invoiceDate)) errors.push('Rechnungsdatum fehlt.')
   if (!filled(invoice.serviceDate)) errors.push('Leistungsdatum bzw. Leistungszeitraum fehlt.')
 
-  const usable = invoice.items.filter((item) => filled(item.description) && item.unitPrice > 0)
+  // Non-zero, not positive: a Stornorechnung carries negative amounts so it
+  // zeroes out the invoice it reverses, and `> 0` refused every one of them.
+  // Deliberately no sign-consistency rule — a mixed-sign document is unusual but
+  // legal, and an over-strict check here refuses a document that must go out.
+  const usable = invoice.items.filter((item) => filled(item.description) && item.unitPrice !== 0)
   if (usable.length === 0) {
-    errors.push('Mindestens eine Position mit Beschreibung und Preis über 0 € ist erforderlich.')
+    errors.push('Mindestens eine Position mit Beschreibung und einem Preis ungleich 0 € ist erforderlich.')
   }
 
   return errors

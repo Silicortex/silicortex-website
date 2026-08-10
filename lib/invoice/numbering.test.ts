@@ -27,9 +27,9 @@ test('the counter restarts at 001 when the year rolls over', () => {
 })
 
 test('each range counts independently', () => {
-  const issued = ['RE-2026-001', 'RE-2026-002', 'RE-2026-003', 'GS-2026-001']
+  const issued = ['RE-2026-001', 'RE-2026-002', 'RE-2026-003', 'ST-2026-001']
   assert.equal(nextNumber('RE', 2026, issued), 'RE-2026-004')
-  assert.equal(nextNumber('GS', 2026, issued), 'GS-2026-002')
+  assert.equal(nextNumber('ST', 2026, issued), 'ST-2026-002')
   assert.equal(nextNumber('AN', 2026, issued), 'AN-2026-001')
 })
 
@@ -55,7 +55,7 @@ test('a range widens to four digits only from the following January', () => {
   assert.equal(widthFor('RE', 2027, overflowed), 4)
   assert.equal(nextNumber('RE', 2027, overflowed), 'RE-2027-0001')
   // Only the range that overflowed widens.
-  assert.equal(nextNumber('GS', 2027, overflowed), 'GS-2027-001')
+  assert.equal(nextNumber('ST', 2027, overflowed), 'ST-2027-001')
 })
 
 test('a widened range never narrows again in a quiet year', () => {
@@ -71,8 +71,8 @@ test('parsing accepts a managed number and rejects everything else', () => {
     seq: 1,
     width: 3,
   })
-  assert.deepEqual(parseInvoiceNumber('GS-2026-1234'), {
-    prefix: 'GS',
+  assert.deepEqual(parseInvoiceNumber('ST-2026-1234'), {
+    prefix: 'ST',
     year: 2026,
     seq: 1234,
     width: 4,
@@ -109,7 +109,7 @@ test('interior gaps are reported, the unused tail is not', () => {
   assert.deepEqual(findGaps('RE', 2026, ['RE-2026-001', 'RE-2026-002']), [])
   assert.deepEqual(findGaps('RE', 2026, []), [])
   // A gap in one range is not a gap in another.
-  assert.deepEqual(findGaps('GS', 2026, ['RE-2026-001', 'RE-2026-003']), [])
+  assert.deepEqual(findGaps('ST', 2026, ['RE-2026-001', 'RE-2026-003']), [])
 })
 
 test('display order is numeric, not lexicographic', () => {

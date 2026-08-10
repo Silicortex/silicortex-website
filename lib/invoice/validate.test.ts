@@ -140,3 +140,20 @@ test('an ALREADY ISSUED invoice with an empty sender still validates', () => {
     'an issued invoice must remain reprintable'
   )
 })
+
+test('a negative line is accepted — a Stornorechnung has nothing else', () => {
+  const storno = invoice({
+    stornoFor: 'RE-2026-001',
+    stornoForDate: '2026-08-10',
+    items: [{ description: 'Entwicklung', quantity: 1, unit: 'Std', unitPrice: -100, vatRate: 19 }],
+  })
+  assert.deepEqual(check(storno), [])
+})
+
+test('a zero line is still refused', () => {
+  // Non-zero is the rule, not "any sign": a 0 € line carries no amount at all.
+  const zero = invoice({
+    items: [{ description: 'Entwicklung', quantity: 1, unit: 'Std', unitPrice: 0, vatRate: 19 }],
+  })
+  assert.ok(check(zero).some((e) => e.includes('ungleich 0')))
+})

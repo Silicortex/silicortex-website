@@ -117,7 +117,7 @@ the invoice date, and a counter that restarts at 001 every 1 January.
 | Prefix | Document |
 |---|---|
 | `RE-` | Rechnung |
-| `GS-` | Gutschrift / Storno |
+| `ST-` | Stornorechnung |
 | `AN-` | Angebot |
 
 Each prefix is its own number range (Nummernkreis) with an independent counter.
@@ -142,8 +142,21 @@ without a document — a discarded draft, a test run, something cancelled before
 sending — is recorded there with a mandatory reason.
 
 A correction never edits or reuses a number. *Storno* on an issued invoice opens a
-new document from the `GS-` range that references the original (`storno_for`), and
-the original stays immutable.
+new document from the `ST-` range that references the original (`storno_for`), and
+the original stays immutable. It is titled **Stornorechnung**, never *Gutschrift*:
+under German VAT law a Gutschrift is self-billing by the customer, and using the
+word for a cancellation can trigger an unintended VAT liability. Its amounts are
+negated so it zeroes the original out in the books, and its payment terms default
+to *"Bitte überweisen Sie keinen Betrag …"* rather than inheriting the original's.
+
+Typing a number that jumps past the next free one warns first, naming the number
+that would be skipped. Gaps stay legal and allowed — but at a Betriebsprüfung a
+missing number is read as hidden revenue, so it is worth choosing them on purpose
+rather than by mistyping.
+
+Only ONE of Steuernummer / USt-IdNr. is printed, § 14 being satisfied by either.
+The USt-IdNr. is preferred; the Steuernummer, which ties to the personal tax file,
+appears only when no USt-IdNr. exists.
 
 ### PDF file name
 

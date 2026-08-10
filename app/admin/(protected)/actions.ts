@@ -142,7 +142,7 @@ export async function issueInvoiceAction(
   // The number is claimed here, never by a draft: that is what keeps the
   // sequence gapless when a draft is deleted.
   const invoiceForRange = await loadInvoice(id)
-  const range: RangePrefix = invoiceForRange?.stornoFor ? 'GS' : 'RE'
+  const range: RangePrefix = invoiceForRange?.stornoFor ? 'ST' : 'RE'
   const number = proposedNumber.trim() || (await nextNumberFor(range, currentYear()))
 
   const masterData = await loadMasterData()

@@ -44,12 +44,21 @@ export function InvoiceSheet({
           <p>{sender.zipCity}</p>
           <p>{sender.country}</p>
         </div>
-        {/* A cancellation must not be titled RECHNUNG: the heading is how the
-            recipient — and the Steuerberater — tells the two documents apart at
-            a glance, and a Storno that looks like an invoice reads as a second
-            demand for the same money. */}
-        <h2 className="admin-accent text-2xl font-bold tracking-[0.2em]">
-          {invoice.stornoFor ? 'STORNO' : 'RECHNUNG'}
+        {/* Titled STORNORECHNUNG, not GUTSCHRIFT: under German VAT law a
+            Gutschrift is self-billing by the customer, and using the word for a
+            cancellation can trigger an unintended VAT liability. Nor plain
+            RECHNUNG — the heading is how the recipient tells the two documents
+            apart, and a cancellation that looks like an invoice reads as a
+            second demand for the same money. Tracking is tightened because the
+            longer word does not fit the invoice heading's spacing. */}
+        <h2
+          className={
+            invoice.stornoFor
+              ? 'admin-accent shrink-0 text-xl font-bold tracking-[0.12em]'
+              : 'admin-accent shrink-0 text-2xl font-bold tracking-[0.2em]'
+          }
+        >
+          {invoice.stornoFor ? 'STORNORECHNUNG' : 'RECHNUNG'}
         </h2>
       </header>
 
@@ -189,8 +198,16 @@ export function InvoiceSheet({
         <p>
           {sender.name} · {sender.street} · {sender.zipCity}
         </p>
+        {/* § 14 is satisfied by EITHER identifier, so only one is printed. The
+            USt-IdNr. is preferred: the Steuernummer is tied to the personal tax
+            file, and there is no reason to put it on every document that leaves
+            the house. The Steuernummer appears only as a fallback, when no
+            USt-IdNr. has been issued yet. */}
         <p>
-          Steuernummer: {sender.taxNumber} · USt-IdNr.: {sender.vatId} · {sender.taxOffice}
+          {sender.vatId
+            ? `USt-IdNr.: ${sender.vatId}`
+            : `Steuernummer: ${sender.taxNumber}`}
+          {sender.taxOffice ? ` · ${sender.taxOffice}` : ''}
         </p>
         <p>
           {sender.phone} · {sender.email} · {sender.website}

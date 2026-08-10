@@ -168,7 +168,7 @@ test('a number already issued cannot be claimed by another invoice', async ({ pa
   await expect(page.getByRole('button', { name: 'Ins Archiv legen' })).toBeEnabled()
 })
 
-test('a Storno is a new GS- document that references the original', async ({ page }) => {
+test('a Stornorechnung is a new ST- document with negated amounts', async ({ page }) => {
   await page.addInitScript(() => {
     window.print = () => {}
   })
@@ -192,17 +192,57 @@ test('a Storno is a new GS- document that references the original', async ({ pag
   const row = page.getByRole('row', { name: new RegExp(`Testkunde Storno ${RUN}`) })
   await row.getByRole('button', { name: 'Storno' }).click()
 
-  // Its own number from the GS- range — never the original's, and never an edit
+  // Its own number from the ST- range — never the original's, and never an edit
   // of it.
   await expect(page.getByText(/Storno-Entwurf zu E2E-STORNO-/)).toBeVisible()
-  await expect(page.getByLabel('Rechnungsnummer')).toHaveValue(/^GS-\d{4}-\d{3,}$/)
-  // The heading distinguishes it from an invoice, and the reference names what
-  // it cancels.
-  await expect(page.locator('.admin-sheet h2')).toHaveText('STORNO')
+  await expect(page.getByLabel('Rechnungsnummer')).toHaveValue(/^ST-\d{4}-\d{3,}$/)
+  // STORNORECHNUNG, never GUTSCHRIFT: a Gutschrift is self-billing under German
+  // VAT law and the word can trigger an unintended VAT liability.
+  await expect(page.locator('.admin-sheet h2')).toHaveText('STORNORECHNUNG')
+  await expect(page.locator('.admin-sheet')).not.toContainText('Gutschrift')
   await expect(page.getByText(`Storno zu Rechnung ${original} vom`)).toBeVisible()
 
-  // Deliberately NOT issued. A GS- number carries no E2E- prefix, so cleanup
+  // Negated, so it zeroes the original out in the books rather than reading as a
+  // second charge. The sign sits on the price; the quantity stays physical.
+  await expect(page.getByLabel('Einzelpreis Position 1')).toHaveValue('-80,50')
+  await expect(page.getByLabel('Menge Position 1')).toHaveValue('2')
+  // 2 × -80,50 = -161,00 net, and the VAT and gross follow the same sign.
+  await expect(page.locator('.admin-sheet')).toContainText('-161,00 €')
+  await expect(page.locator('.admin-sheet')).toContainText('-30,59 €') // 19 % of -161,00
+  await expect(page.locator('.admin-sheet')).toContainText('-191,59 €')
+  // And nothing tells the customer to pay a document nobody pays.
+  await expect(page.getByLabel('Zahlungsbedingungen')).toHaveValue(
+    /Bitte überweisen Sie keinen Betrag/
+  )
+
+  // Deliberately NOT issued. An ST- number carries no E2E- prefix, so cleanup
   // could not remove it and the next run's guard would refuse to start.
+})
+
+test('skipping ahead warns before the number is claimed', async ({ page }) => {
+  await page.addInitScript(() => {
+    window.print = () => {}
+  })
+  await page.goto('/admin')
+  await saveSender(page, 'E2E Sender Skip') // leaves the Stammdaten tab open
+  await page.getByRole('button', { name: 'Rechnung erstellen' }).click()
+  await fillInvoice(page, `Testkunde Skip ${RUN}`)
+
+  // A managed number far past the next free one — the mistyped-100-for-010 case.
+  await page.getByLabel('Rechnungsnummer').fill('RE-2026-100')
+  let message = ''
+  page.once('dialog', (dialog) => {
+    message = dialog.message()
+    void dialog.dismiss() // declined, so nothing is claimed
+  })
+  await page.getByRole('button', { name: 'Drucken / PDF' }).click()
+  await expect.poll(() => message).toContain('überspringt')
+  expect(message).toContain('RE-2026-001')
+
+  // Declining leaves the invoice a draft, and no number is burned.
+  await expect(page.getByLabel('Kundenname')).not.toHaveAttribute('readonly', '')
+  await page.getByRole('button', { name: 'Meine Rechnungen' }).click()
+  await expect(page.getByRole('row', { name: /RE-2026-100/ })).toHaveCount(0)
 })
 
 test('a number can be recorded as used with no invoice behind it', async ({ page }) => {

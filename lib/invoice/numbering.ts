@@ -14,9 +14,14 @@
 /** Number ranges (Nummernkreise). Separate ranges are permitted for
  *  organisationally delimited areas, so one per document type is safe, and each
  *  carries its own independent counter. */
+// "Gutschrift" is deliberately NOT used, for either the range or the document
+// title. Under German VAT law a Gutschrift is self-billing — the customer
+// issuing the invoice on the supplier's behalf — so labelling a cancellation
+// that way can trigger an unintended VAT liability. The document is a
+// Stornorechnung, and the range is ST-.
 export const RANGES = {
   RE: 'Rechnung',
-  GS: 'Gutschrift / Storno',
+  ST: 'Stornorechnung',
   AN: 'Angebot',
 } as const
 
@@ -45,7 +50,7 @@ export type ParsedNumber = { prefix: RangePrefix; year: number; seq: number; wid
  *  — including a hand-typed number in another format, which stays legal (§ 14
  *  prescribes no format) and is still recorded and still unique. */
 export function parseInvoiceNumber(value: string): ParsedNumber | null {
-  const match = /^(RE|GS|AN)-(\d{4})-(\d{3,})$/.exec(value.trim())
+  const match = /^(RE|ST|AN)-(\d{4})-(\d{3,})$/.exec(value.trim())
   if (!match) return null
 
   const [, prefix, year, digits] = match

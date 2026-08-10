@@ -318,10 +318,11 @@ export async function issueInvoice(
  *  new document with its own number from the GS- range, pointing back at the
  *  original. The original itself is immutable and stays exactly as it was sent.
  *
- *  Amounts are copied unchanged rather than negated. A German Gutschrift states
- *  the amounts it reverses, and the document's own heading and reference line
- *  carry the meaning; negating them here would silently produce a document whose
- *  arithmetic the recipient cannot reconcile against the invoice it cancels. */
+ *  Amounts are NEGATED. That is what makes the Stornorechnung zero out the
+ *  original's revenue cleanly in the books, rather than reading as a second
+ *  charge for the same work. The unit PRICE carries the sign, not the quantity:
+ *  "18,5 Std. × -95,00" is readable, "-18,5 Std." is not. A line the owner adds
+ *  to the draft afterwards is not negated for them — they type the minus. */
 export async function buildStornoDraft(originalId: string): Promise<InvoiceDraft | null> {
   const original = await loadInvoice(originalId)
   if (!original) return null
@@ -334,10 +335,18 @@ export async function buildStornoDraft(originalId: string): Promise<InvoiceDraft
     id: randomUUID(),
     status: 'draft',
     invoiceNumber: null,
-    proposedNumber: await nextNumberFor('GS', Number(today.slice(0, 4))),
+    proposedNumber: await nextNumberFor('ST', Number(today.slice(0, 4))),
     invoiceDate: today,
     stornoFor: original.invoiceNumber,
     stornoForDate: original.invoiceDate,
+    items: original.items.map((item) => ({ ...item, unitPrice: -item.unitPrice })),
+    // The original's terms would say the money is payable — wrong on a document
+    // nobody pays. This is the not-yet-paid wording, which is the usual case at
+    // cancellation time; if the customer has already paid, the owner replaces it
+    // with the refund sentence. The field stays editable either way.
+    paymentTerms:
+      'Bitte überweisen Sie keinen Betrag. Diese Stornorechnung gleicht die ' +
+      `ursprüngliche Rechnung ${original.invoiceNumber} vollständig aus.`,
     senderSnapshot: null,
     storedTotals: null,
   }

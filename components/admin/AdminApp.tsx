@@ -24,6 +24,9 @@ import {
 } from '@/app/admin/(protected)/actions.ts'
 import { validateForPrint } from '@/lib/invoice/validate.ts'
 import { COMPANY_FILE_NAME, invoiceFileBase } from '@/lib/invoice/filename.ts'
+// Aliased: `nextNumber` is already the name of this component's prop, and the
+// shadowed import silently became a string.
+import { nextNumber as nextNumberInRange, parseInvoiceNumber } from '@/lib/invoice/numbering.ts'
 import { ArchiveTable } from './ArchiveTable.tsx'
 import { NumberJournal, type JournalEntry } from './NumberJournal.tsx'
 import { InvoiceSheet } from './InvoiceSheet.tsx'
@@ -105,6 +108,34 @@ export function AdminApp({
       document.title = original
     }
   }, [fileBase])
+
+  /** Warns BEFORE the number is claimed if it jumps past the next free one.
+   *
+   *  Gaps are legal, but at a Betriebsprüfung a missing number is read as hidden
+   *  revenue and has to be explained. It is far easier to explain a gap you chose
+   *  than one you created by mistyping 100 for 010 — and once the number is
+   *  claimed it cannot be taken back. Deliberately a warning, not a refusal:
+   *  skipping ahead on purpose stays allowed. */
+  function skipAheadWarning(): string {
+    const typed = parseInvoiceNumber(invoice.proposedNumber)
+    if (!typed) return ''
+
+    const expected = nextNumberInRange(
+      typed.prefix,
+      typed.year,
+      journal.map((entry) => entry.number)
+    )
+    const expectedSeq = parseInvoiceNumber(expected)?.seq
+    if (expectedSeq === undefined || typed.seq <= expectedSeq) return ''
+
+    const skipped = typed.seq - expectedSeq
+    return (
+      `Achtung: ${invoice.proposedNumber} überspringt ` +
+      `${skipped === 1 ? 'eine Nummer' : `${skipped} Nummern`} ` +
+      `(nächste freie Nummer wäre ${expected}). Die Lücke bleibt bestehen und ` +
+      'muss bei einer Prüfung begründet werden.\n\n'
+    )
+  }
 
   function updateInvoice(next: InvoiceDraft) {
     if (next.paymentTerms !== invoice.paymentTerms) setTermsTouched(true)
@@ -223,7 +254,7 @@ export function AdminApp({
 
     if (invoice.status === 'draft') {
       const confirmed = confirm(
-        'Rechnung festschreiben? Danach ist sie nicht mehr änderbar. ' +
+        `${skipAheadWarning()}Rechnung festschreiben? Danach ist sie nicht mehr änderbar. ` +
           'Eine Korrektur erfolgt später über eine neue Rechnung.'
       )
       if (!confirmed) return

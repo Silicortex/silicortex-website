@@ -297,7 +297,7 @@ test('the same sequence cannot be reached twice in one range and year', async ()
   )
   // Different range, same sequence: allowed, they are independent counters.
   await db.query(
-    `insert into issued_numbers (number, prefix, year, seq) values ('GS-2026-001', 'GS', 2026, 1)`
+    `insert into issued_numbers (number, prefix, year, seq) values ('ST-2026-001', 'ST', 2026, 1)`
   )
   // Different year, same sequence: allowed, the counter restarts in January.
   await db.query(
@@ -317,7 +317,7 @@ test('a hand-typed number outside any managed range is still recorded and unique
   )
 })
 
-test('a Storno is a separate invoice that points at the original', async () => {
+test('a Stornorechnung is a separate invoice that points at the original', async () => {
   const db = await freshDb()
   await db.query(
     `insert into invoices (status, invoice_number, invoice_date, issued_at, sender_snapshot)
@@ -326,15 +326,16 @@ test('a Storno is a separate invoice that points at the original', async () => {
   await db.query(
     `insert into invoices (status, invoice_number, invoice_date, issued_at, sender_snapshot,
                            storno_for, storno_for_date)
-     values ('issued', 'GS-2026-001', '2026-08-11', now(), '{}'::jsonb,
+     values ('issued', 'ST-2026-001', '2026-08-11', now(), '{}'::jsonb,
              'RE-2026-001', '2026-08-10')`
   )
   const rows = await db.query(
     `select invoice_number, storno_for from invoices order by invoice_number`
   )
+  // Ordered by number: ST- sorts after RE-, where the old GS- sorted before it.
   assert.deepEqual(rows.rows, [
-    { invoice_number: 'GS-2026-001', storno_for: 'RE-2026-001' },
     { invoice_number: 'RE-2026-001', storno_for: '' },
+    { invoice_number: 'ST-2026-001', storno_for: 'RE-2026-001' },
   ])
 
   // The original is untouched by the correction — it is immutable, and the
