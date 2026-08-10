@@ -416,3 +416,26 @@ test('a draft claiming an already-issued number is rejected whole', async () => 
   ])
   assert.deepEqual(loser.rows[0], { status: 'draft', invoice_number: null })
 })
+
+test('the journal date is the German calendar date, not UTC', async () => {
+  const db = await freshDb()
+  // The session is pinned to UTC to mimic a Vercel Function, which is where the
+  // bug showed: a number claimed just after midnight in Germany was logged under
+  // the previous day.
+  await db.exec("set time zone 'UTC'")
+  await db.query(
+    `insert into issued_numbers (number, prefix, year, seq, created_at)
+     values ('RE-2026-001', 'RE', 2026, 1, '2026-08-10 22:17:00+00')`
+  )
+  const row = await db.query(
+    `select created_at::date::text as utc_date,
+            (created_at at time zone 'Europe/Berlin')::date::text as berlin_date
+     from issued_numbers`
+  )
+  assert.equal(row.rows[0].utc_date, '2026-08-10', 'a bare cast gives the UTC day')
+  assert.equal(
+    row.rows[0].berlin_date,
+    '2026-08-11',
+    'the log must show the day the invoice itself is dated'
+  )
+})

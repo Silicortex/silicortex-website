@@ -210,8 +210,14 @@ export async function nextNumberFor(prefix: RangePrefix, year: number): Promise<
 export async function listNumberJournal(): Promise<
   { number: string; invoiceId: string | null; reason: string; createdAt: string }[]
 > {
+  // Converted to the German calendar date, not left in UTC. Vercel Functions run
+  // in UTC, so for the first hours after midnight in Germany a bare
+  // `created_at::text` showed the previous day — a number claimed by an invoice
+  // dated 11.08.2026 appeared in the log under 2026-08-10. Same failure the
+  // invoice dates are already guarded against.
   const rows = await sql`
-    select number, invoice_id, reason, created_at::text as created_at
+    select number, invoice_id, reason,
+           (created_at at time zone 'Europe/Berlin')::date::text as created_at
     from issued_numbers
     order by created_at desc, number desc
   `
