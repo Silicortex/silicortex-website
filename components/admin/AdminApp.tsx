@@ -137,7 +137,15 @@ export function AdminApp({
   }
 
   async function printInvoice() {
-    const errors = validateForPrint(invoice)
+    // Validate the sender that will ACTUALLY print: an issued invoice prints
+    // its frozen snapshot, a draft prints live master data.
+    const printedSender =
+      invoice.status === 'issued' && invoice.senderSnapshot
+        ? invoice.senderSnapshot
+        : masterData.invoiceVisible
+    const errors = validateForPrint(invoice, printedSender, {
+      enforceSender: invoice.status === 'draft',
+    })
     setPrintErrors(errors)
     if (errors.length) return
 

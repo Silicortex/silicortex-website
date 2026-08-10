@@ -1,10 +1,36 @@
+import type { MasterDataInvoiceVisible } from '../db/masterData.ts'
 import type { InvoiceDraft } from './types.ts'
 
 // § 14 UStG mandatory fields, checked before printing. Validation happens on
 // the print button because a beforeprint handler cannot cancel a print.
-export function validateForPrint(invoice: InvoiceDraft): string[] {
+export function validateForPrint(
+  invoice: InvoiceDraft,
+  sender: MasterDataInvoiceVisible,
+  // Sender fields are enforced ONLY on the draft -> issued transition. An
+  // invoice issued while the Stammdaten were still incomplete must stay
+  // reprintable: it is immutable by design, so refusing to print it would
+  // leave a legal document that can never be produced again — worse than the
+  // incomplete sender it was trying to prevent.
+  options: { enforceSender: boolean }
+): string[] {
   const errors: string[] = []
   const filled = (value: string) => value.trim().length > 0
+
+  if (options.enforceSender) {
+    // Nothing in the database can catch an empty sender: the
+    // invoices_issued_complete constraint only requires sender_snapshot to be
+    // non-null, and an all-empty object satisfies that. This is the only place
+    // it can be caught before the row becomes immutable.
+    if (!filled(sender.name)) errors.push('Stammdaten: Name fehlt.')
+    if (!filled(sender.street) || !filled(sender.zipCity)) {
+      errors.push('Stammdaten: eigene Adresse ist unvollständig.')
+    }
+    // § 14 UStG is satisfied by EITHER the Steuernummer or the USt-IdNr.
+    // Requiring both would block a legitimate invoice.
+    if (!filled(sender.taxNumber) && !filled(sender.vatId)) {
+      errors.push('Stammdaten: Steuernummer oder USt-IdNr. fehlt (§ 14 UStG).')
+    }
+  }
 
   if (!filled(invoice.customerName)) errors.push('Kundenname fehlt.')
   if (!filled(invoice.customerStreet) || !filled(invoice.customerZipCity)) {

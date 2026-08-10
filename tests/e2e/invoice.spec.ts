@@ -11,6 +11,21 @@ async function fillInvoice(page: import('@playwright/test').Page, customer: stri
   await page.getByLabel('Einzelpreis Position 1').blur()
 }
 
+/** Fills and saves the minimum Stammdaten § 14 UStG requires before an invoice
+ *  can be issued: a name, a complete own address, and a Steuernummer (or a
+ *  USt-IdNr., either satisfies the law). Without this, issuing is refused —
+ *  which is deliberate: it would otherwise freeze a legally invalid invoice
+ *  that is immutable and correctable only by voiding it. */
+async function saveSender(page: import('@playwright/test').Page, name: string) {
+  await page.getByRole('button', { name: 'Stammdaten' }).click()
+  await page.getByLabel('Name / Firmenbezeichnung').fill(name)
+  await page.getByLabel('Straße und Hausnummer').fill('Teststraße 1')
+  await page.getByLabel('PLZ und Ort').fill('00000 Teststadt')
+  await page.getByLabel('Steuernummer').fill('TEST-000/000/00000')
+  await page.getByRole('button', { name: 'Stammdaten speichern' }).click()
+  await expect(page.getByText('Gespeichert.')).toBeVisible()
+}
+
 // The archive strip's "Festgeschriebene Rechnungen" counter shows 0 with a
 // count() check first — a fresh table with no invoices yet renders a
 // different empty state with no counter at all, so this avoids waiting
@@ -87,6 +102,10 @@ test('an issued invoice cannot be edited or deleted', async ({ page }) => {
   })
 
   await page.goto('/admin')
+  // Issuing requires a § 14-complete sender, and this test runs before the
+  // snapshot tests that save one, so master_data is still empty here.
+  await saveSender(page, 'E2E Sender Immutable')
+
   await page.getByRole('button', { name: 'Meine Rechnungen' }).click()
   // A leftover row from an earlier run would already satisfy a bare "[1-9]"
   // match, so read the count before issuing and assert it grows by exactly one.
@@ -134,9 +153,7 @@ test('an issued invoice keeps printing its frozen sender after Stammdaten change
   await page.goto('/admin')
 
   // Set a sender, then issue an invoice carrying it.
-  await page.getByRole('button', { name: 'Stammdaten' }).click()
-  await page.getByLabel('Name / Firmenbezeichnung').fill('SNAPSHOT Sender Alt')
-  await page.getByRole('button', { name: 'Stammdaten speichern' }).click()
+  await saveSender(page, 'SNAPSHOT Sender Alt')
   await expect(page.getByText('Gespeichert.')).toBeVisible()
 
   await page.getByRole('button', { name: 'Rechnung erstellen' }).click()
@@ -151,6 +168,7 @@ test('an issued invoice keeps printing its frozen sender after Stammdaten change
   await page.getByRole('button', { name: 'Stammdaten' }).click()
   await page.getByLabel('Name / Firmenbezeichnung').fill('SNAPSHOT Sender Neu')
   await page.getByRole('button', { name: 'Stammdaten speichern' }).click()
+  await expect(page.getByText('Gespeichert.')).toBeVisible()
   await expect(page.getByText('Gespeichert.')).toBeVisible()
 
   // Reload it from the archive, so it comes back through loadInvoice.
@@ -170,9 +188,7 @@ test('an unsaved Stammdaten edit never reaches an issued invoice', async ({ page
   await page.goto('/admin')
 
   // Save a known sender.
-  await page.getByRole('button', { name: 'Stammdaten' }).click()
-  await page.getByLabel('Name / Firmenbezeichnung').fill('SNAPSHOT Gespeichert')
-  await page.getByRole('button', { name: 'Stammdaten speichern' }).click()
+  await saveSender(page, 'SNAPSHOT Gespeichert')
   await expect(page.getByText('Gespeichert.')).toBeVisible()
 
   // Type a different one WITHOUT saving, then leave the tab.
