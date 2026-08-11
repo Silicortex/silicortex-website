@@ -96,7 +96,9 @@ whose target database contains non-`E2E-` issued invoices or filled-in personal
 identifiers — so even a missing env var cannot make the suite touch real data.
 
 The suite never reuses a running dev server: one started by hand points at the real
-database, so Playwright always starts its own.
+database, so Playwright always starts its own. If something else already holds port
+3000, the run aborts rather than borrowing it — start the suite's own server
+elsewhere with `E2E_PORT=3100 npm run test:e2e`.
 
 ## 📜 Available Scripts
 
@@ -148,6 +150,40 @@ under German VAT law a Gutschrift is self-billing by the customer, and using the
 word for a cancellation can trigger an unintended VAT liability. Its amounts are
 negated so it zeroes the original out in the books, and its payment terms default
 to *"Bitte überweisen Sie keinen Betrag …"* rather than inheriting the original's.
+
+An invoice can be cancelled **once**. A second Storno would issue a second negating
+document and deduct the same invoice from the books twice, so once an *issued*
+Storno points at an invoice, the archive stops offering the action and
+`buildStornoDraft` refuses it server-side, naming the document that already cancels
+it. A *draft* Storno does not count: it can still be discarded, and refusing on one
+would leave the invoice impossible to cancel at all.
+
+### There is no delete, and what to do instead
+
+An issued document cannot be deleted or edited — not from the UI, not by the
+application, not by hand. Three `BEFORE UPDATE OR DELETE` triggers reject it
+(`invoices_immutable_when_issued`, `invoice_items_immutable_when_issued`,
+`issued_numbers_immutable`), and the journal has no foreign key to `invoices`, so
+deleting a document could never free its number for reuse. Only *drafts* have a
+delete button; they hold no number.
+
+So a mistake on an issued invoice is corrected by a Stornorechnung, and the pair
+nets to zero. To stop those pairs cluttering the list, *Meine Rechnungen* strikes
+the cancelled number through, badges it **Storniert**, and offers **Stornierte
+ausblenden**, which hides the invoice and its Storno together. It is unchecked by
+default — a list that hides records the moment it loads is what GoBD objects to,
+while one the operator collapses himself is not — and the footer says so whenever
+rows are hidden. The totals are computed over every invoice regardless, so they do
+not move when the checkbox does. Nothing is deleted, and `lib/invoice/archive.ts`
+derives all of it from `storno_for`; no column stores it, so nothing can drift.
+
+`db/reset-before-first-use.mjs` exists for one situation only: documents were
+issued while setting the software up, nothing was ever sent, and the first *real*
+invoice should be number 001. It is not reachable from the app and cannot delete a
+subset — every issued document in the database must be named on the command line
+and the named set must match it exactly, it requires a JSON backup that contains
+those same documents, and it refuses outright if any number was burned with a
+reason (which means the software was already in real use).
 
 Typing a number that jumps past the next free one warns first, naming the number
 that would be skipped. Gaps stay legal and allowed — but at a Betriebsprüfung a
