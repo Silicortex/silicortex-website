@@ -206,3 +206,34 @@ alter table invoices add column if not exists storno_for_date text not null defa
 -- taxable here"; reverse charge means "the recipient owes the tax". Conflating
 -- them is the ambiguity this column exists to remove.
 alter table invoices add column if not exists reverse_charge boolean not null default false
+-- @@
+-- The document type, as the single source of truth for the heading and the number
+-- range. Previously a Storno was inferred from `storno_for` being set, which works
+-- for two types but not three: an Angebot draft has no number yet and nothing to
+-- infer from.
+alter table invoices add column if not exists doc_type text not null default 'invoice'
+-- @@
+do $$
+begin
+  if not exists (select 1 from pg_constraint where conname = 'invoices_doc_type_valid') then
+    alter table invoices add constraint invoices_doc_type_valid
+      check (doc_type in ('invoice', 'storno', 'quote'));
+  end if;
+end $$
+-- @@
+-- The Angebot this invoice was created from, frozen like every other reference.
+alter table invoices add column if not exists quote_ref text not null default ''
+-- @@
+alter table invoices add column if not exists quote_ref_date text not null default ''
+-- @@
+-- doc_type and storno_for encode overlapping facts, so they are not allowed to
+-- disagree. Without this a row could say doc_type='invoice' while carrying a
+-- storno_for — printing RECHNUNG above a Storno reference — or claim to be a
+-- Storno with nothing to point at.
+do $$
+begin
+  if not exists (select 1 from pg_constraint where conname = 'invoices_storno_consistent') then
+    alter table invoices add constraint invoices_storno_consistent
+      check ((doc_type = 'storno') = (storno_for <> ''));
+  end if;
+end $$

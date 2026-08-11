@@ -8,12 +8,14 @@ export function ArchiveTable({
   onLoad,
   onCopy,
   onStorno,
+  onConvertQuote,
   onDelete,
 }: {
   invoices: InvoiceSummary[]
   onLoad: (id: string) => void
   onCopy: (id: string) => void
   onStorno: (id: string) => void
+  onConvertQuote: (id: string) => void
   onDelete: (id: string) => void
 }) {
   // Drafts are not revenue: the strip counts issued invoices only.
@@ -71,9 +73,21 @@ export function ArchiveTable({
                 <button type="button" onClick={() => onCopy(invoice.id)} className="px-2 text-blue-600 underline decoration-blue-300 underline-offset-4 transition hover:text-blue-500">
                   Kopie
                 </button>
-                {/* Only an issued invoice can be cancelled: a draft is edited
-                    or deleted, and a Storno of a Storno is not a correction. */}
-                {invoice.status === 'issued' && !invoice.stornoFor && (
+                {/* Only an issued ANGEBOT can be converted, and converting twice is
+                    allowed — billing an accepted offer in two parts is ordinary. */}
+                {invoice.status === 'issued' && invoice.docType === 'quote' && (
+                  <button
+                    type="button"
+                    onClick={() => onConvertQuote(invoice.id)}
+                    className="px-2 text-blue-600 underline decoration-blue-300 underline-offset-4 transition hover:text-blue-500"
+                  >
+                    In Rechnung umwandeln
+                  </button>
+                )}
+                {/* Only an issued INVOICE can be cancelled: a draft is edited or
+                    deleted, a Storno of a Storno is not a correction, and an
+                    Angebot is not a receivable. */}
+                {invoice.status === 'issued' && invoice.docType === 'invoice' && (
                   <button
                     type="button"
                     onClick={() => onStorno(invoice.id)}

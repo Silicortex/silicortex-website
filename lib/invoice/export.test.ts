@@ -39,6 +39,7 @@ test('booleans read as German, and empty cells stay empty', () => {
 
 const invoice = {
   invoiceNumber: 'RE-2026-001',
+  docType: 'invoice',
   proposedNumber: 'RE-2026-001',
   status: 'issued',
   invoiceDate: '2026-08-11',
@@ -98,4 +99,16 @@ test('a reverse-charge invoice shows its 0 % net and the flag', () => {
 test('export file names are dated so backups never overwrite each other', () => {
   assert.equal(exportFileName('backup', '2026-08-11'), 'silicortex-backup_2026-08-11.json')
   assert.equal(exportFileName('rechnungen', '2026-08-11'), 'silicortex-rechnungen_2026-08-11.csv')
+})
+
+test('a Stornorechnung is labelled as one in the Art column', () => {
+  const [header, row] = invoicesCsv([
+    { ...invoice, docType: 'storno', invoiceNumber: 'ST-2026-001', stornoFor: 'RE-2026-001' },
+  ])
+    .replace(BOM, '')
+    .trim()
+    .split('\r\n')
+  const cells = row.split(';')
+  assert.equal(cells[header.split(';').indexOf('Art')], 'Stornorechnung')
+  assert.equal(cells[header.split(';').indexOf('Storno zu')], 'RE-2026-001')
 })

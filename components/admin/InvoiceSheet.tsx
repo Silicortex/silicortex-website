@@ -5,7 +5,7 @@ import { ItemsTable } from './ItemsTable.tsx'
 import { TotalsBlock } from './TotalsBlock.tsx'
 import type { InvoiceItemInput, InvoiceTotals } from '@/lib/invoice/totals.ts'
 import type { InvoiceDraft } from '@/lib/invoice/types.ts'
-import { stornoReference } from '@/lib/invoice/numbering.ts'
+import { DOC_HEADINGS, stornoReference } from '@/lib/invoice/numbering.ts'
 import { REVERSE_CHARGE_NOTE } from '@/lib/invoice/euVat.ts'
 import { formatDateDe } from '@/lib/invoice/format.ts'
 // Only the invoice-visible half of the master data reaches this component.
@@ -45,21 +45,20 @@ export function InvoiceSheet({
           <p>{sender.zipCity}</p>
           <p>{sender.country}</p>
         </div>
-        {/* Titled STORNORECHNUNG, not GUTSCHRIFT: under German VAT law a
-            Gutschrift is self-billing by the customer, and using the word for a
-            cancellation can trigger an unintended VAT liability. Nor plain
-            RECHNUNG — the heading is how the recipient tells the two documents
-            apart, and a cancellation that looks like an invoice reads as a
-            second demand for the same money. Tracking is tightened because the
-            longer word does not fit the invoice heading's spacing. */}
+        {/* From the document TYPE, not inferred from a field. STORNORECHNUNG, never
+            GUTSCHRIFT: under German VAT law a Gutschrift is self-billing by the
+            customer and the word can trigger an unintended VAT liability. And an
+            ANGEBOT must not be headed like an invoice — a client who books it as
+            one pays for something not yet delivered. Tracking is tightened for the
+            longer words, which do not fit the invoice heading's spacing. */}
         <h2
           className={
-            invoice.stornoFor
-              ? 'admin-accent shrink-0 text-xl font-bold tracking-[0.12em]'
-              : 'admin-accent shrink-0 text-2xl font-bold tracking-[0.2em]'
+            invoice.docType === 'invoice'
+              ? 'admin-accent shrink-0 text-2xl font-bold tracking-[0.2em]'
+              : 'admin-accent shrink-0 text-xl font-bold tracking-[0.12em]'
           }
         >
-          {invoice.stornoFor ? 'STORNORECHNUNG' : 'RECHNUNG'}
+          {DOC_HEADINGS[invoice.docType]}
         </h2>
       </header>
 
@@ -69,6 +68,14 @@ export function InvoiceSheet({
       {invoice.stornoFor && (
         <p className="mt-6 font-medium">
           {stornoReference(invoice.stornoFor, formatDateDe(invoice.stornoForDate))}
+        </p>
+      )}
+
+      {/* Connects an invoice to the offer it was accepted from. Not required by
+          anything — it is what lets the client match the two documents. */}
+      {invoice.quoteRef && (
+        <p className="mt-6 font-medium">
+          Bezug: Angebot {invoice.quoteRef} vom {formatDateDe(invoice.quoteRefDate)}
         </p>
       )}
 
@@ -125,7 +132,9 @@ export function InvoiceSheet({
 
       <section className="mt-10 flex flex-col gap-1">
         <div className={metaRow}>
-          <span className={metaLabel}>Rechnungsnummer</span>
+          <span className={metaLabel}>
+            {invoice.docType === 'quote' ? 'Angebotsnummer' : 'Rechnungsnummer'}
+          </span>
           {invoice.status === 'issued' ? (
             <span>{invoice.invoiceNumber}</span>
           ) : (
@@ -138,7 +147,9 @@ export function InvoiceSheet({
           )}
         </div>
         <div className={metaRow}>
-          <span className={metaLabel}>Rechnungsdatum</span>
+          <span className={metaLabel}>
+            {invoice.docType === 'quote' ? 'Angebotsdatum' : 'Rechnungsdatum'}
+          </span>
           <EditableField
             ariaLabel="Rechnungsdatum"
             type="date"
@@ -147,7 +158,11 @@ export function InvoiceSheet({
             onChange={(v) => set('invoiceDate', v)}
           />
         </div>
-        <div className={metaRow}>
+        {/* Optional-wrapped now that it is optional. It is a § 14 field an invoice
+            always carries, but an Angebot describes what WOULD be done, not when it
+            was — and an empty one would otherwise print a bare "Leistungszeitraum"
+            label with nothing under it. */}
+        <div className={`${metaRow} admin-optional`}>
           <span className={metaLabel}>Leistungszeitraum</span>
           <EditableField
             ariaLabel="Leistungsdatum oder Leistungszeitraum"
@@ -192,7 +207,11 @@ export function InvoiceSheet({
 
       <section className="mt-10 flex justify-between gap-8">
         <div className="w-1/2">
-          <p className="mb-1 font-semibold">Zahlungsbedingungen</p>
+          {/* Plain text, so it prints as-is in both media — an offer has nothing
+              payable yet, so the same free-text block carries its validity. */}
+          <p className="mb-1 font-semibold">
+            {invoice.docType === 'quote' ? 'Gültigkeit' : 'Zahlungsbedingungen'}
+          </p>
           <EditableField
             ariaLabel="Zahlungsbedingungen"
             multiline

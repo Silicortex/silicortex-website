@@ -258,3 +258,37 @@ against real Postgres, and was verified end to end: seed a database, download th
 JSON over HTTP from the running app, restore into a second database, and compare
 every table — invoices, items, journal and Stammdaten came back identical, dates
 included.
+
+## Angebote (quotes)
+
+**Neues Angebot** writes an offer instead of an invoice. It takes its number from
+the `AN-` range, is headed **ANGEBOT**, and labels its fields *Angebotsnummer* /
+*Angebotsdatum*. The same free-text block that carries payment terms on an invoice
+carries validity here — an offer has nothing payable yet — defaulting to
+*"Dieses Angebot ist 30 Tage ab Angebotsdatum gültig."*
+
+§ 14 UStG does not apply to an offer, so a Leistungszeitraum and the customer's
+address are not demanded. What is still enforced: a customer, a number, a date, at
+least one priced position, your own sender block (an Angebot frozen with an empty
+letterhead is useless), and every reverse-charge rule — a quote promising 0 % on a
+wrong basis misleads the client before any invoice exists.
+
+The document type lives in `doc_type`, which is the single source of truth for the
+heading and the number range. A Storno used to be inferred from `storno_for`, which
+cannot work for an Angebot draft: it has no number yet and nothing to infer from. A
+CHECK constraint keeps the two columns from disagreeing, so a row can never print
+RECHNUNG above a Storno reference.
+
+An issued Angebot is frozen like any other issued document, so you always know
+exactly what you sent. To revise one, use **Kopieren** — the revision is a new
+offer with its own `AN-` number, which is also how the numbering stays honest.
+
+**In Rechnung umwandeln** on an issued Angebot opens a draft invoice with the same
+customer and positions, its own `RE-` number, and a printed `Bezug: Angebot
+AN-2026-001 vom …` line. Nothing is written until you save, and converting the same
+offer twice is allowed — billing an accepted offer in two parts is ordinary, and
+each conversion asks the server for its own number.
+
+Offers are excluded from the Zusammenfassende Meldung and from the Steuerberater's
+CSV: an Angebot is not an intra-EU supply and not revenue. They remain in the JSON
+backup, which is a copy of everything rather than a statement of turnover.

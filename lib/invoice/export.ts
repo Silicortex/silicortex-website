@@ -51,6 +51,7 @@ export type ExportInvoice = {
   customerNumber: string
   reverseCharge: boolean
   stornoFor: string
+  docType: string
   paymentTerms: string
   netTotal: number
   vatTotal: number
@@ -65,6 +66,7 @@ const CSV_RATES = [19, 7, 0] as const
 
 export const CSV_HEADER = [
   'Rechnungsnummer',
+  'Art',
   'Status',
   'Rechnungsdatum',
   'Leistungszeitraum',
@@ -92,6 +94,7 @@ export function invoicesCsv(invoices: readonly ExportInvoice[]): string {
       // A draft has no number yet; showing the proposed one keeps the row
       // identifiable without implying a number was assigned.
       invoice.invoiceNumber ?? `(Entwurf ${invoice.proposedNumber})`,
+      invoice.docType === 'storno' ? 'Stornorechnung' : 'Rechnung',
       invoice.status === 'issued' ? 'festgeschrieben' : 'Entwurf',
       invoice.invoiceDate,
       invoice.serviceDate,

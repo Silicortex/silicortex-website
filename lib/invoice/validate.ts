@@ -44,15 +44,28 @@ export function validateForPrint(
     }
   }
 
+  // An Angebot is not an invoice: § 14 does not apply to it, so the fields it
+  // prescribes are not demanded of an offer. The sender block IS still enforced —
+  // an Angebot frozen with an empty letterhead is useless — and so are the
+  // reverse-charge rules below, because a quote promising 0 % on a wrong basis
+  // misleads the client before any invoice exists.
+  const isQuote = invoice.docType === 'quote'
+
   if (!filled(invoice.customerName)) errors.push('Kundenname fehlt.')
-  if (!filled(invoice.customerStreet) || !filled(invoice.customerZipCity)) {
+  if (!isQuote && (!filled(invoice.customerStreet) || !filled(invoice.customerZipCity))) {
     errors.push('Adresse des Kunden ist unvollständig.')
   }
 
   const number = invoice.proposedNumber
-  if (!filled(number)) errors.push('Rechnungsnummer fehlt.')
-  if (!filled(invoice.invoiceDate)) errors.push('Rechnungsdatum fehlt.')
-  if (!filled(invoice.serviceDate)) errors.push('Leistungsdatum bzw. Leistungszeitraum fehlt.')
+  if (!filled(number)) errors.push(isQuote ? 'Angebotsnummer fehlt.' : 'Rechnungsnummer fehlt.')
+  if (!filled(invoice.invoiceDate)) {
+    errors.push(isQuote ? 'Angebotsdatum fehlt.' : 'Rechnungsdatum fehlt.')
+  }
+  // A period of performance is a § 14 field. An offer describes what would be
+  // done, not when it was.
+  if (!isQuote && !filled(invoice.serviceDate)) {
+    errors.push('Leistungsdatum bzw. Leistungszeitraum fehlt.')
+  }
 
   // Non-zero, not positive: a Stornorechnung carries negative amounts so it
   // zeroes out the invoice it reverses, and `> 0` refused every one of them.

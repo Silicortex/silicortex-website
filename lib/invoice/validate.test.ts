@@ -39,6 +39,7 @@ function invoice(patch: Partial<InvoiceDraft> = {}): InvoiceDraft {
   return {
     id: null,
     status: 'draft',
+    docType: 'invoice' as const,
     invoiceNumber: null,
     proposedNumber: 'RE-2026-001',
     invoiceDate: '2026-08-08',
@@ -50,6 +51,8 @@ function invoice(patch: Partial<InvoiceDraft> = {}): InvoiceDraft {
     customerCountry: 'Deutschland',
     stornoFor: '',
     stornoForDate: '',
+    quoteRef: '',
+    quoteRefDate: '',
     reverseCharge: false,
     customerVatId: '',
     paymentTerms: 'Zahlbar in 14 Tagen.',
@@ -241,4 +244,49 @@ test('an ISSUED reverse-charge invoice still reprints', () => {
     items: [{ description: 'A', quantity: 1, unit: 'Std', unitPrice: 100, vatRate: 19 }],
   })
   assert.deepEqual(check(broken, sender({ vatId: '' })), [])
+})
+
+/** An Angebot: § 14 does not apply to it, so the fields it prescribes are not
+ *  demanded of an offer. */
+function quote(patch = {}) {
+  return invoice({ docType: 'quote', proposedNumber: 'AN-2026-001', ...patch })
+}
+
+test('an Angebot needs neither a Leistungszeitraum nor the customer address', () => {
+  assert.deepEqual(check(quote({ serviceDate: '', customerStreet: '', customerZipCity: '' })), [])
+})
+
+test('an Angebot still needs a customer, a number, a date and a position', () => {
+  const errors = check(
+    quote({ customerName: '', proposedNumber: '', invoiceDate: '', items: [] })
+  )
+  assert.ok(errors.some((e) => e.includes('Kundenname fehlt')))
+  // Named as an offer, not as an invoice.
+  assert.ok(errors.some((e) => e === 'Angebotsnummer fehlt.'))
+  assert.ok(errors.some((e) => e === 'Angebotsdatum fehlt.'))
+  assert.ok(errors.some((e) => e.includes('Position')))
+  assert.ok(!errors.some((e) => e.includes('Leistungsdatum')))
+})
+
+test('an invoice still demands what § 14 requires', () => {
+  // The relaxation must not have leaked from the quote path to the invoice path.
+  const errors = check(invoice({ serviceDate: '', customerStreet: '' }))
+  assert.ok(errors.some((e) => e.includes('Leistungsdatum')))
+  assert.ok(errors.some((e) => e.includes('Adresse des Kunden')))
+})
+
+test("an Angebot still needs the sender's own block", () => {
+  // Frozen with an empty letterhead it would be useless.
+  const errors = check(quote(), sender({ name: '', street: '' }))
+  assert.ok(errors.some((e) => e.includes('Stammdaten: Name fehlt')))
+})
+
+test('reverse-charge rules still apply to an Angebot', () => {
+  // A quote promising 0 % on a wrong basis misleads the client before any invoice
+  // exists.
+  const errors = check(
+    quote({ reverseCharge: true, customerVatId: '' }),
+    sender({ vatId: 'DE464133329' })
+  )
+  assert.ok(errors.some((e) => e.includes('USt-IdNr. des Kunden ist zwingend')))
 })

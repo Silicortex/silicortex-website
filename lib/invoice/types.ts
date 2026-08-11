@@ -3,9 +3,16 @@ import type { MasterDataInvoiceVisible } from '../db/masterData.ts'
 
 export type InvoiceStatus = 'draft' | 'issued'
 
+/** What KIND of document this is. The single source of truth for the heading and
+ *  the number range — a Storno used to be inferred from `stornoFor`, which cannot
+ *  work for an Angebot draft, since it has no number yet and nothing to infer
+ *  from. */
+export type DocType = 'invoice' | 'storno' | 'quote'
+
 export type InvoiceDraft = {
   id: string | null
   status: InvoiceStatus
+  docType: DocType
   invoiceNumber: string | null // assigned only when issued
   proposedNumber: string // the editable field while still a draft
   invoiceDate: string // ISO yyyy-mm-dd
@@ -26,6 +33,10 @@ export type InvoiceDraft = {
   stornoFor: string
   /** The referenced invoice's date, frozen when the Storno was written. */
   stornoForDate: string
+  /** The Angebot this invoice was created from, or ''. Frozen like every other
+   *  reference: what the document says is what it said when it was issued. */
+  quoteRef: string
+  quoteRefDate: string
   /**
    * Intra-EU B2B: the recipient owes the VAT in their own country, so every line
    * is 0 % and the invoice carries the mandatory note. NOT inferrable from a 0 %
@@ -52,6 +63,7 @@ export type InvoiceDraft = {
 export type InvoiceSummary = {
   id: string
   status: InvoiceStatus
+  docType: DocType
   invoiceNumber: string | null
   proposedNumber: string
   invoiceDate: string
@@ -101,6 +113,7 @@ export function emptyInvoice(args: {
   invoiceDate: string
   paymentTerms: string
   vatRate: number
+  docType?: DocType
 }): InvoiceDraft {
   return {
     // Minted client-side, not left `null`: the id is what `saveDraft`'s
@@ -109,6 +122,7 @@ export function emptyInvoice(args: {
     // drafts server-side (proposed_number has no unique constraint).
     id: newInvoiceId(),
     status: 'draft',
+    docType: args.docType ?? 'invoice',
     invoiceNumber: null,
     proposedNumber: args.proposedNumber,
     invoiceDate: args.invoiceDate,
@@ -122,6 +136,8 @@ export function emptyInvoice(args: {
     paymentTerms: args.paymentTerms,
     stornoFor: '',
     stornoForDate: '',
+    quoteRef: '',
+    quoteRefDate: '',
     reverseCharge: false,
     items: [emptyItem(args.vatRate)],
     senderSnapshot: null,

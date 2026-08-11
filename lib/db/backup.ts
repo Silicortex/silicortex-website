@@ -39,6 +39,11 @@ async function databaseIdentity(): Promise<string> {
 }
 
 export async function createBackup(): Promise<Backup> {
+  // Every column is listed explicitly rather than `select *`, so the date casts
+  // cannot be lost. The cost is that a new column must be added here too: without
+  // doc_type in this list, a restored Angebot came back as an invoice, because the
+  // column simply took its default.
+  //
   // Dates are cast to text throughout. The driver parses a `date` column into a
   // Date at LOCAL midnight, so a stored 2026-08-08 serialises to 2026-08-07 in
   // CEST — one day early, in the file that is supposed to be the record.
@@ -47,7 +52,8 @@ export async function createBackup(): Promise<Backup> {
     sql`select id, status, invoice_number, proposed_number, invoice_date::text as invoice_date,
                service_date, customer_number, customer_name, customer_street,
                customer_zip_city, customer_country, customer_vat_id, payment_terms,
-               storno_for, storno_for_date, reverse_charge, net_total, vat_total,
+               storno_for, storno_for_date, quote_ref, quote_ref_date, doc_type,
+               reverse_charge, net_total, vat_total,
                gross_total, vat_breakdown, sender_snapshot,
                issued_at::text as issued_at, created_at::text as created_at
         from invoices order by created_at`,
@@ -89,8 +95,12 @@ export async function listInvoicesForExport(): Promise<ExportInvoice[]> {
     select status, invoice_number, proposed_number, invoice_date::text as invoice_date,
            service_date, customer_name, customer_street, customer_zip_city,
            customer_country, customer_vat_id, customer_number, reverse_charge,
-           storno_for, payment_terms, net_total, vat_total, gross_total, vat_breakdown
+           storno_for, doc_type, payment_terms, net_total, vat_total, gross_total, vat_breakdown
     from invoices
+    -- Offers are excluded. An Angebot in a list the Steuerberater books from is
+    -- revenue that does not exist. They are still in the JSON backup, which is a
+    -- copy of everything rather than a statement of turnover.
+    where doc_type <> 'quote'
     order by invoice_date, invoice_number nulls last
   `
   return rows.map((r) => ({
@@ -107,6 +117,7 @@ export async function listInvoicesForExport(): Promise<ExportInvoice[]> {
     customerNumber: r.customer_number as string,
     reverseCharge: r.reverse_charge as boolean,
     stornoFor: r.storno_for as string,
+    docType: r.doc_type as string,
     paymentTerms: r.payment_terms as string,
     // numeric arrives as a string from the driver
     netTotal: Number(r.net_total),

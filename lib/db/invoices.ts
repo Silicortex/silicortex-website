@@ -14,7 +14,7 @@ import {
 } from '../invoice/numbering.ts'
 import { todayIso } from '../invoice/format.ts'
 import type { EuSaleMonthRow } from '../invoice/euSales.ts'
-import type { InvoiceDraft, InvoiceStatus, InvoiceSummary } from '../invoice/types.ts'
+import type { DocType, InvoiceDraft, InvoiceStatus, InvoiceSummary } from '../invoice/types.ts'
 import type { MasterDataInvoiceVisible } from './masterData.ts'
 
 // Verified against the live database: the driver parses a `date` column into a
@@ -39,7 +39,7 @@ export async function listInvoices(): Promise<InvoiceSummary[]> {
   const rows = await sql`
     select id, status, invoice_number, proposed_number,
            invoice_date::text as invoice_date,
-           customer_name, customer_vat_id, storno_for, reverse_charge,
+           customer_name, customer_vat_id, storno_for, reverse_charge, doc_type,
            net_total, vat_total, gross_total
     from invoices
   `
@@ -47,6 +47,7 @@ export async function listInvoices(): Promise<InvoiceSummary[]> {
     .map((r) => ({
       id: r.id as string,
       status: r.status as InvoiceStatus,
+      docType: r.doc_type as DocType,
       invoiceNumber: (r.invoice_number as string | null) ?? null,
       proposedNumber: r.proposed_number as string,
       invoiceDate: isoDate(r.invoice_date),
@@ -74,7 +75,8 @@ export async function loadInvoice(id: string): Promise<InvoiceDraft | null> {
            invoice_date::text as invoice_date,
            service_date, customer_number, customer_name, customer_street,
            customer_zip_city, customer_country, customer_vat_id, payment_terms,
-           storno_for, storno_for_date, reverse_charge, sender_snapshot, net_total, vat_total, gross_total, vat_breakdown
+           storno_for, storno_for_date, quote_ref, quote_ref_date, doc_type,
+           reverse_charge, sender_snapshot, net_total, vat_total, gross_total, vat_breakdown
     from invoices where id = ${id}
   `
   const r = rows[0]
@@ -88,6 +90,7 @@ export async function loadInvoice(id: string): Promise<InvoiceDraft | null> {
   return {
     id: r.id as string,
     status: r.status as InvoiceStatus,
+    docType: r.doc_type as DocType,
     invoiceNumber: (r.invoice_number as string | null) ?? null,
     proposedNumber: r.proposed_number as string,
     invoiceDate: isoDate(r.invoice_date),
@@ -101,6 +104,8 @@ export async function loadInvoice(id: string): Promise<InvoiceDraft | null> {
     paymentTerms: r.payment_terms as string,
     stornoFor: r.storno_for as string,
     stornoForDate: r.storno_for_date as string,
+    quoteRef: r.quote_ref as string,
+    quoteRefDate: r.quote_ref_date as string,
     reverseCharge: r.reverse_charge as boolean,
     // jsonb arrives already parsed by the driver.
     senderSnapshot: (r.sender_snapshot as MasterDataInvoiceVisible | null) ?? null,
@@ -141,14 +146,14 @@ export async function saveDraft(draft: InvoiceDraft): Promise<string> {
         id, status, proposed_number, invoice_date, service_date,
         customer_number, customer_name, customer_street, customer_zip_city,
         customer_country, customer_vat_id, payment_terms,
-        storno_for, storno_for_date, reverse_charge,
+        storno_for, storno_for_date, quote_ref, quote_ref_date, doc_type, reverse_charge,
         net_total, vat_total, gross_total, vat_breakdown
       ) values (
         ${id}, 'draft', ${draft.proposedNumber}, ${invoiceDate}, ${draft.serviceDate},
         ${draft.customerNumber}, ${draft.customerName}, ${draft.customerStreet},
         ${draft.customerZipCity}, ${draft.customerCountry}, ${draft.customerVatId},
         ${draft.paymentTerms}, ${draft.stornoFor}, ${draft.stornoForDate},
-        ${draft.reverseCharge},
+        ${draft.quoteRef}, ${draft.quoteRefDate}, ${draft.docType}, ${draft.reverseCharge},
         ${totals.netTotal}, ${totals.vatTotal}, ${totals.grossTotal},
         ${JSON.stringify(totals.groups)}::jsonb
       )
@@ -165,6 +170,9 @@ export async function saveDraft(draft: InvoiceDraft): Promise<string> {
         payment_terms = excluded.payment_terms,
         storno_for = excluded.storno_for,
         storno_for_date = excluded.storno_for_date,
+        quote_ref = excluded.quote_ref,
+        quote_ref_date = excluded.quote_ref_date,
+        doc_type = excluded.doc_type,
         reverse_charge = excluded.reverse_charge,
         net_total = excluded.net_total,
         vat_total = excluded.vat_total,
@@ -339,7 +347,10 @@ export async function listEuSales(): Promise<EuSaleMonthRow[]> {
            sum(net_total)::text as net,
            count(*)::int as n
     from invoices
-    where status = 'issued' and reverse_charge = true
+    -- Quotes are excluded: an Angebot is an offer, not an intra-EU supply. Left
+    -- in, a reverse-charge quote would be reported to the BZSt as turnover that
+    -- never happened.
+    where status = 'issued' and reverse_charge = true and doc_type <> 'quote'
     group by 1, 2
     order by 1 desc, 2
   `
@@ -351,6 +362,36 @@ export async function listEuSales(): Promise<EuSaleMonthRow[]> {
     net: Number(r.net),
     count: r.n as number,
   }))
+}
+
+/** Builds — but does not save — the invoice for an accepted Angebot.
+ *
+ *  Converting the same Angebot twice is allowed: billing an accepted offer in two
+ *  parts is ordinary. Each conversion asks the server for its own number, so the
+ *  second cannot reuse the first's. */
+export async function buildInvoiceFromQuote(quoteId: string): Promise<InvoiceDraft | null> {
+  const quote = await loadInvoice(quoteId)
+  if (!quote) return null
+  // Only an ISSUED Angebot: a draft has no number to reference, and converting one
+  // would produce an invoice pointing at an offer that was never sent.
+  if (quote.docType !== 'quote' || quote.status !== 'issued' || !quote.invoiceNumber) return null
+
+  const today = todayIso()
+  return {
+    ...quote,
+    // Everything an issued document carries has to be dropped, or the new draft
+    // would inherit the Angebot's number, its frozen sender and its frozen totals.
+    id: randomUUID(),
+    status: 'draft',
+    docType: 'invoice',
+    invoiceNumber: null,
+    proposedNumber: await nextNumberFor('RE', Number(today.slice(0, 4))),
+    invoiceDate: today,
+    quoteRef: quote.invoiceNumber,
+    quoteRefDate: quote.invoiceDate,
+    senderSnapshot: null,
+    storedTotals: null,
+  }
 }
 
 /** Builds — but does not save — the Storno that corrects an issued invoice.
@@ -367,8 +408,10 @@ export async function listEuSales(): Promise<EuSaleMonthRow[]> {
 export async function buildStornoDraft(originalId: string): Promise<InvoiceDraft | null> {
   const original = await loadInvoice(originalId)
   if (!original) return null
-  // Only an issued invoice can be cancelled: a draft is simply edited or deleted.
+  // Only an issued INVOICE can be cancelled: a draft is edited or deleted, a
+  // Storno of a Storno is not a correction, and an Angebot is not a receivable.
   if (original.status !== 'issued' || !original.invoiceNumber) return null
+  if (original.docType !== 'invoice') return null
 
   const today = todayIso()
   return {
@@ -376,6 +419,7 @@ export async function buildStornoDraft(originalId: string): Promise<InvoiceDraft
     id: randomUUID(),
     status: 'draft',
     invoiceNumber: null,
+    docType: 'storno',
     proposedNumber: await nextNumberFor('ST', Number(today.slice(0, 4))),
     invoiceDate: today,
     stornoFor: original.invoiceNumber,

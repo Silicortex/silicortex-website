@@ -326,9 +326,9 @@ test('a Stornorechnung is a separate invoice that points at the original', async
   )
   await db.query(
     `insert into invoices (status, invoice_number, invoice_date, issued_at, sender_snapshot,
-                           storno_for, storno_for_date)
+                           doc_type, storno_for, storno_for_date)
      values ('issued', 'ST-2026-001', '2026-08-11', now(), '{}'::jsonb,
-             'RE-2026-001', '2026-08-10')`
+             'storno', 'RE-2026-001', '2026-08-10')`
   )
   const rows = await db.query(
     `select invoice_number, storno_for from invoices order by invoice_number`
@@ -594,4 +594,55 @@ test('a restore refuses a file that is not one of our backups', async () => {
     () => run({ app: 'silicortex-invoices', version: 99 }),
     /newer than this restore script/
   )
+})
+
+test('doc_type and storno_for cannot disagree', async () => {
+  const db = await freshDb()
+  const base = `insert into invoices (invoice_date, customer_name, doc_type, storno_for) values ('2026-08-11','A'`
+  // An invoice carrying a Storno reference would print RECHNUNG above "Storno zu".
+  await assert.rejects(
+    () => db.query(`${base}, 'invoice', 'RE-2026-001')`),
+    /invoices_storno_consistent/
+  )
+  // A Storno with nothing to point at.
+  await assert.rejects(() => db.query(`${base}, 'storno', '')`), /invoices_storno_consistent/)
+  // Both consistent forms are accepted.
+  await db.query(`${base}, 'storno', 'RE-2026-001')`)
+  await db.query(`${base}, 'invoice', '')`)
+  await db.query(`${base}, 'quote', '')`)
+})
+
+test('doc_type only accepts the three known kinds', async () => {
+  const db = await freshDb()
+  await assert.rejects(
+    () =>
+      db.query(
+        `insert into invoices (invoice_date, customer_name, doc_type) values ('2026-08-11','A','rechnung')`
+      ),
+    /invoices_doc_type_valid/
+  )
+})
+
+test('a reverse-charge Angebot is not reported as an EU sale', async () => {
+  const db = await freshDb()
+  // Mirrors the WHERE clause in lib/db/invoices.ts listEuSales. An Angebot is an
+  // offer, not an intra-EU supply — reported to the BZSt it would be turnover that
+  // never happened.
+  for (const [type, number] of [['invoice', 'RE-2026-001'], ['quote', 'AN-2026-001']]) {
+    await db.query(
+      `insert into invoices (status, invoice_number, invoice_date, issued_at, sender_snapshot,
+          customer_name, customer_vat_id, reverse_charge, doc_type, net_total, vat_total, gross_total)
+       values ('issued', $1, '2026-08-11', now(), '{}'::jsonb, 'EU Kunde', 'ATU12345678', true, $2, 100, 0, 100)`,
+      [number, type]
+    )
+  }
+  const reported = await db.query(
+    `select invoice_number from invoices
+     where status = 'issued' and reverse_charge = true and doc_type <> 'quote'`
+  )
+  assert.deepEqual(reported.rows.map((r) => r.invoice_number), ['RE-2026-001'])
+
+  // And the same exclusion keeps it out of the Steuerberater's CSV.
+  const booked = await db.query(`select invoice_number from invoices where doc_type <> 'quote'`)
+  assert.deepEqual(booked.rows.map((r) => r.invoice_number), ['RE-2026-001'])
 })

@@ -27,6 +27,20 @@ export const RANGES = {
 
 export type RangePrefix = keyof typeof RANGES
 
+/** The range a document type draws its numbers from. Each counts independently,
+ *  so an Angebot never consumes an invoice number. */
+export function rangeFor(docType: 'invoice' | 'storno' | 'quote'): RangePrefix {
+  return docType === 'storno' ? 'ST' : docType === 'quote' ? 'AN' : 'RE'
+}
+
+/** What the document calls itself. An Angebot is not an invoice and must not be
+ *  headed like one — and a Storno must never say "Gutschrift". */
+export const DOC_HEADINGS = {
+  invoice: 'RECHNUNG',
+  storno: 'STORNORECHNUNG',
+  quote: 'ANGEBOT',
+} as const
+
 export function isRangePrefix(value: string): value is RangePrefix {
   return Object.hasOwn(RANGES, value)
 }

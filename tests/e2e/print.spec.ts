@@ -31,16 +31,30 @@ test.describe('print output', () => {
     await expect(span).toHaveCSS('white-space', 'pre-wrap')
   })
 
-  test('empty optional rows are removed entirely, not left with a bare label', async ({ page }) => {
+  test('empty optional rows are removed, filled ones are kept', async ({ page }) => {
     // A printed label with no value reads as an error on a customer's invoice.
     //
     // The count assertion comes FIRST and is not optional: `:visible` with
     // `toHaveCount(0)` is satisfied by zero matches, so deleting the
     // `.admin-optional` markup outright would pass too. Asserting the wrappers
-    // exist, then that none is visible, is what makes this able to fail.
-    await expect(page.locator('.admin-optional')).toHaveCount(2)
-    await expect(page.locator('.admin-optional:visible')).toHaveCount(0)
+    // exist, then which of them is visible, is what makes this able to fail.
+    //
+    // Three wrappers: Kundennummer, the customer's USt-IdNr., and
+    // Leistungszeitraum — the last became optional when Angebote arrived, since
+    // § 14 does not apply to an offer.
+    await expect(page.locator('.admin-optional')).toHaveCount(3)
+
+    // The two the fixture leaves empty are gone.
     await expect(page.getByText('Kundennummer')).toBeHidden()
+    await expect(page.getByText('USt-IdNr. des Kunden')).toHaveCount(0)
+
+    // Leistungszeitraum IS filled by the fixture, so it must still print. This is
+    // the half that proves the rule hides EMPTY rows rather than every optional
+    // one — with only the hidden cases asserted, a CSS rule that hid all three
+    // would pass while dropping a § 14 field off every invoice.
+    await expect(page.locator('.admin-optional:visible')).toHaveCount(1)
+    await expect(page.getByText('Leistungszeitraum')).toBeVisible()
+    await expect(page.getByText('Juli 2026')).toBeVisible()
   })
 
   test('empty line items are hidden', async ({ page }) => {

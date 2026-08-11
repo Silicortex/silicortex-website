@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import type { MasterData } from '@/lib/db/masterData.ts'
+import type { DocType } from '@/lib/invoice/types.ts'
 import { computeTotals } from '@/lib/invoice/totals.ts'
 import { todayIso } from '@/lib/invoice/format.ts'
 import {
@@ -13,6 +14,7 @@ import {
 } from '@/lib/invoice/types.ts'
 import {
   burnNumberAction,
+  convertQuoteAction,
   createStornoAction,
   deleteDraftAction,
   issueInvoiceAction,
@@ -27,7 +29,11 @@ import { validateForPrint } from '@/lib/invoice/validate.ts'
 import { COMPANY_FILE_NAME, invoiceFileBase } from '@/lib/invoice/filename.ts'
 // Aliased: `nextNumber` is already the name of this component's prop, and the
 // shadowed import silently became a string.
-import { nextNumber as nextNumberInRange, parseInvoiceNumber } from '@/lib/invoice/numbering.ts'
+import {
+  nextNumber as nextNumberInRange,
+  parseInvoiceNumber,
+  rangeFor,
+} from '@/lib/invoice/numbering.ts'
 import { ArchiveTable } from './ArchiveTable.tsx'
 import { NumberJournal, type JournalEntry } from './NumberJournal.tsx'
 import { EuSalesReport } from './EuSalesReport.tsx'
@@ -168,34 +174,56 @@ export function AdminApp({
    *
    *  The number comes from `nextNumberAction`, never from incrementing the one on
    *  screen: the journal is the only thing that knows which numbers are taken. */
-  async function startNewInvoice() {
+  async function startNewInvoice(docType: DocType = 'invoice') {
     // A draft that has been typed into but not archived would vanish silently.
-    // An issued invoice needs no confirmation: it is already safe in the archive
+    // An issued document needs no confirmation: it is already safe in the archive
     // and this only clears the view.
     const hasContent =
       invoice.status === 'draft' &&
       (invoice.customerName.trim() !== '' ||
         invoice.items.some((item) => item.description.trim() !== '' || item.unitPrice !== 0))
-    if (hasContent && !confirm('Aktuellen Entwurf verwerfen und neue Rechnung beginnen?')) return
+    if (hasContent && !confirm('Aktuellen Entwurf verwerfen und neues Dokument beginnen?')) return
 
-    setBusy(true)
-    const proposedNumber = await nextNumberAction()
-    setBusy(false)
-
+    // The sheet is cleared BEFORE the server is asked for the number, not after.
+    // Resetting afterwards was verified to discard whatever was typed during the
+    // round trip: a customer name and a ticked Reverse Charge box both vanished
+    // when the reset landed a moment later, leaving a document that looked filled
+    // in but was not.
     setPrintErrors([])
-    // Reset, so the new invoice follows the Stammdaten payment terms again rather
+    // Reset, so the new document follows the Stammdaten payment terms again rather
     // than inheriting terms hand-edited on the previous one.
     setTermsTouched(false)
     setInvoice(
       emptyInvoice({
-        proposedNumber,
+        proposedNumber: '',
         invoiceDate: todayIso(),
-        paymentTerms: defaultPaymentTerms(masterData.invoiceVisible.paymentTermsDays),
+        docType,
+        // An offer has nothing payable yet, so the same free-text block carries
+        // how long it stands instead of when to pay.
+        paymentTerms:
+          docType === 'quote'
+            ? 'Dieses Angebot ist 30 Tage ab Angebotsdatum gültig.'
+            : defaultPaymentTerms(masterData.invoiceVisible.paymentTermsDays),
         vatRate: masterData.invoiceVisible.defaultVatRate,
       })
     )
     setTab('invoice')
-    setNotice(`Neue Rechnung — vorgeschlagene Nummer ${proposedNumber}.`)
+
+    // The range follows the document type, so an Angebot never consumes an invoice
+    // number. Asked of the server because only the journal knows what is taken.
+    setBusy(true)
+    const proposedNumber = await nextNumberAction(rangeFor(docType))
+    setBusy(false)
+
+    // A functional update that fills the number in ONLY if it is still blank, so a
+    // keystroke during the round trip survives — including a number the owner
+    // typed themselves.
+    setInvoice((current) =>
+      current.proposedNumber === '' ? { ...current, proposedNumber } : current
+    )
+    setNotice(
+      `${docType === 'quote' ? 'Neues Angebot' : 'Neue Rechnung'} — vorgeschlagene Nummer ${proposedNumber}.`
+    )
   }
 
   function updateInvoice(next: InvoiceDraft) {
@@ -282,6 +310,17 @@ export function AdminApp({
     setTermsTouched(true)
     setTab('invoice')
     setNotice(`Storno-Entwurf zu ${storno.stornoFor} erstellt. Nummer ${storno.proposedNumber}.`)
+  }
+
+  /** Turns an accepted Angebot into a draft invoice that references it. Nothing is
+   *  written until the owner saves, and the Angebot itself stays untouched. */
+  async function convertQuote(id: string) {
+    const draft = await convertQuoteAction(id)
+    if (!draft) return setNotice('Nur festgeschriebene Angebote können umgewandelt werden.')
+    setInvoice(draft)
+    setTermsTouched(true) // the converted invoice keeps the offer's own terms
+    setTab('invoice')
+    setNotice(`Rechnung aus Angebot ${draft.quoteRef} — Nummer ${draft.proposedNumber}.`)
   }
 
   async function burnNumberFromJournal(number: string, reason: string) {
@@ -399,11 +438,19 @@ export function AdminApp({
             </button>
             <button
               type="button"
-              onClick={startNewInvoice}
+              onClick={() => startNewInvoice('invoice')}
               disabled={busy}
               className="rounded-full border border-black/10 bg-white px-5 py-2 text-sm font-medium text-slate-700 transition hover:border-blue-500/50 hover:text-blue-600 disabled:opacity-60"
             >
               Neue Rechnung
+            </button>
+            <button
+              type="button"
+              onClick={() => startNewInvoice('quote')}
+              disabled={busy}
+              className="rounded-full border border-black/10 bg-white px-5 py-2 text-sm font-medium text-slate-700 transition hover:border-blue-500/50 hover:text-blue-600 disabled:opacity-60"
+            >
+              Neues Angebot
             </button>
             <button
               type="button"
@@ -461,6 +508,7 @@ export function AdminApp({
             onLoad={loadFromArchive}
             onCopy={copyFromArchive}
             onStorno={stornoFromArchive}
+            onConvertQuote={convertQuote}
             onDelete={deleteFromArchive}
           />
           <NumberJournal

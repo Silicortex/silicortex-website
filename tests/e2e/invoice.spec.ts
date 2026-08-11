@@ -451,6 +451,103 @@ test('"Neue Rechnung" asks before discarding a draft that has been typed into', 
   await expect(page.getByLabel('Kundenname')).toHaveValue('')
 })
 
+test('an Angebot is its own document and converts into an invoice', async ({ page }) => {
+  await page.addInitScript(() => {
+    window.print = () => {}
+  })
+  await page.goto('/admin')
+  await saveSender(page, 'E2E Sender Angebot')
+  await page.getByRole('button', { name: 'Rechnung erstellen' }).click()
+
+  await page.getByRole('button', { name: 'Neues Angebot' }).click()
+  await expect(page.getByText(/Neues Angebot — vorgeschlagene Nummer AN-/)).toBeVisible()
+  // Its own range, so an offer never consumes an invoice number.
+  await expect(page.getByLabel('Rechnungsnummer')).toHaveValue(/^AN-\d{4}-\d{3,}$/)
+  await expect(page.locator('.admin-sheet h2')).toHaveText('ANGEBOT')
+  // Not payable yet, so the block carries validity instead of payment terms.
+  await expect(page.locator('.admin-sheet')).toContainText('Gültigkeit')
+  await expect(page.locator('.admin-sheet')).not.toContainText('Zahlungsbedingungen')
+  await expect(page.getByLabel('Zahlungsbedingungen')).toHaveValue(/30 Tage/)
+
+  // § 14 does not apply to an offer: no Leistungszeitraum, no customer address.
+  await page.getByLabel('Kundenname').fill(`Testkunde Angebot ${RUN}`)
+  await page.getByLabel('Beschreibung Position 1').fill('Entwicklung Portal')
+  await page.getByLabel('Menge Position 1').fill('2')
+  await page.getByLabel('Einzelpreis Position 1').fill('80,50')
+  await page.getByLabel('Einzelpreis Position 1').blur()
+  const quoteNumber = `E2E-AN-${RUN}`
+  await page.getByLabel('Rechnungsnummer').fill(quoteNumber)
+
+  page.once('dialog', (dialog) => dialog.accept())
+  await page.getByRole('button', { name: 'Drucken / PDF' }).click()
+  await expect(page.getByText(`Festgeschrieben als ${quoteNumber}.`)).toBeVisible()
+
+  await page.getByRole('button', { name: 'Meine Rechnungen' }).click()
+  const row = page.getByRole('row', { name: new RegExp(`Testkunde Angebot ${RUN}`) })
+  // An Angebot is not a receivable, so it cannot be cancelled — only converted.
+  await expect(row.getByRole('button', { name: 'Storno' })).toHaveCount(0)
+  await row.getByRole('button', { name: 'In Rechnung umwandeln' }).click()
+
+  await expect(page.getByText(new RegExp(`Rechnung aus Angebot ${quoteNumber}`))).toBeVisible()
+  await expect(page.locator('.admin-sheet h2')).toHaveText('RECHNUNG')
+  await expect(page.getByLabel('Rechnungsnummer')).toHaveValue(/^RE-\d{4}-\d{3,}$/)
+  // The invoice references the offer it came from, and carries its content.
+  await expect(page.locator('.admin-sheet')).toContainText(`Bezug: Angebot ${quoteNumber} vom`)
+  await expect(page.getByLabel('Beschreibung Position 1')).toHaveValue('Entwicklung Portal')
+  await expect(page.getByLabel('Einzelpreis Position 1')).toHaveValue('80,50')
+  // A fresh draft: editable, and nothing has been written yet.
+  await expect(page.getByLabel('Kundenname')).not.toHaveAttribute('readonly', '')
+
+  // The Angebot itself is untouched and still an Angebot.
+  await page.getByRole('button', { name: 'Meine Rechnungen' }).click()
+  await expect(page.getByRole('row', { name: new RegExp(quoteNumber) }).first()).toBeVisible()
+})
+
+test('a reverse-charge Angebot is neither reported nor booked', async ({ page }) => {
+  await page.addInitScript(() => {
+    window.print = () => {}
+  })
+  await page.goto('/admin')
+  await saveSender(page, 'E2E Sender AN-RC', { vatId: 'DE999999999' })
+  await page.getByRole('button', { name: 'Rechnung erstellen' }).click()
+  await page.getByRole('button', { name: 'Neues Angebot' }).click()
+
+  // A VAT ID no other test uses, so this asserts about THIS document rather than
+  // about whatever else the suite has left in the database.
+  await page.getByLabel('Kundenname').fill(`Testkunde ANRC ${RUN}`)
+  await page.getByLabel('Reverse Charge (EU-Kunde)').check()
+  await page.getByLabel('USt-IdNr. des Kunden').fill('FR12345678901')
+  await page.getByLabel('Beschreibung Position 1').fill('Angebot EU')
+  await page.getByLabel('Menge Position 1').fill('1')
+  await page.getByLabel('Einzelpreis Position 1').fill('900,00')
+  await page.getByLabel('Einzelpreis Position 1').blur()
+  const quoteNumber = `E2E-ANRC-${RUN}`
+  await page.getByLabel('Rechnungsnummer').fill(quoteNumber)
+  page.once('dialog', (dialog) => dialog.accept())
+  await page.getByRole('button', { name: 'Drucken / PDF' }).click()
+  await expect(page.getByText(`Festgeschrieben als ${quoteNumber}.`)).toBeVisible()
+
+  // An offer is not an intra-EU supply. Reported to the BZSt it would be turnover
+  // that never happened.
+  await page.getByRole('button', { name: 'Meine Rechnungen' }).click()
+  const report = page.locator('section', { hasText: 'Zusammenfassende Meldung' })
+  await expect(report).toBeVisible()
+  await expect(report.getByRole('row', { name: /FR12345678901/ })).toHaveCount(0)
+
+  // And an Angebot in the list the Steuerberater books from is revenue that does
+  // not exist.
+  const csv = await page.request.get('/admin/export?format=csv')
+  expect(await csv.text()).not.toContain(quoteNumber)
+  // It IS in the full backup, which is a copy of everything rather than a
+  // statement of turnover.
+  const backup = (await (await page.request.get('/admin/export?format=json')).json()) as {
+    invoices: { invoice_number: string | null; doc_type: string }[]
+  }
+  const inBackup = backup.invoices.find((row) => row.invoice_number === quoteNumber)
+  expect(inBackup, 'the Angebot must still be in the full backup').toBeTruthy()
+  expect(inBackup?.doc_type).toBe('quote')
+})
+
 test('a number can be recorded as used with no invoice behind it', async ({ page }) => {
   await page.goto('/admin')
   await page.getByRole('button', { name: 'Meine Rechnungen' }).click()

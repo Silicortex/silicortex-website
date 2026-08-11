@@ -10,6 +10,7 @@ import {
   type MasterDataInvoiceVisible,
 } from '@/lib/db/masterData.ts'
 import {
+  buildInvoiceFromQuote,
   buildStornoDraft,
   burnNumber,
   listEuSales,
@@ -127,6 +128,13 @@ export async function burnNumberAction(
         ? 'Bitte einen Grund angeben, warum die Nummer nicht verwendet wurde.'
         : `Die Nummer ${number.trim()} ist bereits vergeben.`,
   }
+}
+
+/** Builds the invoice for an accepted Angebot. Nothing is written until the owner
+ *  saves it, so an accidental click burns no number. */
+export async function convertQuoteAction(quoteId: string): Promise<InvoiceDraft | null> {
+  await requireSession()
+  return buildInvoiceFromQuote(quoteId)
 }
 
 /** Builds the Storno for an issued invoice. Nothing is written until the owner
