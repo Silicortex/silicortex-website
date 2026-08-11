@@ -343,7 +343,13 @@ export async function issueInvoice(
 export async function listEuSales(): Promise<EuSaleMonthRow[]> {
   const rows = await sql`
     select to_char(invoice_date, 'YYYY-MM') as month,
-           upper(replace(replace(customer_vat_id, ' ', ''), '.', '')) as vat_id,
+           -- Must strip exactly what vatIdPrefix in lib/invoice/euVat.ts strips:
+           -- whitespace, dots AND hyphens. With the hyphen missing, a customer
+           -- entered as "ATU-12345678" passed reverse-charge validation and then
+           -- grouped as its own ZM row beside "ATU12345678" — one customer's
+           -- supplies split across two lines, each understating the total that
+           -- gets transcribed to the BZSt.
+           upper(translate(customer_vat_id, ' .-', '')) as vat_id,
            sum(net_total)::text as net,
            count(*)::int as n
     from invoices

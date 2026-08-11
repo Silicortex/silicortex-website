@@ -23,7 +23,7 @@ import {
   saveDraft,
 } from '@/lib/db/invoices.ts'
 import { todayIso } from '@/lib/invoice/format.ts'
-import type { RangePrefix } from '@/lib/invoice/numbering.ts'
+import { rangeFor, type RangePrefix } from '@/lib/invoice/numbering.ts'
 import { validateForPrint } from '@/lib/invoice/validate.ts'
 import type { InvoiceDraft, InvoiceSummary } from '@/lib/invoice/types.ts'
 
@@ -155,9 +155,14 @@ export async function issueInvoiceAction(
 
   // The number is claimed here, never by a draft: that is what keeps the
   // sequence gapless when a draft is deleted.
-  const invoiceForRange = await loadInvoice(id)
-  const range: RangePrefix = invoiceForRange?.stornoFor ? 'ST' : 'RE'
-  const number = proposedNumber.trim() || (await nextNumberFor(range, currentYear()))
+  // Loaded once, and used for both the range and the sender check below.
+  const invoice = await loadInvoice(id)
+  if (!invoice) return { ok: false, error: 'Rechnung nicht gefunden.' }
+
+  // From doc_type, which is the single source of truth for the range. Inferring it
+  // from `stornoFor` predates Angebote and would have handed one an RE- number.
+  const number =
+    proposedNumber.trim() || (await nextNumberFor(rangeFor(invoice.docType), currentYear()))
 
   const masterData = await loadMasterData()
 
@@ -174,9 +179,6 @@ export async function issueInvoiceAction(
   // validateForPrint is a pure function, so the same rule runs on both sides.
   // Server-side is the authoritative one: it is the only check a caller cannot
   // bypass, since Server Actions are directly reachable POST endpoints.
-  const invoice = await loadInvoice(id)
-  if (!invoice) return { ok: false, error: 'Rechnung nicht gefunden.' }
-
   const senderErrors = validateForPrint(invoice, masterData.invoiceVisible, {
     enforceSender: true,
   })

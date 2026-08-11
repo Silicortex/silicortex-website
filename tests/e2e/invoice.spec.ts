@@ -604,6 +604,76 @@ test('the SERVER refuses an incomplete sender the client thinks is complete', as
   await expect(row.getByRole('button', { name: /löschen/ })).toBeVisible()
 })
 
+test('a copied Angebot stays an Angebot, a copied Storno does not stay a Storno', async ({ page }) => {
+  await page.addInitScript(() => {
+    window.print = () => {}
+  })
+  await page.goto('/admin')
+  await saveSender(page, 'E2E Sender Kopie')
+  await page.getByRole('button', { name: 'Rechnung erstellen' }).click()
+
+  // An issued Angebot, then Kopieren — the documented way to revise an offer, since
+  // an issued one is frozen.
+  await page.getByRole('button', { name: 'Neues Angebot' }).click()
+  await page.getByLabel('Kundenname').fill(`Testkunde KopieAN ${RUN}`)
+  await page.getByLabel('Beschreibung Position 1').fill('Angebot')
+  await page.getByLabel('Menge Position 1').fill('1')
+  await page.getByLabel('Einzelpreis Position 1').fill('100,00')
+  await page.getByLabel('Einzelpreis Position 1').blur()
+  await page.getByLabel('Rechnungsnummer').fill(`E2E-KAN-${RUN}`)
+  page.once('dialog', (dialog) => dialog.accept())
+  await page.getByRole('button', { name: 'Drucken / PDF' }).click()
+  await expect(page.getByText(`Festgeschrieben als E2E-KAN-${RUN}.`)).toBeVisible()
+
+  await page.getByRole('button', { name: 'Meine Rechnungen' }).click()
+  await page
+    .getByRole('row', { name: new RegExp(`Testkunde KopieAN ${RUN}`) })
+    .getByRole('button', { name: 'Kopie' })
+    .click()
+  // The revision must take an AN- number. It took an RE- one before, which then
+  // went missing from the Steuerberater's CSV as an unexplained gap.
+  await expect(page.locator('.admin-sheet h2')).toHaveText('ANGEBOT')
+  await expect(page.getByLabel('Rechnungsnummer')).toHaveValue(/^AN-\d{4}-\d{3,}$/)
+
+  // Now an issued invoice, its Storno, and a copy of that Storno.
+  //
+  // The copied Angebot is a draft with content, so this raises the discard
+  // confirmation — and Playwright dismisses dialogs by default, which would cancel
+  // the reset and leave the following steps editing the Angebot.
+  page.once('dialog', (dialog) => dialog.accept())
+  await page.getByRole('button', { name: 'Neue Rechnung' }).click()
+  await expect(page.locator('.admin-sheet h2')).toHaveText('RECHNUNG')
+  await fillInvoice(page, `Testkunde KopieST ${RUN}`)
+  await page.getByLabel('Rechnungsnummer').fill(`E2E-KST-${RUN}`)
+  page.once('dialog', (dialog) => dialog.accept())
+  await page.getByRole('button', { name: 'Drucken / PDF' }).click()
+  await expect(page.getByText(`Festgeschrieben als E2E-KST-${RUN}.`)).toBeVisible()
+  await page.getByRole('button', { name: 'Meine Rechnungen' }).click()
+  await page
+    .getByRole('row', { name: new RegExp(`Testkunde KopieST ${RUN}`) })
+    .getByRole('button', { name: 'Storno' })
+    .click()
+  await expect(page.locator('.admin-sheet h2')).toHaveText('STORNORECHNUNG')
+  await page.getByRole('button', { name: 'Ins Archiv legen' }).click()
+  await expect(page.getByText('Ins Archiv gelegt.')).toBeVisible()
+
+  await page.getByRole('button', { name: 'Meine Rechnungen' }).click()
+  await page
+    .getByRole('row', { name: /ST-\d{4}-\d{3,}/ })
+    .first()
+    .getByRole('button', { name: 'Kopie' })
+    .click()
+  // A copy drops the reference, so it must not still call itself a Storno: doc_type
+  // 'storno' with an empty storno_for violates the consistency CHECK, and saving
+  // failed with a misleading "Festgeschriebene Rechnungen sind unveränderbar".
+  await expect(page.locator('.admin-sheet h2')).toHaveText('RECHNUNG')
+  await expect(page.locator('.admin-sheet')).not.toContainText('Storno zu Rechnung')
+  await expect(page.getByLabel('Rechnungsnummer')).toHaveValue(/^RE-\d{4}-\d{3,}$/)
+  // And it saves, which it did not before.
+  await page.getByRole('button', { name: 'Ins Archiv legen' }).click()
+  await expect(page.getByText('Ins Archiv gelegt.')).toBeVisible()
+})
+
 test('a number can be recorded as used with no invoice behind it', async ({ page }) => {
   await page.goto('/admin')
   await page.getByRole('button', { name: 'Meine Rechnungen' }).click()

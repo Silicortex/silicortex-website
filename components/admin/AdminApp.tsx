@@ -211,9 +211,19 @@ export function AdminApp({
 
     // The range follows the document type, so an Angebot never consumes an invoice
     // number. Asked of the server because only the journal knows what is taken.
+    // try/finally, like printInvoice: a rejected action — offline, or mid-deploy —
+    // otherwise leaves `busy` true forever, disabling every button with the sheet
+    // already cleared, until the page is reloaded.
+    let proposedNumber = ''
     setBusy(true)
-    const proposedNumber = await nextNumberAction(rangeFor(docType))
-    setBusy(false)
+    try {
+      proposedNumber = await nextNumberAction(rangeFor(docType))
+    } catch {
+      setNotice('Nummer konnte nicht abgerufen werden. Bitte Verbindung prüfen.')
+      return
+    } finally {
+      setBusy(false)
+    }
 
     // A functional update that fills the number in ONLY if it is still blank, so a
     // keystroke during the round trip survives — including a number the owner
@@ -276,20 +286,31 @@ export function AdminApp({
   async function copyFromArchive(id: string) {
     const loaded = await loadInvoiceAction(id)
     if (!loaded) return setNotice('Rechnung nicht gefunden.')
+    // A copy of an Angebot stays an Angebot — that is the documented way to revise
+    // one, since an issued offer is frozen. A copy of a Storno becomes a plain
+    // invoice: the reference is dropped below, and doc_type='storno' without a
+    // storno_for violates the invoices_storno_consistent CHECK, so saving would
+    // have failed with a misleading "Festgeschriebene Rechnungen sind
+    // unveränderbar" while the sheet printed the STORNORECHNUNG heading.
+    const docType = loaded.docType === 'quote' ? 'quote' : 'invoice'
     setInvoice({
       ...loaded,
       // A fresh id: a copy is a NEW invoice, and minting it here keeps the
       // double-click protection that `emptyInvoice` relies on.
       id: newInvoiceId(),
       status: 'draft',
+      docType,
       invoiceNumber: null,
-      // A copy is a new invoice, never a Storno: without this, copying a Storno
-      // would print the STORNO heading and its reference line under a fresh RE-
-      // number, claiming to cancel an invoice it has nothing to do with.
+      // A copy is not a correction of anything, and not the invoice for the offer
+      // the original was billed from — either reference would be a false claim.
       stornoFor: '',
       stornoForDate: '',
-      // Asked of the server, not derived from the client's archive copy.
-      proposedNumber: await nextNumberAction(),
+      quoteRef: '',
+      quoteRefDate: '',
+      // Asked of the server, and from the range that matches the TYPE: a copied
+      // Angebot took an RE- number before this, which then went missing from the
+      // Steuerberater's CSV as an unexplained gap.
+      proposedNumber: await nextNumberAction(rangeFor(docType)),
       invoiceDate: todayIso(),
     })
     // A copy inherits the original's payment terms, which may have been edited
@@ -513,7 +534,11 @@ export function AdminApp({
           />
           <NumberJournal
             journal={journal}
-            year={Number(invoice.invoiceDate.slice(0, 4))}
+            // The current German year, not the open document's date: an empty
+            // Rechnungsdatum made Number('') === 0 and the panel advertised
+            // RE-0-001 as the next number, and loading last year's invoice showed
+            // last year's counters.
+            year={Number(todayIso().slice(0, 4))}
             onBurn={burnNumberFromJournal}
           />
           <EuSalesReport rows={euSales} />

@@ -233,6 +233,21 @@ alter table invoices add column if not exists quote_ref_date text not null defau
 do $$
 begin
   if not exists (select 1 from pg_constraint where conname = 'invoices_storno_consistent') then
+    -- Backfill FIRST, and it has to happen here.
+    --
+    -- `storno_for` shipped one commit before `doc_type`, so a database migrated in
+    -- between can hold an issued Storno with storno_for set and doc_type at its
+    -- 'invoice' default. Adding the constraint against such a row aborts the
+    -- migration — and the row cannot be repaired afterwards either, because
+    -- forbid_issued_invoice_changes() raises on any UPDATE of an issued invoice.
+    -- There would be no supported path forward for that database.
+    --
+    -- The trigger comes off for the backfill only. If anything in this block
+    -- fails, DDL in Postgres is transactional, so the disable rolls back with it.
+    alter table invoices disable trigger invoices_immutable_when_issued;
+    update invoices set doc_type = 'storno' where storno_for <> '' and doc_type <> 'storno';
+    alter table invoices enable trigger invoices_immutable_when_issued;
+
     alter table invoices add constraint invoices_storno_consistent
       check ((doc_type = 'storno') = (storno_for <> ''));
   end if;

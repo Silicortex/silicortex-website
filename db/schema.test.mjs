@@ -646,3 +646,90 @@ test('a reverse-charge Angebot is not reported as an EU sale', async () => {
   const booked = await db.query(`select invoice_number from invoices where doc_type <> 'quote'`)
   assert.deepEqual(booked.rows.map((r) => r.invoice_number), ['RE-2026-001'])
 })
+
+test('the storno consistency constraint backfills doc_type for older rows', async () => {
+  // A database migrated between 262c994 (storno_for) and 6b55a74 (doc_type) can hold
+  // an issued Storno with doc_type at its 'invoice' default. Adding the constraint
+  // against that row aborts the migration, and it cannot be repaired afterwards
+  // either: forbid_issued_invoice_changes() raises on any UPDATE of an issued row.
+  const db = await PGlite.create()
+  const upTo = (marker) => {
+    const index = statements.findIndex((s) => s.includes(marker))
+    assert.ok(index > 0, `marker not found: ${marker}`)
+    return statements.slice(0, index)
+  }
+
+  // Apply everything except the consistency block, then plant the row.
+  for (const statement of upTo('invoices_storno_consistent')) await db.exec(statement)
+  await db.query(
+    `insert into invoices (status, invoice_number, invoice_date, issued_at, sender_snapshot,
+        storno_for, storno_for_date)
+     values ('issued', 'ST-2026-001', '2026-08-11', now(), '{}'::jsonb, 'RE-2026-001', '2026-08-10')`
+  )
+  const planted = await db.query(`select doc_type from invoices where invoice_number = 'ST-2026-001'`)
+  assert.equal(planted.rows[0].doc_type, 'invoice', 'the column should have taken its default')
+
+  // The rest of the schema must now apply rather than abort.
+  const rest = statements.slice(upTo('invoices_storno_consistent').length)
+  for (const statement of rest) await db.exec(statement)
+
+  const fixed = await db.query(`select doc_type from invoices where invoice_number = 'ST-2026-001'`)
+  assert.equal(fixed.rows[0].doc_type, 'storno', 'the backfill should have corrected it')
+  // And the trigger it had to switch off is back on.
+  const trigger = await db.query(
+    `select tgenabled from pg_trigger where tgname = 'invoices_immutable_when_issued'`
+  )
+  assert.equal(trigger.rows[0].tgenabled, 'O')
+})
+
+test('a failed restore unwinds to an empty database so a retry works', async () => {
+  const source = await freshDb()
+  await seed(source)
+  const backup = await backupFrom(source)
+
+  const target = await freshDb()
+  const before = await target.query('select name from master_data where id = 1')
+
+  // A journal entry that cannot be inserted: the invoices go in first, so the
+  // failure lands half way through.
+  const broken = {
+    ...backup,
+    issuedNumbers: [...backup.issuedNumbers, { number: null }],
+  }
+  await assert.rejects(() =>
+    restoreInto((text, params) => target.query(text, params ?? []), broken)
+  )
+
+  // Nothing left behind, and master data put back — so the emptiness guard does not
+  // refuse the retry.
+  for (const table of ['invoices', 'invoice_items', 'issued_numbers']) {
+    const left = await target.query(`select count(*)::int as n from ${table}`)
+    assert.equal(left.rows[0].n, 0, `${table} should be empty again`)
+  }
+  const after = await target.query('select name from master_data where id = 1')
+  assert.equal(after.rows[0].name, before.rows[0].name)
+
+  // And the retry succeeds.
+  const result = await restoreInto((text, params) => target.query(text, params ?? []), backup)
+  assert.deepEqual(result, { invoices: 1, items: 1, numbers: 2 })
+})
+
+test('a VAT id written with punctuation groups as one customer', async () => {
+  const db = await freshDb()
+  // upper(translate(id, ' .-', '')) must strip exactly what vatIdPrefix strips.
+  // With the hyphen missing, "ATU-12345678" became its own ZM row beside
+  // "ATU12345678", each understating the per-customer total sent to the BZSt.
+  for (const [n, vat] of [['RE-2026-001', 'ATU12345678'], ['RE-2026-002', 'ATU-123 456.78']]) {
+    await db.query(
+      `insert into invoices (status, invoice_number, invoice_date, issued_at, sender_snapshot,
+          customer_name, customer_vat_id, reverse_charge, net_total, vat_total, gross_total)
+       values ('issued', $1, '2026-08-11', now(), '{}'::jsonb, 'EU', $2, true, 100, 0, 100)`,
+      [n, vat]
+    )
+  }
+  const grouped = await db.query(
+    `select upper(translate(customer_vat_id, ' .-', '')) as vat_id, count(*)::int as n
+     from invoices where reverse_charge = true group by 1`
+  )
+  assert.deepEqual(grouped.rows, [{ vat_id: 'ATU12345678', n: 2 }])
+})

@@ -2,6 +2,7 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import {
   compareInvoiceNumbers,
+  MAX_REPORTED_GAPS,
   findGaps,
   formatNumber,
   nextNumber,
@@ -122,4 +123,18 @@ test('the Storno reference names the invoice it corrects', () => {
     stornoReference('RE-2026-001', '10.08.2026'),
     'Storno zu Rechnung RE-2026-001 vom 10.08.2026'
   )
+})
+
+test('the gap list is capped, so one typo cannot hang the page', () => {
+  // RE-2026-100000 is accepted — the skip-ahead warning is dismissible and § 14
+  // prescribes no format — and would otherwise build 99 999 formatted strings and
+  // join them into a single table cell.
+  const gaps = findGaps('RE', 2026, ['RE-2026-001', 'RE-2026-100000'])
+  assert.equal(gaps.length, MAX_REPORTED_GAPS)
+  assert.equal(gaps[0], 'RE-2026-002')
+  // A normal run is unaffected.
+  assert.deepEqual(findGaps('RE', 2026, ['RE-2026-001', 'RE-2026-004']), [
+    'RE-2026-002',
+    'RE-2026-003',
+  ])
 })

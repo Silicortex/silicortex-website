@@ -46,24 +46,38 @@ export async function restoreInto(query, backup) {
     )
   }
 
+  // Kept so a failure part-way through can put it back. Without this, a restore
+  // that dies mid-flight leaves master data overwritten AND rows half-inserted,
+  // and the emptiness guard above then refuses every retry — the operator has a
+  // partly populated database and no supported path forward.
+  const previousMaster = rowsOf(await query('select * from master_data where id = 1'))[0] ?? null
+
   const master = backup.masterData ?? {}
   const masterColumns = Object.keys(master).filter((c) => c !== 'id' && c !== 'updated_at')
-  if (masterColumns.length > 0) {
+  const writeMaster = async (values) => {
+    if (masterColumns.length === 0) return
     await query(
       `update master_data set ${masterColumns.map((c, i) => `${c} = $${i + 1}`).join(', ')} where id = 1`,
-      masterColumns.map((c) => master[c])
+      masterColumns.map((c) => values[c] ?? '')
     )
   }
+  await writeMaster(master)
 
   // The triggers exist to stop the APPLICATION editing issued documents. A restore
   // is writing them for the first time into an empty database, which the triggers
   // cannot distinguish from tampering — so they come off, and go back on in a
   // finally, because a database left with them disabled has silently lost the
   // immutability guarantee.
-  await query('alter table invoices disable trigger invoices_immutable_when_issued')
-  await query('alter table invoice_items disable trigger invoice_items_immutable_when_issued')
-  await query('alter table issued_numbers disable trigger issued_numbers_immutable')
+  //
+  // The disables are INSIDE the try. Outside it, a failure on the second or third
+  // one — restoring into a database migrated before `issued_numbers` existed, say —
+  // left the earlier triggers off with nothing to restore them, which is the exact
+  // outcome the paragraph above says must not happen.
   try {
+    await query('alter table invoices disable trigger invoices_immutable_when_issued')
+    await query('alter table invoice_items disable trigger invoice_items_immutable_when_issued')
+    await query('alter table issued_numbers disable trigger issued_numbers_immutable')
+
     for (const invoice of backup.invoices ?? []) {
       const { items = [], ...row } = invoice
       const columns = Object.keys(row)
@@ -92,10 +106,47 @@ export async function restoreInto(query, backup) {
         columns.map((c) => entry[c])
       )
     }
+  } catch (error) {
+    // No transaction is available: the Neon HTTP driver runs each statement in its
+    // own, so BEGIN/COMMIT here would be a comforting no-op. This unwinds by hand
+    // instead, back to the empty database the guard above expects, so the operator
+    // can fix the cause and simply run the restore again.
+    //
+    // Best-effort, and deliberately swallowing its own errors: the original failure
+    // is the one worth reporting, and a cleanup that also fails must not replace it.
+    try {
+      await query('delete from invoice_items')
+      await query('delete from invoices')
+      await query('delete from issued_numbers')
+      if (previousMaster) await writeMaster(previousMaster)
+    } catch {
+      throw new Error(
+        `Restore failed AND could not be rolled back: ${error.message}. The database ` +
+          'is partly populated — empty invoices, invoice_items and issued_numbers ' +
+          'before retrying.'
+      )
+    }
+    throw error
   } finally {
-    await query('alter table invoices enable trigger invoices_immutable_when_issued')
-    await query('alter table invoice_items enable trigger invoice_items_immutable_when_issued')
-    await query('alter table issued_numbers enable trigger issued_numbers_immutable')
+    // `enable trigger` on an already-enabled trigger is a harmless no-op, so this
+    // is safe even when the disables never ran.
+    //
+    // Each one is attempted independently. A single `await` sequence would skip the
+    // rest on the first failure — and if a trigger is missing (the case that made
+    // the disables fail in the first place), re-enabling it throws, which would
+    // both leave the others disabled and replace the real error with a confusing
+    // one. A failure here is reported, not thrown, so the original survives.
+    for (const statement of [
+      'alter table invoices enable trigger invoices_immutable_when_issued',
+      'alter table invoice_items enable trigger invoice_items_immutable_when_issued',
+      'alter table issued_numbers enable trigger issued_numbers_immutable',
+    ]) {
+      try {
+        await query(statement)
+      } catch (error) {
+        console.error(`WARNING: could not re-enable a trigger — ${statement}: ${error.message}`)
+      }
+    }
   }
 
   return {

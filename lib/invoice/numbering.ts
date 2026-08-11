@@ -139,6 +139,13 @@ export function nextNumberFromMax(
   )
 }
 
+/** How many gaps `findGaps` will name.
+ *
+ *  A typo'd RE-2026-100000 — accepted, since the skip-ahead warning is dismissible
+ *  and § 14 prescribes no format — would otherwise build a hundred thousand
+ *  formatted strings and join them into one table cell, hanging the archive tab. */
+export const MAX_REPORTED_GAPS = 50
+
 /** Missing numbers inside a range's used span, for the UI to surface.
  *
  *  Gaps are legal and are never closed. They are shown because unexplained gaps
@@ -156,7 +163,7 @@ export function findGaps(
   const highest = Math.max(...used)
   const width = widthFor(prefix, year, issuedNumbers)
   const gaps: string[] = []
-  for (let seq = 1; seq < highest; seq++) {
+  for (let seq = 1; seq < highest && gaps.length < MAX_REPORTED_GAPS; seq++) {
     if (!used.has(seq)) gaps.push(formatNumber(prefix, year, seq, width))
   }
   return gaps
