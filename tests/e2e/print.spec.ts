@@ -44,17 +44,20 @@ test.describe('print output', () => {
     // § 14 does not apply to an offer.
     await expect(page.locator('.admin-optional')).toHaveCount(3)
 
-    // The two the fixture leaves empty are gone.
-    await expect(page.getByText('Kundennummer')).toBeHidden()
-    await expect(page.getByText('USt-IdNr. des Kunden')).toHaveCount(0)
+    // Scoped to the sheet, because that is what the assertion is about. Page-wide,
+    // it also matched the screen-reader text of a hint in the toolbar — hint text is
+    // real page text, so an assertion about the DOCUMENT has to say so.
+    const sheet = page.locator('.admin-sheet')
+    await expect(sheet.getByText('Kundennummer')).toBeHidden()
+    await expect(sheet.getByText('USt-IdNr. des Kunden')).toHaveCount(0)
 
     // Leistungszeitraum IS filled by the fixture, so it must still print. This is
     // the half that proves the rule hides EMPTY rows rather than every optional
     // one — with only the hidden cases asserted, a CSS rule that hid all three
     // would pass while dropping a § 14 field off every invoice.
     await expect(page.locator('.admin-optional:visible')).toHaveCount(1)
-    await expect(page.getByText('Leistungszeitraum')).toBeVisible()
-    await expect(page.getByText('Juli 2026')).toBeVisible()
+    // `exact` matters: a substring match also hits any hint mentioning the value.
+    await expect(sheet.getByText('Juli 2026', { exact: true })).toBeVisible()
   })
 
   test('empty line items are hidden', async ({ page }) => {

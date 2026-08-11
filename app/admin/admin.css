@@ -72,6 +72,87 @@
   white-space: pre-wrap;
 }
 
+/* The "?" that explains a control, and the box it shows on hover or focus.
+   The text comes from data-hint via a pseudo-element, so it is never a child node
+   and can never reach the printed document. */
+.admin-hint-wrap {
+  display: inline-flex;
+  align-items: center;
+}
+
+/* Present for a screen reader, absent from the page. */
+.admin-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.admin-hint {
+  display: inline-flex;
+  position: relative;
+  height: 1rem;
+  width: 1rem;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  border: 1px solid var(--line);
+  background: #fff;
+  font-size: 0.625rem;
+  font-weight: 700;
+  line-height: 1;
+  color: #64748b;
+  cursor: help;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.admin-hint:hover,
+.admin-hint:focus-visible {
+  border-color: var(--acc);
+  color: var(--acc-deep);
+  outline: none;
+}
+
+.admin-hint::after {
+  content: attr(data-hint);
+  position: absolute;
+  bottom: calc(100% + 0.4rem);
+  left: 50%;
+  z-index: 30;
+  width: max-content;
+  /* Long enough to read, narrow enough not to cover the field it explains. */
+  max-width: min(22rem, 60vw);
+  transform: translateX(-50%);
+  border-radius: 0.5rem;
+  background: var(--ink);
+  padding: 0.5rem 0.625rem;
+  font-size: 0.75rem;
+  font-weight: 400;
+  line-height: 1.35;
+  color: #f8fafc;
+  text-align: left;
+  white-space: normal;
+  box-shadow: 0 8px 24px rgba(2, 6, 23, 0.18);
+  /* Decoration only. Without this the box swallows clicks on whatever it overlaps —
+     it sits above the button, so a showing hint in the toolbar covered the tab bar
+     and "Stammdaten" could not be clicked at all. */
+  pointer-events: none;
+  /* visibility rather than display, so the box can fade and so the pseudo-element
+     keeps its box for positioning. */
+  visibility: hidden;
+  opacity: 0;
+  transition: opacity 0.12s;
+}
+
+.admin-hint:hover::after,
+.admin-hint:focus-visible::after {
+  visibility: visible;
+  opacity: 1;
+}
+
 @media print {
   @page {
     margin: 16mm 14mm;

@@ -674,6 +674,42 @@ test('a copied Angebot stays an Angebot, a copied Storno does not stay a Storno'
   await expect(page.getByText('Ins Archiv gelegt.')).toBeVisible()
 })
 
+test('the help hints explain without reaching the printed document', async ({ page }) => {
+  await page.goto('/admin')
+  const hints = page.locator('.admin-hint')
+  expect(await hints.count()).toBeGreaterThan(5)
+
+  // The box is a CSS pseudo-element, so its state is read from computed style.
+  const boxVisibility = (locator: import('@playwright/test').Locator) =>
+    locator.evaluate((el) => getComputedStyle(el, '::after').visibility)
+
+  const first = hints.first()
+  expect(await boxVisibility(first)).toBe('hidden')
+  await first.hover()
+  await expect.poll(() => boxVisibility(first)).toBe('visible')
+  // Reachable from the keyboard too, which a native title tooltip is not.
+  await page.locator('body').click({ position: { x: 4, y: 4 } })
+  await first.focus()
+  await expect.poll(() => boxVisibility(first)).toBe('visible')
+  // Decoration only: without pointer-events:none the box covered the tab bar and
+  // swallowed the click on "Stammdaten" entirely.
+  expect(await first.evaluate((el) => getComputedStyle(el, '::after').pointerEvents)).toBe('none')
+  await page.getByRole('button', { name: 'Stammdaten' }).click({ timeout: 8000 })
+
+  // A hint must never fold into the accessible name of the field it explains: it is
+  // rendered beside the <label>, never inside it.
+  for (const label of ['Steuernummer', 'IBAN', 'Sozialversicherungsnummer']) {
+    await expect(page.getByLabel(label), `${label} must resolve to one control`).toHaveCount(1)
+  }
+
+  // And none of it — neither the "?" nor the screen-reader copy — reaches paper.
+  await page.getByRole('button', { name: 'Rechnung erstellen' }).click()
+  await page.emulateMedia({ media: 'print' })
+  await expect(page.locator('.admin-hint:visible')).toHaveCount(0)
+  await expect(page.locator('.admin-sr-only:visible')).toHaveCount(0)
+  await page.emulateMedia({ media: 'screen' })
+})
+
 test('a number can be recorded as used with no invoice behind it', async ({ page }) => {
   await page.goto('/admin')
   await page.getByRole('button', { name: 'Meine Rechnungen' }).click()

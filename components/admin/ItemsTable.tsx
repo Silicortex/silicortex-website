@@ -5,6 +5,7 @@ import { EditableField } from './EditableField.tsx'
 import { formatAmount, formatCurrency, formatQuantity } from '@/lib/invoice/format.ts'
 import { parseNum } from '@/lib/invoice/parseNum.ts'
 import { emptyItem } from '@/lib/invoice/types.ts'
+import { InfoHint } from './InfoHint.tsx'
 import { round2, round3 } from '@/lib/invoice/totals.ts'
 import type { InvoiceItemInput } from '@/lib/invoice/totals.ts'
 
@@ -100,7 +101,12 @@ export function ItemsTable({
             <th className="w-20 py-1 pr-3 text-right font-medium">Menge</th>
             <th className="w-20 py-1 font-medium">Einheit</th>
             <th className="w-28 py-1 text-right font-medium">Einzelpreis</th>
-            <th className="w-20 py-1 text-right font-medium">USt.</th>
+            <th className="w-20 py-1 text-right font-medium">
+              <span className="inline-flex items-center gap-1">
+                USt.
+                <InfoHint hint="Der Steuersatz je Position: 19 % im Regelfall, 7 % für ermäßigte Leistungen, 0 % wenn keine deutsche Umsatzsteuer anfällt. Die Umsatzsteuer wird pro Satz zusammengefasst, nicht pro Zeile. Bei Reverse Charge ist das Feld auf 0 % gesperrt." />
+              </span>
+            </th>
             <th className="w-28 py-1 text-right font-medium">Gesamt netto</th>
             <th className="admin-no-print w-8 py-1" />
           </tr>

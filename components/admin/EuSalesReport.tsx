@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react'
 import { formatCurrency } from '@/lib/invoice/format.ts'
+import { InfoHint } from './InfoHint.tsx'
 import {
   aggregateEuSales,
   formatPeriodDe,
@@ -27,8 +28,9 @@ export function EuSalesReport({ rows }: { rows: EuSaleMonthRow[] }) {
   return (
     <section className="admin-no-print mx-auto mt-12 max-w-[840px] px-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h3 className="text-base font-semibold text-slate-900">
+        <h3 className="flex items-center gap-2 text-base font-semibold text-slate-900">
           Zusammenfassende Meldung (EU-Umsätze)
+          <InfoHint hint="Wer mit Reverse Charge an EU-Unternehmen abrechnet, muss diese Umsätze je Kunde beim Bundeszentralamt für Steuern melden — zusätzlich zur Umsatzsteuer-Voranmeldung. Diese Übersicht liefert nur die Zahlen; gemeldet wird nichts." />
         </h3>
         <div className="flex gap-1 rounded-full border border-black/10 bg-white p-1 text-sm">
           {(['month', 'quarter'] as const).map((option) => (

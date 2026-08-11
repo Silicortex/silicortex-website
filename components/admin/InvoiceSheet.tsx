@@ -1,6 +1,7 @@
 'use client'
 
 import { EditableField } from './EditableField.tsx'
+import { InfoHint } from './InfoHint.tsx'
 import { ItemsTable } from './ItemsTable.tsx'
 import { TotalsBlock } from './TotalsBlock.tsx'
 import type { InvoiceItemInput, InvoiceTotals } from '@/lib/invoice/totals.ts'
@@ -108,32 +109,38 @@ export function InvoiceSheet({
           readOnly={readOnly}
           onChange={(v) => set('customerCountry', v)}
         />
-        <div className="admin-optional">
-          <EditableField
-            ariaLabel="USt-IdNr. des Kunden"
-            placeholder={
-              invoice.reverseCharge
-                ? 'USt-IdNr. des Kunden (bei Reverse Charge zwingend)'
-                : 'USt-IdNr. des Kunden (optional)'
-            }
-            value={invoice.customerVatId}
-            readOnly={readOnly}
-            onChange={(v) => set('customerVatId', v)}
-            // A bare tax id under the address reads ambiguously on a document
-            // going to a client, so print names it. The prefix is CONDITIONAL:
-            // .admin-optional hides this row by matching an EMPTY print span,
-            // so an unconditional label would print "USt-IdNr.:" with no value.
-            printValue={
-              invoice.customerVatId.trim() ? `USt-IdNr.: ${invoice.customerVatId}` : ''
-            }
-          />
+        {/* Outside .admin-optional: the hint must not be what keeps an otherwise
+            empty row visible in print. */}
+        <div className="flex items-center gap-1.5">
+          <div className="admin-optional grow">
+            <EditableField
+              ariaLabel="USt-IdNr. des Kunden"
+              placeholder={
+                invoice.reverseCharge
+                  ? 'USt-IdNr. des Kunden (bei Reverse Charge zwingend)'
+                  : 'USt-IdNr. des Kunden (optional)'
+              }
+              value={invoice.customerVatId}
+              readOnly={readOnly}
+              onChange={(v) => set('customerVatId', v)}
+              // A bare tax id under the address reads ambiguously on a document
+              // going to a client, so print names it. The prefix is CONDITIONAL:
+              // .admin-optional hides this row by matching an EMPTY print span,
+              // so an unconditional label would print "USt-IdNr.:" with no value.
+              printValue={
+                invoice.customerVatId.trim() ? `USt-IdNr.: ${invoice.customerVatId}` : ''
+              }
+            />
+          </div>
+          <InfoHint hint="Die Umsatzsteuer-Identifikationsnummer des Kunden. Freiwillig bei deutschen Kunden, zwingend bei Reverse Charge — dort muss sie zu einem EU-Mitgliedstaat außer Deutschland gehören und vorab beim Bundeszentralamt für Steuern bestätigt werden." />
         </div>
       </section>
 
       <section className="mt-10 flex flex-col gap-1">
         <div className={metaRow}>
-          <span className={metaLabel}>
+          <span className={`${metaLabel} flex items-center gap-1.5`}>
             {invoice.docType === 'quote' ? 'Angebotsnummer' : 'Rechnungsnummer'}
+            <InfoHint hint="Vorschlag aus dem nächsten freien Zähler des Kreises. Kann überschrieben werden, ist aber erst mit dem Festschreiben endgültig vergeben. Eine übersprungene Nummer bleibt als Lücke bestehen und muss bei einer Prüfung begründet werden." />
           </span>
           {invoice.status === 'issued' ? (
             <span>{invoice.invoiceNumber}</span>
@@ -147,8 +154,9 @@ export function InvoiceSheet({
           )}
         </div>
         <div className={metaRow}>
-          <span className={metaLabel}>
+          <span className={`${metaLabel} flex items-center gap-1.5`}>
             {invoice.docType === 'quote' ? 'Angebotsdatum' : 'Rechnungsdatum'}
+            <InfoHint hint="Das Ausstellungsdatum, ein Pflichtfeld nach § 14 UStG. Voreingestellt ist der heutige Tag nach deutscher Zeit." />
           </span>
           <EditableField
             ariaLabel="Rechnungsdatum"
@@ -163,7 +171,13 @@ export function InvoiceSheet({
             was — and an empty one would otherwise print a bare "Leistungszeitraum"
             label with nothing under it. */}
         <div className={`${metaRow} admin-optional`}>
-          <span className={metaLabel}>Leistungszeitraum</span>
+          <span className={`${metaLabel} flex items-center gap-1.5`}>
+            Leistungszeitraum
+            {/* No quoted example value in the text: hint text is real page text, so
+                a concrete date in here collides with assertions about the printed
+                document. The placeholder in the field already shows the format. */}
+            <InfoHint hint="Wann die Leistung erbracht wurde — bei einer Rechnung ein Pflichtfeld nach § 14 UStG. Ein einzelner Monat oder ein Zeitraum genügt. Bei einem Angebot entfällt die Angabe." />
+          </span>
           <EditableField
             ariaLabel="Leistungsdatum oder Leistungszeitraum"
             placeholder="z. B. 01.07.2026 – 31.07.2026"
@@ -173,7 +187,10 @@ export function InvoiceSheet({
           />
         </div>
         <div className={`${metaRow} admin-optional`}>
-          <span className={metaLabel}>Kundennummer</span>
+          <span className={`${metaLabel} flex items-center gap-1.5`}>
+            Kundennummer
+            <InfoHint hint="Freiwillig. Bleibt das Feld leer, erscheint die Zeile im Druck gar nicht." />
+          </span>
           <EditableField
             ariaLabel="Kundennummer"
             placeholder="optional"

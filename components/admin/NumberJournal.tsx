@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { findGaps, nextNumber, RANGES, type RangePrefix } from '@/lib/invoice/numbering.ts'
+import { InfoHint } from './InfoHint.tsx'
 
 export type JournalEntry = {
   number: string
@@ -40,7 +41,10 @@ export function NumberJournal({
 
   return (
     <section className="admin-no-print mx-auto mt-12 max-w-[840px] px-6">
-      <h3 className="text-base font-semibold text-slate-900">Nummernkreise</h3>
+      <h3 className="flex items-center gap-2 text-base font-semibold text-slate-900">
+        Nummernkreise
+        <InfoHint hint="Je Dokumentart ein eigener Zähler: RE- für Rechnungen, ST- für Stornorechnungen, AN- für Angebote. Getrennte Kreise sind zulässig, und jeder beginnt am 1. Januar wieder bei 001." />
+      </h3>
       <p className="mt-1 text-sm text-slate-500">
         Jeder Kreis zählt unabhängig und beginnt am 1. Januar wieder bei 001. Eine
         Nummer wird nie zweimal vergeben; Lücken sind zulässig, sollten aber einen
@@ -53,7 +57,12 @@ export function NumberJournal({
             <th className="py-1 font-normal">Kreis</th>
             <th className="py-1 font-normal">Nächste Nummer</th>
             <th className="py-1 font-normal">Vergeben {year}</th>
-            <th className="py-1 font-normal">Lücken</th>
+            <th className="py-1 font-normal">
+              <span className="inline-flex items-center gap-1">
+                Lücken
+                <InfoHint hint="Fehlende Nummern innerhalb der bereits benutzten Spanne. Rechtlich zulässig — eine lückenlose Folge ist nicht vorgeschrieben —, bei einer Betriebsprüfung gilt eine fehlende Nummer aber als Hinweis auf nicht erfasste Einnahmen und muss erklärbar sein." />
+              </span>
+            </th>
           </tr>
         </thead>
         <tbody>
@@ -81,7 +90,10 @@ export function NumberJournal({
         </tbody>
       </table>
 
-      <h3 className="mt-10 text-base font-semibold text-slate-900">Vergebene Nummern</h3>
+      <h3 className="mt-10 flex items-center gap-2 text-base font-semibold text-slate-900">
+        Vergebene Nummern
+        <InfoHint hint="Das dauerhafte Verzeichnis aller je vergebenen Nummern. Ein Eintrag lässt sich weder ändern noch löschen, auch nicht wenn das Dokument dazu verschwindet — nur so ist sichergestellt, dass eine Nummer nie zweimal vergeben wird." />
+      </h3>
       {journal.length === 0 ? (
         <p className="mt-2 text-sm text-slate-500">Noch keine Nummer vergeben.</p>
       ) : (
@@ -113,7 +125,10 @@ export function NumberJournal({
         </table>
       )}
 
-      <h3 className="mt-10 text-base font-semibold text-slate-900">Sicherung</h3>
+      <h3 className="mt-10 flex items-center gap-2 text-base font-semibold text-slate-900">
+        Sicherung
+        <InfoHint hint="Die JSON-Datei enthält alles und lässt sich in eine leere Datenbank zurückspielen. Die CSV-Datei ist eine Liste zum Buchen und enthält keine Angebote. Am besten nach jeder Rechnung herunterladen und außerhalb dieser Anwendung ablegen." />
+      </h3>
       <p className="mt-1 text-sm text-slate-500">
         Rechnungen sind zehn Jahre aufzubewahren (§ 147 AO). Die Sicherung enthält
         alle Rechnungen, Positionen, vergebenen Nummern und die Stammdaten und
@@ -141,8 +156,9 @@ export function NumberJournal({
         </a>
       </div>
 
-      <h3 className="mt-10 text-base font-semibold text-slate-900">
+      <h3 className="mt-10 flex items-center gap-2 text-base font-semibold text-slate-900">
         Nummer ohne Rechnung verbrauchen
+        <InfoHint hint="Vermerkt eine Nummer als vergeben, obwohl kein Dokument dazu existiert — etwa nach einem Testlauf. Der Grund ist Pflicht, denn genau er erklärt die Lücke später. Danach ist die Nummer dauerhaft blockiert." />
       </h3>
       <p className="mt-1 text-sm text-slate-500">
         Für einen verworfenen Entwurf, einen Testlauf oder eine vor dem Versand

@@ -35,6 +35,7 @@ import {
   rangeFor,
 } from '@/lib/invoice/numbering.ts'
 import { ArchiveTable } from './ArchiveTable.tsx'
+import { InfoHint } from './InfoHint.tsx'
 import { NumberJournal, type JournalEntry } from './NumberJournal.tsx'
 import { EuSalesReport } from './EuSalesReport.tsx'
 import type { EuSaleMonthRow } from '@/lib/invoice/euSales.ts'
@@ -457,6 +458,7 @@ export function AdminApp({
             >
               {busy ? 'Speichere …' : 'Ins Archiv legen'}
             </button>
+            <InfoHint hint="Speichert den Entwurf, ohne ihn festzuschreiben. Entwürfe haben noch keine Nummer, sind jederzeit änderbar und können gelöscht werden — dabei entsteht keine Lücke." />
             <button
               type="button"
               onClick={() => startNewInvoice('invoice')}
@@ -465,6 +467,7 @@ export function AdminApp({
             >
               Neue Rechnung
             </button>
+            <InfoHint hint="Leert das Formular für ein neues Dokument und holt die nächste freie Nummer vom Server. Ein Entwurf mit Inhalt wird vorher abgefragt." />
             <button
               type="button"
               onClick={() => startNewInvoice('quote')}
@@ -473,6 +476,7 @@ export function AdminApp({
             >
               Neues Angebot
             </button>
+            <InfoHint hint="Schreibt ein Angebot statt einer Rechnung: eigener Nummernkreis AN-, Überschrift ANGEBOT, Gültigkeit statt Zahlungsziel. Ein angenommenes Angebot lässt sich später im Archiv in eine Rechnung umwandeln." />
             <button
               type="button"
               onClick={printInvoice}
@@ -481,6 +485,9 @@ export function AdminApp({
             >
               Drucken / PDF
             </button>
+            {/* The one control with an irreversible consequence, and it did not say
+                so anywhere in the interface. */}
+            <InfoHint hint="Achtung: Bei einem Entwurf wird das Dokument damit festgeschrieben. Es erhält seine endgültige Nummer und ist danach unveränderbar — eine Korrektur ist nur noch über eine Stornorechnung möglich. Erst danach öffnet sich der Druckdialog." />
             {/* Screen only — the document itself carries the note, not a
                 checkbox. */}
             <label className="ml-auto flex items-center gap-2 text-sm text-slate-600">
@@ -492,6 +499,7 @@ export function AdminApp({
                 onChange={(e) => toggleReverseCharge(e.target.checked)}
               />
               Reverse Charge (EU-Kunde)
+              <InfoHint hint="Für Leistungen an ein Unternehmen in einem anderen EU-Land: die Umsatzsteuer schuldet der Empfänger in seinem Land. Setzt alle Positionen auf 0 %, druckt den Pflichthinweis und verlangt die USt-IdNr. des Kunden. Nicht für deutsche Kunden." />
             </label>
           </div>
           {printErrors.length > 0 && (

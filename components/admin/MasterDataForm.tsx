@@ -9,8 +9,30 @@ import type {
 import { saveMasterDataAction } from '@/app/admin/(protected)/actions.ts'
 import { parseNum } from '@/lib/invoice/parseNum.ts'
 import { round1 } from '@/lib/invoice/totals.ts'
+import { InfoHint } from './InfoHint.tsx'
 
 type TextKey = Exclude<keyof MasterDataInvoiceVisible, 'defaultVatRate' | 'paymentTermsDays'>
+
+/** Per-field explanations. Only the fields whose name does not already say what
+ *  belongs there, or where getting it wrong has a consequence — a "?" beside every
+ *  single label would be noise nobody reads. */
+const HINTS: Partial<Record<string, string>> = {
+  name: 'Der Name, unter dem Sie rechtlich auftreten. Erscheint als Absender auf jedem Dokument und ist nach § 14 UStG ein Pflichtfeld.',
+  statusLabel: 'Nur zur Anzeige unter dem Namen, z. B. „Freiberufler“. Rechtlich nicht erforderlich.',
+  taxNumber: 'Vom Finanzamt vergeben. § 14 UStG verlangt entweder die Steuernummer ODER die USt-IdNr. — gedruckt wird nur die USt-IdNr., sofern vorhanden, weil die Steuernummer an Ihre persönliche Steuerakte gebunden ist.',
+  vatId: 'Vom Bundeszentralamt für Steuern vergeben. Wird auf der Rechnung gedruckt und ist bei Leistungen an EU-Unternehmen (Reverse Charge) zwingend.',
+  taxOffice: 'Nicht von § 14 UStG verlangt, aber im deutschen Geschäftsverkehr übliche Angabe in der Fußzeile.',
+  iban: 'Erscheint im Block „Bankverbindung“. Für eine SEPA-Überweisung genügt die IBAN; der BIC ist optional.',
+  bic: 'Optional — innerhalb Deutschlands wird er für eine Überweisung nicht benötigt. Steht auf Ihrem Kontoauszug.',
+  businessId: 'Nur zur Ablage. Erscheint auf keinem Dokument.',
+  personalTaxId: 'Ihre persönliche Steuer-Identifikationsnummer. Nur zur Ablage — sie gehört auf keine Rechnung.',
+  socialSecurityNo: 'Nur zur Ablage. Erscheint auf keinem Dokument.',
+  birthDate: 'Nur zur Ablage. Erscheint auf keinem Dokument.',
+  activityStart: 'Nur zur Ablage, für Ihre Unterlagen beim Finanzamt.',
+  vatScheme: 'Nur zur Ablage. Bei Regelbesteuerung wird auf der Rechnung nichts dazu erwähnt — ein Hinweis auf § 19 UStG gilt ausschließlich für Kleinunternehmer.',
+  taxationType: 'Nur zur Ablage. Die Ist-Versteuerung nach § 20 UStG bestimmt nur, wann Sie die Steuer abführen, und gehört nicht auf die Rechnung.',
+  profitDetermination: 'Nur zur Ablage, für Ihre Steuererklärung.',
+}
 
 const VISIBLE_FIELDS: { key: TextKey; label: string }[] = [
   { key: 'name', label: 'Name / Firmenbezeichnung' },
@@ -100,7 +122,12 @@ export function MasterDataForm({
         <legend className="px-1.5 text-[10px] font-bold uppercase tracking-widest text-slate-400">Angaben auf der Rechnung</legend>
         {VISIBLE_FIELDS.map((f) => (
           <div key={f.key} className={row}>
-            <label className={labelCls} htmlFor={`md-${f.key}`}>{f.label}</label>
+            {/* The hint sits BESIDE the label, never inside it: anything inside a
+                label becomes part of the input's accessible name. */}
+            <span className={`${labelCls} flex items-center gap-1.5`}>
+              <label htmlFor={`md-${f.key}`}>{f.label}</label>
+              {HINTS[f.key] && <InfoHint hint={HINTS[f.key]!} />}
+            </span>
             <input
               id={`md-${f.key}`}
               className={inputCls}
@@ -110,7 +137,10 @@ export function MasterDataForm({
           </div>
         ))}
         <div className={row}>
-          <label className={labelCls} htmlFor="md-vatRate">Standard-Steuersatz (%)</label>
+          <span className={`${labelCls} flex items-center gap-1.5`}>
+            <label htmlFor="md-vatRate">Standard-Steuersatz (%)</label>
+            <InfoHint hint="Der Satz, mit dem eine neue Position beginnt — in der Regel 19. Pro Position änderbar. Wird auf eine Dezimalstelle gerundet, weil mehr nicht gespeichert werden kann." />
+          </span>
           {/* Raw text is held while typing, so an in-progress "7," is not
               re-rendered as "7" — which would make a decimal rate impossible to
               enter one keystroke at a time. parseNum accepts both "7,7" and
@@ -137,7 +167,10 @@ export function MasterDataForm({
           />
         </div>
         <div className={row}>
-          <label className={labelCls} htmlFor="md-terms">Zahlungsziel (Tage)</label>
+          <span className={`${labelCls} flex items-center gap-1.5`}>
+            <label htmlFor="md-terms">Zahlungsziel (Tage)</label>
+            <InfoHint hint="Füllt den Vorschlagstext für das Zahlungsziel auf einer neuen Rechnung. Ein von Hand geänderter Text bleibt unangetastet." />
+          </span>
           <input
             id="md-terms"
             className={inputCls}
@@ -163,7 +196,12 @@ export function MasterDataForm({
         <legend className="px-1.5 text-[10px] font-bold uppercase tracking-widest text-slate-400">Bankverbindung</legend>
         {BANK_FIELDS.map((f) => (
           <div key={f.key} className={row}>
-            <label className={labelCls} htmlFor={`md-${f.key}`}>{f.label}</label>
+            {/* The hint sits BESIDE the label, never inside it: anything inside a
+                label becomes part of the input's accessible name. */}
+            <span className={`${labelCls} flex items-center gap-1.5`}>
+              <label htmlFor={`md-${f.key}`}>{f.label}</label>
+              {HINTS[f.key] && <InfoHint hint={HINTS[f.key]!} />}
+            </span>
             <input
               id={`md-${f.key}`}
               className={inputCls}
@@ -183,7 +221,12 @@ export function MasterDataForm({
         </legend>
         {INTERNAL_FIELDS.map((f) => (
           <div key={f.key} className={row}>
-            <label className={labelCls} htmlFor={`md-${f.key}`}>{f.label}</label>
+            {/* The hint sits BESIDE the label, never inside it: anything inside a
+                label becomes part of the input's accessible name. */}
+            <span className={`${labelCls} flex items-center gap-1.5`}>
+              <label htmlFor={`md-${f.key}`}>{f.label}</label>
+              {HINTS[f.key] && <InfoHint hint={HINTS[f.key]!} />}
+            </span>
             <input
               id={`md-${f.key}`}
               className={inputCls}
