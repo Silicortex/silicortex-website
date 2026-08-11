@@ -9,6 +9,7 @@ import { readFile } from 'node:fs/promises'
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { PGlite } from '@electric-sql/pglite'
+import { restoreInto } from './restore.mjs'
 
 const schema = await readFile(new URL('./schema.sql', import.meta.url), 'utf8')
 const statements = schema
@@ -462,5 +463,135 @@ test('reverse charge is stored per invoice and frozen once issued', async () => 
   await assert.rejects(
     () => db.query('update invoices set reverse_charge = false where id = $1', [draft.rows[0].id]),
     /immutable|issued/i
+  )
+})
+
+/** Mirrors lib/db/backup.ts createBackup, against PGlite. Dates are cast to text
+ *  for the same reason: the driver reads a `date` as LOCAL midnight, which
+ *  serialises a stored 2026-08-08 as 2026-08-07 in CEST — one day early in the
+ *  file that is supposed to BE the record. */
+async function backupFrom(db) {
+  const q = async (text) => (await db.query(text)).rows
+  const invoices = await q(`select id, status, invoice_number, proposed_number,
+      invoice_date::text as invoice_date, service_date, customer_number, customer_name,
+      customer_street, customer_zip_city, customer_country, customer_vat_id, payment_terms,
+      storno_for, storno_for_date, reverse_charge, net_total, vat_total, gross_total,
+      vat_breakdown, sender_snapshot, issued_at::text as issued_at, created_at::text as created_at
+    from invoices order by created_at`)
+  const items = await q(`select invoice_id, line_no, description, quantity, unit,
+      unit_price, vat_rate, net_amount from invoice_items order by invoice_id, line_no`)
+  return {
+    app: 'silicortex-invoices',
+    version: 1,
+    exportedAt: '2026-08-11T00:00:00Z',
+    database: 'test/test',
+    masterData: (await q('select * from master_data where id = 1'))[0] ?? {},
+    invoices: invoices.map((i) => ({
+      ...i,
+      items: items.filter((it) => it.invoice_id === i.id),
+    })),
+    issuedNumbers: await q(`select number, prefix, year, seq, invoice_id, reason,
+      created_at::text as created_at from issued_numbers order by created_at, number`),
+  }
+}
+
+async function seed(db) {
+  await db.query(`update master_data set name = 'Mohamad Muster', iban = 'DE00 1234', vat_id = 'DE1' where id = 1`)
+  // Draft first, then items, then issue — the order the app uses. Inserting items
+  // under an already-issued invoice is what the item trigger exists to reject.
+  const inv = await db.query(
+    `insert into invoices (invoice_date, customer_name, customer_vat_id, reverse_charge,
+        net_total, vat_total, gross_total, vat_breakdown)
+     values ('2026-08-08', 'Kunde GmbH', 'ATU12345678', true, 100, 0, 100,
+        '[{"rate":0,"net":100,"vat":0}]'::jsonb)
+     returning id`
+  )
+  await db.query(
+    `insert into invoice_items (invoice_id, line_no, description, quantity, unit, unit_price, vat_rate, net_amount)
+     values ($1, 1, 'Entwicklung', 2, 'Std', 50, 0, 100)`,
+    [inv.rows[0].id]
+  )
+  await db.query(
+    `update invoices set status = 'issued', invoice_number = 'RE-2026-001', issued_at = now(),
+            sender_snapshot = '{"name":"Muster"}'::jsonb
+     where id = $1`,
+    [inv.rows[0].id]
+  )
+  await db.query(
+    `insert into issued_numbers (number, prefix, year, seq, invoice_id) values ('RE-2026-001','RE',2026,1,$1)`,
+    [inv.rows[0].id]
+  )
+  await db.query(
+    `insert into issued_numbers (number, prefix, year, seq, reason) values ('RE-2026-002','RE',2026,2,'Entwurf verworfen')`
+  )
+}
+
+test('a backup restores into an empty database, unchanged', async () => {
+  const source = await freshDb()
+  await seed(source)
+  const backup = await backupFrom(source)
+
+  const target = await freshDb()
+  const result = await restoreInto((text, params) => target.query(text, params ?? []), backup)
+  assert.deepEqual(result, { invoices: 1, items: 1, numbers: 2 })
+
+  // Compared as a whole, not field by field: a column added later without being
+  // added to the backup would slip through a hand-picked list of assertions.
+  const restored = await backupFrom(target)
+  assert.deepEqual(restored.invoices, backup.invoices)
+  assert.deepEqual(restored.issuedNumbers, backup.issuedNumbers)
+  assert.equal(restored.masterData.name, 'Mohamad Muster')
+  assert.equal(restored.masterData.iban, 'DE00 1234')
+  // The date survives as the date it was, not one day either side of it.
+  assert.equal(restored.invoices[0].invoice_date, '2026-08-08')
+})
+
+test('a restore leaves the immutability triggers enabled', async () => {
+  const source = await freshDb()
+  await seed(source)
+  const target = await freshDb()
+  await restoreInto((text, params) => target.query(text, params ?? []), await backupFrom(source))
+
+  // A database left with the triggers off has silently lost the guarantee.
+  const enabled = await target.query(
+    `select tgname from pg_trigger where tgenabled = 'O' and tgname like '%immutable%' order by 1`
+  )
+  assert.deepEqual(enabled.rows.map((r) => r.tgname), [
+    'invoice_items_immutable_when_issued',
+    'invoices_immutable_when_issued',
+    'issued_numbers_immutable',
+  ])
+  // And the restored invoice is immutable again.
+  await assert.rejects(
+    () => target.query(`update invoices set customer_name = 'x' where invoice_number = 'RE-2026-001'`),
+    /immutable|issued/i
+  )
+})
+
+test('a restore refuses a database that already holds invoices', async () => {
+  const source = await freshDb()
+  await seed(source)
+  const backup = await backupFrom(source)
+
+  // Merging would reintroduce numbers the journal has already burned and leave
+  // two invoices claiming one number — nothing later can untangle that.
+  const target = await freshDb()
+  await seed(target)
+  await assert.rejects(
+    () => restoreInto((text, params) => target.query(text, params ?? []), backup),
+    /Refusing to restore/
+  )
+})
+
+test('a restore refuses a file that is not one of our backups', async () => {
+  const db = await freshDb()
+  const run = (backup) => restoreInto((text, params) => db.query(text, params ?? []), backup)
+  await assert.rejects(() => run({ invoices: [] }), /missing app marker/)
+  await assert.rejects(() => run({ app: 'something-else', version: 1 }), /missing app marker/)
+  // A file from a future version might rely on columns this script does not know
+  // to write; a partial restore is worse than a refusal.
+  await assert.rejects(
+    () => run({ app: 'silicortex-invoices', version: 99 }),
+    /newer than this restore script/
   )
 })

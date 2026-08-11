@@ -215,3 +215,46 @@ exact). It is a report only. The app does not file the ZM with the BZSt, and it 
 confirm any VAT ID against BZSt/VIES — obtaining that confirmation and keeping the
 evidence stays manual, and matters, because an invalid customer VAT ID makes the
 VAT the supplier's.
+
+## Backup, export and restore
+
+Invoices must be kept for ten years (§ 147 AO). The app can reprint any issued
+invoice, but only while this one database exists — so *Meine Rechnungen* offers two
+downloads:
+
+- **Sicherung (JSON)** — everything: invoices, line items, the number journal and
+  the Stammdaten. Restorable into an empty database.
+- **Rechnungsliste (CSV)** — one row per invoice for the Steuerberater, with each
+  VAT rate broken out into its own column. Semicolon-separated with comma decimals
+  and a BOM, so a German Excel opens it without an import dialog and umlauts
+  survive. Values that Excel would evaluate as a formula are prefixed with an
+  apostrophe.
+
+The JSON **contains personal data** — IBAN, Steuernummer, Steuer-IdNr.,
+Sozialversicherungsnummer, date of birth. Keep it on your own storage. It must
+never be committed: this repository is public.
+
+`/admin/export` is a Route Handler, not a Server Action, because the response has
+to arrive as a file. `requireSession()` is its first statement and outside any
+try/catch: `redirect()` works by throwing, so a catch would swallow it and serve
+the IBAN to an unauthenticated request. Verified by test and by hand — no cookie
+and a forged cookie both get a 307 to the login page with an empty body.
+
+### Restoring
+
+```sh
+DATABASE_URL="<empty database>" node db/restore.mjs silicortex-backup_2026-08-11.json
+```
+
+It prints which database the backup came from and which one it is writing to, and
+**refuses a database that already holds invoices or journal entries** — merging
+would reintroduce numbers the journal has already burned and leave two invoices
+claiming one number, which nothing later can untangle. It disables the immutability
+triggers to write issued rows, then re-enables them in a `finally`; a database left
+with them off has silently lost the guarantee.
+
+A backup nobody has restored is a guess. The round trip is covered by schema tests
+against real Postgres, and was verified end to end: seed a database, download the
+JSON over HTTP from the running app, restore into a second database, and compare
+every table — invoices, items, journal and Stammdaten came back identical, dates
+included.

@@ -113,6 +113,34 @@ export function NumberJournal({
         </table>
       )}
 
+      <h3 className="mt-10 text-base font-semibold text-slate-900">Sicherung</h3>
+      <p className="mt-1 text-sm text-slate-500">
+        Rechnungen sind zehn Jahre aufzubewahren (§ 147 AO). Die Sicherung enthält
+        alle Rechnungen, Positionen, vergebenen Nummern und die Stammdaten und
+        lässt sich in eine leere Datenbank zurückspielen. <strong>Sie enthält
+        personenbezogene Daten</strong> (IBAN, Steuernummer, Steuer-IdNr.,
+        Sozialversicherungsnummer, Geburtsdatum) — bitte sicher und niemals in
+        einem öffentlichen Repository ablegen.
+      </p>
+      <div className="mt-3 flex flex-wrap gap-2">
+        {/* Plain links, not fetch(): the browser handles a Content-Disposition
+            download itself, and a blob round-trip would only add a way to fail. */}
+        <a
+          href="/admin/export?format=json"
+          download
+          className="rounded-full bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm shadow-blue-600/25 transition hover:bg-blue-500"
+        >
+          Sicherung herunterladen (JSON)
+        </a>
+        <a
+          href="/admin/export?format=csv"
+          download
+          className="rounded-full border border-black/10 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:border-blue-500/50 hover:text-blue-600"
+        >
+          Rechnungsliste für den Steuerberater (CSV)
+        </a>
+      </div>
+
       <h3 className="mt-10 text-base font-semibold text-slate-900">
         Nummer ohne Rechnung verbrauchen
       </h3>

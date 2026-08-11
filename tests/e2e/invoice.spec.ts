@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test'
+import { test, expect, request as playwrightRequest } from '@playwright/test'
 
 async function fillInvoice(page: import('@playwright/test').Page, customer: string) {
   await page.getByLabel('Kundenname').fill(customer)
@@ -351,6 +351,48 @@ test('an issued reverse-charge invoice appears in the EU sales report', async ({
   await expect(monthlyRow).toContainText(invoiceMonth)
   await expect(monthlyRow).toContainText('161,00')
   await expect(monthlyRow).not.toContainText(quarter)
+})
+
+test('the export downloads as a file and refuses an unauthenticated request', async ({ page }) => {
+  await page.goto('/admin')
+  const origin = new URL(page.url()).origin
+
+  // page.request carries the page's cookies, so this is the authenticated case.
+  const backupResponse = await page.request.get('/admin/export?format=json')
+  expect(backupResponse.status()).toBe(200)
+  expect(backupResponse.headers()['content-disposition']).toContain('silicortex-backup_')
+  // A snapshot of live data behind a login must never be cached.
+  expect(backupResponse.headers()['cache-control']).toContain('no-store')
+  const backup = await backupResponse.json()
+  expect(backup.app).toBe('silicortex-invoices')
+  expect(Array.isArray(backup.invoices)).toBe(true)
+  expect(backup.masterData).toBeTruthy()
+
+  const csvResponse = await page.request.get('/admin/export?format=csv')
+  expect(csvResponse.headers()['content-type']).toContain('text/csv')
+  expect(csvResponse.headers()['content-disposition']).toContain('.csv')
+  expect(await csvResponse.text()).toContain('Rechnungsnummer;')
+
+  // A context with no session cookie. This route hands out the IBAN and every tax
+  // identifier in one response, so the check is not optional.
+  //
+  // storageState is passed EXPLICITLY empty: without it, newContext inherits the
+  // project's saved signed-in state, the "anonymous" request arrives
+  // authenticated, and the test passes while proving nothing.
+  const anonymous = await playwrightRequest.newContext({
+    baseURL: origin,
+    storageState: { cookies: [], origins: [] },
+  })
+  try {
+    const denied = await anonymous.get('/admin/export?format=json', { maxRedirects: 0 })
+    expect(denied.status(), 'unauthenticated export must redirect, not serve').toBe(307)
+    // The status alone is not the guarantee — the body is.
+    const body = await denied.text()
+    expect(body).not.toContain('silicortex-invoices')
+    expect(body).not.toContain('iban')
+  } finally {
+    await anonymous.dispose()
+  }
 })
 
 test('a number can be recorded as used with no invoice behind it', async ({ page }) => {
