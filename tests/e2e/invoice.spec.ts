@@ -548,6 +548,62 @@ test('a reverse-charge Angebot is neither reported nor booked', async ({ page })
   expect(inBackup?.doc_type).toBe('quote')
 })
 
+test('the SERVER refuses an incomplete sender the client thinks is complete', async ({ page }) => {
+  // The regression test for the server-side § 14 check, which until now was only
+  // ever verified by hand — because with the client check in place, an ordinary
+  // test never reaches the action.
+  //
+  // This takes the path that made the bug reachable in the first place: the
+  // Stammdaten form pushes every keystroke into client state independent of its
+  // save button, so a sender TYPED BUT NOT SAVED satisfies the client while the
+  // database row the action is about to freeze is still empty.
+  await page.addInitScript(() => {
+    window.print = () => {}
+  })
+  await page.goto('/admin')
+  await clearSender(page) // an empty SAVED sender
+
+  // Type a complete one and never save it.
+  await page.getByLabel('Name / Firmenbezeichnung').fill('NUR GETIPPT')
+  await page.getByLabel('Straße und Hausnummer').fill('Teststraße 1')
+  await page.getByLabel('PLZ und Ort').fill('00000 Teststadt')
+  await page.getByLabel('Steuernummer').fill('TEST-000/000/00000')
+
+  await page.getByRole('button', { name: 'Rechnung erstellen' }).click()
+  await fillInvoice(page, `Testkunde Serverpruefung ${RUN}`)
+  const number = `E2E-SERVER-${RUN}`
+  await page.getByLabel('Rechnungsnummer').fill(number)
+
+  // The client is satisfied, so the confirmation appears and the action runs.
+  let confirmed = false
+  page.once('dialog', (dialog) => {
+    confirmed = true
+    void dialog.accept()
+  })
+  await page.getByRole('button', { name: 'Drucken / PDF' }).click()
+  await expect.poll(() => confirmed, { message: 'the client check should have passed' }).toBe(true)
+
+  // And the server refuses anyway, which is the whole point: an action is a
+  // directly reachable POST endpoint, so it cannot trust what the client checked.
+  await expect(page.getByText(/Festschreiben nicht möglich/)).toBeVisible()
+  await expect(page.getByText(/Stammdaten: Name fehlt/)).toBeVisible()
+
+  // Nothing was frozen: still an editable draft.
+  await expect(page.getByLabel('Kundenname')).not.toHaveAttribute('readonly', '')
+  await page.getByRole('button', { name: 'Meine Rechnungen' }).click()
+
+  // The row IS in the archive — the draft was saved before the refusal, and a
+  // draft shows its proposed number. What matters is that the number was never
+  // CLAIMED, which the journal is the authority on.
+  const journal = page.locator('section', { hasText: 'Nummernkreise' }).first()
+  await expect(journal).toBeVisible()
+  await expect(journal).not.toContainText(number)
+
+  // And it is still a draft, not a frozen document: only drafts can be deleted.
+  const row = page.getByRole('row', { name: new RegExp(`Testkunde Serverpruefung ${RUN}`) })
+  await expect(row.getByRole('button', { name: /löschen/ })).toBeVisible()
+})
+
 test('a number can be recorded as used with no invoice behind it', async ({ page }) => {
   await page.goto('/admin')
   await page.getByRole('button', { name: 'Meine Rechnungen' }).click()

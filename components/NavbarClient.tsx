@@ -1,18 +1,18 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useEffect, useState } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { useTheme } from "next-themes"
 import { motion, AnimatePresence } from "framer-motion"
-import { siteConfig } from "@/lib/siteConfig"
 import { useLang } from "@/components/providers/LangProvider"
+import { useHydrated } from "@/lib/useHydrated"
 
 function ThemeToggle() {
   const { resolvedTheme, setTheme } = useTheme()
-  const [mounted, setMounted] = useState(false)
-  useEffect(() => setMounted(true), [])
-  if (!mounted) return <div className="h-8 w-8" />
+  // The resolved theme is only knowable in the browser, so the placeholder holds
+  // the layout until hydration rather than rendering a guess the server cannot make.
+  if (!useHydrated()) return <div className="h-8 w-8" />
 
   const isDark = resolvedTheme === "dark"
   return (

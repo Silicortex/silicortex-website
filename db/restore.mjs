@@ -33,7 +33,12 @@ export async function restoreInto(query, backup) {
     'select (select count(*) from invoices) as invoices,' +
       ' (select count(*) from issued_numbers) as numbers'
   )
-  const counts = rowsOf(existing)[0] ?? { invoices: 0, numbers: 0 }
+  // No default. `?? { invoices: 0, numbers: 0 }` read as "assume it is empty" —
+  // fail-open in the one check standing between a backup and someone's existing
+  // invoices. A count query always returns a row, so if it did not, something is
+  // wrong enough that refusing is the only safe answer.
+  const counts = rowsOf(existing)[0]
+  if (!counts) throw new Error('Could not read the target database; refusing to restore.')
   if (Number(counts.invoices) > 0 || Number(counts.numbers) > 0) {
     throw new Error(
       `Refusing to restore: this database already holds ${counts.invoices} invoice(s) and ` +
