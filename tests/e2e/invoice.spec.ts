@@ -395,6 +395,62 @@ test('the export downloads as a file and refuses an unauthenticated request', as
   }
 })
 
+test('"Neue Rechnung" clears an issued invoice and takes the next number', async ({ page }) => {
+  await page.addInitScript(() => {
+    window.print = () => {}
+  })
+  await page.goto('/admin')
+  await saveSender(page, 'E2E Sender Neu')
+  await page.getByRole('button', { name: 'Rechnung erstellen' }).click()
+  await fillInvoice(page, `Testkunde Neu ${RUN}`)
+  const issuedNumber = `E2E-NEU-${RUN}`
+  await page.getByLabel('Rechnungsnummer').fill(issuedNumber)
+  page.once('dialog', (dialog) => dialog.accept())
+  await page.getByRole('button', { name: 'Drucken / PDF' }).click()
+  await expect(page.getByText(`Festgeschrieben als ${issuedNumber}.`)).toBeVisible()
+  // The issued document is read-only, which is exactly why a reset is needed.
+  await expect(page.getByLabel('Kundenname')).toHaveAttribute('readonly', '')
+
+  // No confirmation for an issued invoice: it is already safe in the archive.
+  await page.getByRole('button', { name: 'Neue Rechnung' }).click()
+
+  await expect(page.getByText(/Neue Rechnung — vorgeschlagene Nummer/)).toBeVisible()
+  await expect(page.getByLabel('Kundenname')).toHaveValue('')
+  await expect(page.getByLabel('Kundenname')).not.toHaveAttribute('readonly', '')
+  await expect(page.getByRole('button', { name: 'Ins Archiv legen' })).toBeEnabled()
+  // The number comes from the server's journal, so it is a managed RE- number and
+  // never the E2E- one just issued.
+  await expect(page.getByLabel('Rechnungsnummer')).toHaveValue(/^RE-\d{4}-\d{3,}$/)
+
+  // The invoice that was issued is untouched.
+  await page.getByRole('button', { name: 'Meine Rechnungen' }).click()
+  await expect(page.getByRole('row', { name: new RegExp(issuedNumber) }).first()).toBeVisible()
+})
+
+test('"Neue Rechnung" asks before discarding a draft that has been typed into', async ({ page }) => {
+  await page.goto('/admin')
+  await fillInvoice(page, `Testkunde Verwerfen ${RUN}`)
+
+  // Whether the dialog APPEARED is the property under test, so it is recorded
+  // rather than merely handled. Asserting only that the field still holds its
+  // value passes even with no guard at all: the reset is asynchronous, so the
+  // assertion reads the old value before the clear lands, and the test goes green
+  // while proving nothing. Verified by removing the guard — that version passed.
+  let asked = false
+  page.once('dialog', (dialog) => {
+    asked = true
+    void dialog.dismiss()
+  })
+  await page.getByRole('button', { name: 'Neue Rechnung' }).click()
+  await expect.poll(() => asked, { message: 'no confirmation was shown' }).toBe(true)
+  // And declining keeps the draft.
+  await expect(page.getByLabel('Kundenname')).toHaveValue(`Testkunde Verwerfen ${RUN}`)
+
+  page.once('dialog', (dialog) => dialog.accept())
+  await page.getByRole('button', { name: 'Neue Rechnung' }).click()
+  await expect(page.getByLabel('Kundenname')).toHaveValue('')
+})
+
 test('a number can be recorded as used with no invoice behind it', async ({ page }) => {
   await page.goto('/admin')
   await page.getByRole('button', { name: 'Meine Rechnungen' }).click()

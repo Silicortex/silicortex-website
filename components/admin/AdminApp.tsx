@@ -159,6 +159,45 @@ export function AdminApp({
     }))
   }
 
+  /** Clears the sheet and asks the SERVER for the next number.
+   *
+   *  Without this, `emptyInvoice()` ran only once — in the useState initialiser —
+   *  and switching tabs just switched tabs, so after festschreiben the frozen
+   *  read-only document stayed on screen and the only way to write the next
+   *  invoice was reloading the page.
+   *
+   *  The number comes from `nextNumberAction`, never from incrementing the one on
+   *  screen: the journal is the only thing that knows which numbers are taken. */
+  async function startNewInvoice() {
+    // A draft that has been typed into but not archived would vanish silently.
+    // An issued invoice needs no confirmation: it is already safe in the archive
+    // and this only clears the view.
+    const hasContent =
+      invoice.status === 'draft' &&
+      (invoice.customerName.trim() !== '' ||
+        invoice.items.some((item) => item.description.trim() !== '' || item.unitPrice !== 0))
+    if (hasContent && !confirm('Aktuellen Entwurf verwerfen und neue Rechnung beginnen?')) return
+
+    setBusy(true)
+    const proposedNumber = await nextNumberAction()
+    setBusy(false)
+
+    setPrintErrors([])
+    // Reset, so the new invoice follows the Stammdaten payment terms again rather
+    // than inheriting terms hand-edited on the previous one.
+    setTermsTouched(false)
+    setInvoice(
+      emptyInvoice({
+        proposedNumber,
+        invoiceDate: todayIso(),
+        paymentTerms: defaultPaymentTerms(masterData.invoiceVisible.paymentTermsDays),
+        vatRate: masterData.invoiceVisible.defaultVatRate,
+      })
+    )
+    setTab('invoice')
+    setNotice(`Neue Rechnung — vorgeschlagene Nummer ${proposedNumber}.`)
+  }
+
   function updateInvoice(next: InvoiceDraft) {
     if (next.paymentTerms !== invoice.paymentTerms) setTermsTouched(true)
     if (printErrors.length) setPrintErrors([])
@@ -357,6 +396,14 @@ export function AdminApp({
               className="rounded-full bg-blue-600 px-5 py-2 text-sm font-medium text-white shadow-sm shadow-blue-600/25 transition hover:bg-blue-500 disabled:opacity-60"
             >
               {busy ? 'Speichere …' : 'Ins Archiv legen'}
+            </button>
+            <button
+              type="button"
+              onClick={startNewInvoice}
+              disabled={busy}
+              className="rounded-full border border-black/10 bg-white px-5 py-2 text-sm font-medium text-slate-700 transition hover:border-blue-500/50 hover:text-blue-600 disabled:opacity-60"
+            >
+              Neue Rechnung
             </button>
             <button
               type="button"
