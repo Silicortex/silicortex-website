@@ -138,8 +138,13 @@ export async function convertQuoteAction(quoteId: string): Promise<InvoiceDraft 
 }
 
 /** Builds the Storno for an issued invoice. Nothing is written until the owner
- *  saves it, so an accidental click leaves no trace and burns no number. */
-export async function createStornoAction(originalId: string): Promise<InvoiceDraft | null> {
+ *  saves it, so an accidental click leaves no trace and burns no number.
+ *
+ *  Returns the refusal reason rather than a bare null: "already cancelled by
+ *  ST-2026-001" and "not an invoice" need different answers on screen. */
+export async function createStornoAction(
+  originalId: string
+): Promise<{ ok: true; draft: InvoiceDraft } | { ok: false; error: string }> {
   await requireSession()
   return buildStornoDraft(originalId)
 }

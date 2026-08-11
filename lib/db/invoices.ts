@@ -411,34 +411,66 @@ export async function buildInvoiceFromQuote(quoteId: string): Promise<InvoiceDra
  *  charge for the same work. The unit PRICE carries the sign, not the quantity:
  *  "18,5 Std. × -95,00" is readable, "-18,5 Std." is not. A line the owner adds
  *  to the draft afterwards is not negated for them — they type the minus. */
-export async function buildStornoDraft(originalId: string): Promise<InvoiceDraft | null> {
+export async function buildStornoDraft(
+  originalId: string
+): Promise<{ ok: true; draft: InvoiceDraft } | { ok: false; error: string }> {
   const original = await loadInvoice(originalId)
-  if (!original) return null
+  if (!original) return { ok: false, error: 'Diese Rechnung existiert nicht mehr.' }
   // Only an issued INVOICE can be cancelled: a draft is edited or deleted, a
   // Storno of a Storno is not a correction, and an Angebot is not a receivable.
-  if (original.status !== 'issued' || !original.invoiceNumber) return null
-  if (original.docType !== 'invoice') return null
+  if (original.status !== 'issued' || !original.invoiceNumber) {
+    return { ok: false, error: 'Nur festgeschriebene Rechnungen können storniert werden.' }
+  }
+  if (original.docType !== 'invoice') {
+    return { ok: false, error: 'Nur Rechnungen können storniert werden.' }
+  }
+
+  // Cancelling the same invoice twice would issue a SECOND negating document, so
+  // the invoice would be deducted twice and the books would show revenue that was
+  // never earned negatively. The archive already hides the button once a Storno
+  // exists, but a Server Action is a reachable POST endpoint, so the rule has to
+  // live here as well.
+  //
+  // Only an ISSUED Storno counts. A draft one has cancelled nothing yet, and
+  // refusing on a draft would trap the owner: the draft can be discarded, and
+  // there would then be no way to cancel the invoice at all.
+  const [existing] = await sql`
+    select invoice_number from invoices
+    where doc_type = 'storno' and status = 'issued' and storno_for = ${original.invoiceNumber}
+    limit 1
+  `
+  if (existing) {
+    return {
+      ok: false,
+      error:
+        `Rechnung ${original.invoiceNumber} ist bereits durch ` +
+        `${existing.invoice_number} storniert.`,
+    }
+  }
 
   const today = todayIso()
   return {
-    ...original,
-    id: randomUUID(),
-    status: 'draft',
-    invoiceNumber: null,
-    docType: 'storno',
-    proposedNumber: await nextNumberFor('ST', Number(today.slice(0, 4))),
-    invoiceDate: today,
-    stornoFor: original.invoiceNumber,
-    stornoForDate: original.invoiceDate,
-    items: original.items.map((item) => ({ ...item, unitPrice: -item.unitPrice })),
-    // The original's terms would say the money is payable — wrong on a document
-    // nobody pays. This is the not-yet-paid wording, which is the usual case at
-    // cancellation time; if the customer has already paid, the owner replaces it
-    // with the refund sentence. The field stays editable either way.
-    paymentTerms:
-      'Bitte überweisen Sie keinen Betrag. Diese Stornorechnung gleicht die ' +
-      `ursprüngliche Rechnung ${original.invoiceNumber} vollständig aus.`,
-    senderSnapshot: null,
-    storedTotals: null,
+    ok: true,
+    draft: {
+      ...original,
+      id: randomUUID(),
+      status: 'draft',
+      invoiceNumber: null,
+      docType: 'storno',
+      proposedNumber: await nextNumberFor('ST', Number(today.slice(0, 4))),
+      invoiceDate: today,
+      stornoFor: original.invoiceNumber,
+      stornoForDate: original.invoiceDate,
+      items: original.items.map((item) => ({ ...item, unitPrice: -item.unitPrice })),
+      // The original's terms would say the money is payable — wrong on a document
+      // nobody pays. This is the not-yet-paid wording, which is the usual case at
+      // cancellation time; if the customer has already paid, the owner replaces it
+      // with the refund sentence. The field stays editable either way.
+      paymentTerms:
+        'Bitte überweisen Sie keinen Betrag. Diese Stornorechnung gleicht die ' +
+        `ursprüngliche Rechnung ${original.invoiceNumber} vollständig aus.`,
+      senderSnapshot: null,
+      storedTotals: null,
+    },
   }
 }

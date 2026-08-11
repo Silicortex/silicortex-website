@@ -1,6 +1,12 @@
 import { defineConfig, devices } from '@playwright/test'
 
-const baseURL = 'http://localhost:3000'
+// Overridable because port 3000 is not always free — another project's dev server
+// on it aborts the whole run ("http://localhost:3000 is already used"), and the
+// answer must not be to kill someone else's server or to reuse whatever answers
+// there. E2E_PORT=3100 npm run test:e2e starts this suite's OWN server elsewhere;
+// reuseExistingServer stays false either way.
+const port = process.env.E2E_PORT?.trim() || '3000'
+const baseURL = `http://localhost:${port}`
 
 // The suite must NEVER run against the real invoicing database: it disables
 // both immutability triggers, deletes rows, and overwrites master_data. It
@@ -50,7 +56,7 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: 'npm run dev',
+    command: `npm run dev -- --port ${port}`,
     url: baseURL,
     // Never reuse a server that is already running: it would have been started
     // by the owner against the REAL database, and every Server Action the

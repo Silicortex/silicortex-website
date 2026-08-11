@@ -227,6 +227,156 @@ test('a Stornorechnung is a new ST- document with negated amounts', async ({ pag
   // could not remove it and the next run's guard would refuse to start.
 })
 
+test('a cancelled invoice is struck through, cannot be cancelled twice, and can be hidden', async ({
+  page,
+}) => {
+  await page.addInitScript(() => {
+    window.print = () => {}
+  })
+  await page.goto('/admin')
+  await saveSender(page, 'E2E Sender Cancelled')
+
+  const original = `E2E-CX-${RUN}`
+  const storno = `E2E-CXST-${RUN}`
+  await page.getByRole('button', { name: 'Rechnung erstellen' }).click()
+  await fillInvoice(page, `Testkunde Aufgehoben ${RUN}`)
+  await page.getByLabel('Rechnungsnummer').fill(original)
+  page.once('dialog', (dialog) => dialog.accept())
+  await page.getByRole('button', { name: 'Drucken / PDF' }).click()
+  await expect(page.getByText(`Festgeschrieben als ${original}.`)).toBeVisible()
+
+  await page.getByRole('button', { name: 'Meine Rechnungen' }).click()
+  // Scoped to the archive table. The Nummernjournal below lists the same numbers
+  // in its own rows, so an unscoped row locator matches two and the assertions
+  // land on whichever one it happens to resolve.
+  //
+  // Both documents also carry the same customer name, and the Storno's row
+  // mentions the original's number — so neither identifies a row on its own.
+  const archive = page.locator('.admin-archive')
+  const invoiceRow = archive
+    .getByRole('row', { name: new RegExp(original) })
+    .filter({ hasNotText: 'Storno zu' })
+  const stornoRow = archive.getByRole('row', { name: new RegExp(storno) })
+
+  await invoiceRow.getByRole('button', { name: 'Storno' }).click()
+  // Issued under an E2E- number so the teardown can remove it: a real ST- number
+  // is outside the cleanup's prefix and would fail the next run's guard.
+  await page.getByLabel('Rechnungsnummer').fill(storno)
+  page.once('dialog', (dialog) => dialog.accept())
+  await page.getByRole('button', { name: 'Drucken / PDF' }).click()
+  await expect(page.getByText(`Festgeschrieben als ${storno}.`)).toBeVisible()
+
+  await page.getByRole('button', { name: 'Meine Rechnungen' }).click()
+
+  // Struck through and badged, not removed: the number stays assigned to this
+  // document forever, and seeing it struck is what says it no longer stands.
+  await expect(invoiceRow.getByText('Storniert', { exact: true })).toBeVisible()
+  await expect(invoiceRow.getByText(original, { exact: true })).toHaveCSS(
+    'text-decoration-line',
+    'line-through'
+  )
+  await expect(stornoRow.getByText(`Storno zu ${original}`)).toBeVisible()
+
+  // No second Storno on offer. Cancelling twice would issue a second negating
+  // document and deduct the same invoice from the books twice.
+  await expect(invoiceRow.getByRole('button', { name: 'Storno' })).toHaveCount(0)
+  // Reprinting must still be possible, so Laden survives cancellation.
+  await expect(invoiceRow.getByRole('button', { name: 'Laden' })).toBeVisible()
+
+  // Unchecked to begin with. A list that hides records the moment it loads is the
+  // thing GoBD objects to; the operator collapsing it himself is not.
+  const hide = page.getByRole('checkbox', { name: /Stornierte ausblenden/ })
+  await expect(hide).not.toBeChecked()
+  await expect(invoiceRow).toBeVisible()
+
+  const totalsBefore = await page.getByText(/Festgeschriebene Rechnungen:/).textContent()
+
+  await hide.check()
+  // BOTH halves go. Hiding only the invoice would leave its Storno behind as an
+  // orphaned negative line that nothing on screen explains.
+  await expect(invoiceRow).toHaveCount(0)
+  await expect(stornoRow).toHaveCount(0)
+  await expect(page.getByText(/stornierte Dokumente ausgeblendet/)).toBeVisible()
+
+  // The pair sums to zero, so the totals must not move. A figure that changed with
+  // a display checkbox could not be reconciled against a tax return.
+  expect(await page.getByText(/Festgeschriebene Rechnungen:/).textContent()).toBe(totalsBefore)
+
+  await hide.uncheck()
+  await expect(invoiceRow).toBeVisible()
+  await expect(stornoRow).toBeVisible()
+})
+
+test('the SERVER refuses a second Storno for an already cancelled invoice', async ({
+  page,
+  context,
+}) => {
+  // Hiding the button is not the guarantee: a Server Action is a directly
+  // reachable POST endpoint. This reaches it the way it is actually reachable —
+  // a second tab whose archive was loaded BEFORE the Storno existed, so its
+  // button is still on screen and still clickable.
+  await page.addInitScript(() => {
+    window.print = () => {}
+  })
+  await page.goto('/admin')
+  await saveSender(page, 'E2E Sender Doppelstorno')
+
+  const original = `E2E-DX-${RUN}`
+  const storno = `E2E-DXST-${RUN}`
+  await page.getByRole('button', { name: 'Rechnung erstellen' }).click()
+  await fillInvoice(page, `Testkunde Doppelstorno ${RUN}`)
+  await page.getByLabel('Rechnungsnummer').fill(original)
+  page.once('dialog', (dialog) => dialog.accept())
+  await page.getByRole('button', { name: 'Drucken / PDF' }).click()
+  await expect(page.getByText(`Festgeschrieben als ${original}.`)).toBeVisible()
+
+  // The stale tab, opened while the invoice is still uncancelled.
+  const stale = await context.newPage()
+  await stale.goto('/admin')
+  await stale.getByRole('button', { name: 'Meine Rechnungen' }).click()
+  const staleRow = stale
+    .locator('.admin-archive')
+    .getByRole('row', { name: new RegExp(original) })
+    .filter({ hasNotText: 'Storno zu' })
+  await expect(staleRow.getByRole('button', { name: 'Storno' })).toBeVisible()
+
+  // Cancel it in the first tab.
+  await page.getByRole('button', { name: 'Meine Rechnungen' }).click()
+  await page
+    .locator('.admin-archive')
+    .getByRole('row', { name: new RegExp(original) })
+    .filter({ hasNotText: 'Storno zu' })
+    .getByRole('button', { name: 'Storno' })
+    .click()
+  await page.getByLabel('Rechnungsnummer').fill(storno)
+  page.once('dialog', (dialog) => dialog.accept())
+  await page.getByRole('button', { name: 'Drucken / PDF' }).click()
+  await expect(page.getByText(`Festgeschrieben als ${storno}.`)).toBeVisible()
+
+  // The stale tab still offers it, and the server refuses — naming the document
+  // that already cancels it, rather than a misleading generic failure.
+  await staleRow.getByRole('button', { name: 'Storno' }).click()
+  await expect(
+    stale.getByText(`Rechnung ${original} ist bereits durch ${storno} storniert.`)
+  ).toBeVisible()
+  // And no draft was opened: the stale tab is still looking at the archive.
+  await expect(stale.getByRole('button', { name: 'Ins Archiv legen' })).toHaveCount(0)
+
+  // Nothing was written: reloaded from the server, exactly ONE document cancels
+  // this invoice. Asserting the message alone would pass even if the refusal came
+  // after a second Storno had already been created.
+  //
+  // A full reload, not the archive tab button: this tab's list is the stale client
+  // state the test deliberately created, so re-rendering it proves nothing about
+  // what the database now holds.
+  await stale.reload()
+  await stale.getByRole('button', { name: 'Meine Rechnungen' }).click()
+  await expect(
+    stale.locator('.admin-archive').getByRole('row', { name: new RegExp(`Storno zu ${original}`) })
+  ).toHaveCount(1)
+  await stale.close()
+})
+
 test('skipping ahead warns before the number is claimed', async ({ page }) => {
   await page.addInitScript(() => {
     window.print = () => {}

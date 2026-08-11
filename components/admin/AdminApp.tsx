@@ -326,8 +326,9 @@ export function AdminApp({
    *  document from the GS- range that points back at it. Nothing is written
    *  until the owner saves, so a misclick burns no number. */
   async function stornoFromArchive(id: string) {
-    const storno = await createStornoAction(id)
-    if (!storno) return setNotice('Nur festgeschriebene Rechnungen können storniert werden.')
+    const result = await createStornoAction(id)
+    if (!result.ok) return setNotice(result.error)
+    const storno = result.draft
     setInvoice(storno)
     setTermsTouched(true)
     setTab('invoice')
