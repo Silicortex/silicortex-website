@@ -8,7 +8,7 @@ import { AnimatedHeading } from "@/components/AnimatedHeading"
 import { scaleUp, staggerContainer } from "@/lib/motion"
 
 export function FreelanceNetwork() {
-  const { dict } = useLang()
+  const { dict, localeHref } = useLang()
   const net = dict.network
 
   return (
@@ -68,7 +68,7 @@ export function FreelanceNetwork() {
             {net.description}
           </p>
           <Link
-            href="/contact"
+            href={localeHref("/contact")}
             className="glow-border inline-flex min-h-[48px] items-center rounded-full bg-blue-600 px-10 text-sm font-semibold text-white transition-colors hover:bg-blue-500"
           >
             {net.cta}

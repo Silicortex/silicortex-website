@@ -19,7 +19,7 @@ interface Section {
 }
 
 export function WorkShowcase() {
-  const { dict } = useLang()
+  const { dict, localeHref } = useLang()
   const ws = dict.workShowcase
 
   const SECTIONS: Section[] = [
@@ -76,7 +76,7 @@ export function WorkShowcase() {
           title: ws.sections.dashboards.items[0].title,
           description: ws.sections.dashboards.items[0].description,
           tech: ["Next.js", "Recharts", "Claude AI", "Tool Use"],
-          href: "/work/sales-dashboard", cta: ws.sections.dashboards.items[0].cta, featured: true,
+          href: localeHref("/work/sales-dashboard"), cta: ws.sections.dashboards.items[0].cta, featured: true,
           accent: "#a78bfa", accentMuted: "rgba(167,139,250,0.12)",
         },
       ],

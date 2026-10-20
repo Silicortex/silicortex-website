@@ -306,6 +306,11 @@ const de: Dictionary = {
     tagline:
       "Wir bauen Automatisierungsinfrastruktur für das nächste Jahrzehnt.",
   },
+  notFound: {
+    title: "Diese Seite existiert nicht",
+    description: "Der Link ist möglicherweise veraltet oder die Adresse leicht fehlerhaft.",
+    backHome: "Zurück zur Startseite",
+  },
   salesDashboard: {
     heroBadge: "Live-Demo",
     heroCrumb: "Dashboards",

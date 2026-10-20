@@ -7,6 +7,7 @@ import { useTheme } from "next-themes"
 import { motion, AnimatePresence } from "framer-motion"
 import { useLang } from "@/components/providers/LangProvider"
 import { useHydrated } from "@/lib/useHydrated"
+import { locales } from "@/lib/dictionaries"
 
 function ThemeToggle() {
   const { resolvedTheme, setTheme } = useTheme()
@@ -42,7 +43,7 @@ export function NavbarClient() {
   const [mobileWorkOpen, setMobileWorkOpen] = useState(false)
   const [dropdownOpen, setDropdownOpen] = useState(false)
   const pathname = usePathname()
-  const { lang, setLang, dict } = useLang()
+  const { lang, setLang, dict, localeHref } = useLang()
 
   const links: NavLink[] = [
     { href: "/", label: dict.nav.home },
@@ -70,7 +71,7 @@ export function NavbarClient() {
     <header className={`fixed inset-x-0 top-0 z-50 border-b border-blue-500/10 transition-colors ${menuOpen ? "bg-white dark:bg-slate-950" : "bg-white/80 backdrop-blur-xl dark:bg-slate-950/80"}`}>
       <nav className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6">
         {/* Logo */}
-        <Link href="/" className="flex items-center" onClick={() => setMenuOpen(false)}>
+        <Link href={localeHref("/")} className="flex items-center" onClick={() => setMenuOpen(false)}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/favicon.ico" alt="Silicortex" className="h-10 w-auto" />
           <span className="ml-2 text-sm font-bold tracking-tight">
@@ -81,13 +82,14 @@ export function NavbarClient() {
         {/* Desktop nav */}
         <ul className="hidden items-center gap-6 md:flex">
           {links.map((link) => {
-            const isActive = link.href === "/" ? pathname === "/" : pathname.startsWith(link.href)
+            const href = localeHref(link.href)
+            const isActive = link.children ? pathname.startsWith(href) : pathname === href
 
             if (!link.children) {
               return (
                 <li key={link.href} className="relative">
                   <Link
-                    href={link.href}
+                    href={href}
                     className={`text-sm transition-colors ${
                       isActive
                         ? "text-slate-900 dark:text-white"
@@ -111,7 +113,7 @@ export function NavbarClient() {
             return (
               <li key={link.href} className="relative flex items-center gap-0.5">
                 <Link
-                  href={link.href}
+                  href={href}
                   className={`text-sm transition-colors ${
                     isActive
                       ? "text-slate-900 dark:text-white"
@@ -147,26 +149,29 @@ export function NavbarClient() {
                       <p className="mb-1.5 px-2 text-[10px] font-bold uppercase tracking-widest text-slate-400">
                         Projects
                       </p>
-                      {link.children.map((child) => (
-                        <Link
-                          key={child.href}
-                          href={child.href}
-                          onClick={() => setDropdownOpen(false)}
-                          className={`flex items-start gap-3 rounded-lg px-2 py-2.5 transition-colors hover:bg-slate-50 dark:hover:bg-white/5 ${
-                            pathname === child.href ? "bg-violet-50 dark:bg-violet-500/10" : ""
-                          }`}
-                        >
-                          <span className="mt-0.5 flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg bg-violet-100 text-sm dark:bg-violet-500/15">
-                            {child.icon}
-                          </span>
-                          <span>
-                            <span className={`block text-sm font-semibold ${pathname === child.href ? "text-violet-600 dark:text-violet-400" : "text-slate-800 dark:text-slate-200"}`}>
-                              {child.label}
+                      {link.children.map((child) => {
+                        const childHref = localeHref(child.href)
+                        return (
+                          <Link
+                            key={child.href}
+                            href={childHref}
+                            onClick={() => setDropdownOpen(false)}
+                            className={`flex items-start gap-3 rounded-lg px-2 py-2.5 transition-colors hover:bg-slate-50 dark:hover:bg-white/5 ${
+                              pathname === childHref ? "bg-violet-50 dark:bg-violet-500/10" : ""
+                            }`}
+                          >
+                            <span className="mt-0.5 flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg bg-violet-100 text-sm dark:bg-violet-500/15">
+                              {child.icon}
                             </span>
-                            <span className="block text-xs text-slate-400">{child.desc}</span>
-                          </span>
-                        </Link>
-                      ))}
+                            <span>
+                              <span className={`block text-sm font-semibold ${pathname === childHref ? "text-violet-600 dark:text-violet-400" : "text-slate-800 dark:text-slate-200"}`}>
+                                {child.label}
+                              </span>
+                              <span className="block text-xs text-slate-400">{child.desc}</span>
+                            </span>
+                          </Link>
+                        )
+                      })}
                     </motion.div>
                   )}
                 </AnimatePresence>
@@ -178,15 +183,24 @@ export function NavbarClient() {
         {/* Desktop right */}
         <div className="hidden items-center gap-2 md:flex">
           <ThemeToggle />
-          <button
-            onClick={() => setLang(lang === "en" ? "de" : "en")}
-            className="rounded-full border border-black/10 px-3 py-1 text-xs font-medium text-slate-500 transition-colors hover:border-blue-500/40 hover:text-blue-500 dark:border-white/10 dark:text-slate-400 dark:hover:text-white"
-            aria-label="Toggle language"
-          >
-            {lang === "en" ? "DE" : "EN"}
-          </button>
+          <div role="group" aria-label="Language" className="flex items-center gap-0.5 rounded-full border border-black/10 p-0.5 dark:border-white/10">
+            {locales.map((l) => (
+              <button
+                key={l}
+                onClick={() => setLang(l)}
+                aria-pressed={l === lang}
+                className={`rounded-full px-2.5 py-1 text-xs font-medium transition-colors ${
+                  l === lang
+                    ? "bg-blue-600 text-white"
+                    : "text-slate-500 hover:text-blue-500 dark:text-slate-400 dark:hover:text-white"
+                }`}
+              >
+                {l.toUpperCase()}
+              </button>
+            ))}
+          </div>
           <Link
-            href="/contact"
+            href={localeHref("/contact")}
             className="flex min-h-[40px] items-center rounded-full bg-blue-600 px-5 py-2 text-sm font-semibold text-white transition-colors hover:bg-blue-500"
           >
             {dict.nav.cta}
@@ -196,13 +210,22 @@ export function NavbarClient() {
         {/* Mobile: theme + lang + hamburger */}
         <div className="flex items-center gap-2 md:hidden">
           <ThemeToggle />
-          <button
-            onClick={() => setLang(lang === "en" ? "de" : "en")}
-            className="rounded-full border border-black/10 px-3 py-1 text-xs font-medium text-slate-500 dark:border-white/10 dark:text-slate-400"
-            aria-label="Toggle language"
-          >
-            {lang === "en" ? "DE" : "EN"}
-          </button>
+          <div role="group" aria-label="Language" className="flex items-center gap-0.5 rounded-full border border-black/10 p-0.5 dark:border-white/10">
+            {locales.map((l) => (
+              <button
+                key={l}
+                onClick={() => setLang(l)}
+                aria-pressed={l === lang}
+                className={`rounded-full px-2.5 py-1 text-xs font-medium transition-colors ${
+                  l === lang
+                    ? "bg-blue-600 text-white"
+                    : "text-slate-500 dark:text-slate-400"
+                }`}
+              >
+                {l.toUpperCase()}
+              </button>
+            ))}
+          </div>
           <button
             onClick={() => setMenuOpen(!menuOpen)}
             className="flex min-h-[48px] min-w-[48px] items-center justify-center rounded-lg text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
@@ -229,13 +252,14 @@ export function NavbarClient() {
           >
             <ul className="flex flex-col gap-2">
               {links.map((link) => {
-                const isActive = link.href === "/" ? pathname === "/" : pathname.startsWith(link.href)
+                const href = localeHref(link.href)
+                const isActive = link.children ? pathname.startsWith(href) : pathname === href
 
                 if (!link.children) {
                   return (
                     <li key={link.href}>
                       <Link
-                        href={link.href}
+                        href={href}
                         onClick={() => setMenuOpen(false)}
                         className={`flex min-h-[56px] items-center border-b border-black/5 text-xl font-medium transition-colors dark:border-white/5 ${
                           isActive
@@ -260,7 +284,7 @@ export function NavbarClient() {
                       }`}
                       onClick={() => setMobileWorkOpen(o => !o)}
                     >
-                      <Link href={link.href} onClick={() => setMenuOpen(false)} className="flex-1">
+                      <Link href={href} onClick={() => setMenuOpen(false)} className="flex-1">
                         {link.label}
                       </Link>
                       <svg
@@ -280,24 +304,27 @@ export function NavbarClient() {
                           transition={{ duration: 0.2 }}
                           className="overflow-hidden pl-4"
                         >
-                          {link.children.map((child) => (
-                            <li key={child.href}>
-                              <Link
-                                href={child.href}
-                                onClick={() => setMenuOpen(false)}
-                                className={`flex items-center gap-3 py-3 text-base font-medium transition-colors ${
-                                  pathname === child.href
-                                    ? "text-violet-600 dark:text-violet-400"
-                                    : "text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
-                                }`}
-                              >
-                                <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-violet-100 text-sm dark:bg-violet-500/15">
-                                  {child.icon}
-                                </span>
-                                {child.label}
-                              </Link>
-                            </li>
-                          ))}
+                          {link.children.map((child) => {
+                            const childHref = localeHref(child.href)
+                            return (
+                              <li key={child.href}>
+                                <Link
+                                  href={childHref}
+                                  onClick={() => setMenuOpen(false)}
+                                  className={`flex items-center gap-3 py-3 text-base font-medium transition-colors ${
+                                    pathname === childHref
+                                      ? "text-violet-600 dark:text-violet-400"
+                                      : "text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
+                                  }`}
+                                >
+                                  <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-violet-100 text-sm dark:bg-violet-500/15">
+                                    {child.icon}
+                                  </span>
+                                  {child.label}
+                                </Link>
+                              </li>
+                            )
+                          })}
                         </motion.ul>
                       )}
                     </AnimatePresence>
@@ -306,7 +333,7 @@ export function NavbarClient() {
               })}
             </ul>
             <Link
-              href="/contact"
+              href={localeHref("/contact")}
               onClick={() => setMenuOpen(false)}
               className="mt-8 flex min-h-[56px] items-center justify-center rounded-full bg-blue-600 text-base font-semibold text-white hover:bg-blue-500"
             >

@@ -301,6 +301,11 @@ const en = {
     copyright: "© 2026 Silicortex. All rights reserved.",
     tagline: "Building automation infrastructure for the next decade.",
   },
+  notFound: {
+    title: "This page does not exist",
+    description: "The link may be outdated, or the address slightly off.",
+    backHome: "Back to home",
+  },
   salesDashboard: {
     heroBadge: "Live Demo",
     heroCrumb: "Dashboards",

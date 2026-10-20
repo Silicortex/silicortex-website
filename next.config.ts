@@ -1,6 +1,15 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // The root layout (app/[lang]/layout.tsx) sits on a top-level dynamic
+  // segment, which is exactly the case Next's own docs call out as needing
+  // `global-not-found.js`: a genuinely unmatched URL (no `lang` segment
+  // resolved at all, or a path that matches no route under it) has no
+  // layout left to carry a real <html> wrapper, so Next falls back to its
+  // built-in bare 404 unless this is enabled. See app/global-not-found.tsx.
+  experimental: {
+    globalNotFound: true,
+  },
   // The invoice and bookkeeping system moved to its own private repo and its own
   // host (admin.silicortex.de). These keep old bookmarks working.
   //

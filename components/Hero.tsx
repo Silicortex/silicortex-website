@@ -115,7 +115,7 @@ const itemVariants: Variants = {
 }
 
 export function Hero() {
-  const { dict } = useLang()
+  const { dict, localeHref } = useLang()
   const h = dict.hero
 
   return (
@@ -148,13 +148,13 @@ export function Hero() {
 
           <motion.div variants={itemVariants} className="flex flex-wrap justify-center gap-4">
             <Link
-              href="/work"
+              href={localeHref("/work")}
               className="glow-border flex min-h-[48px] items-center rounded-full bg-blue-600 px-8 text-sm font-semibold text-white transition-colors hover:bg-blue-500"
             >
               {h.cta1}
             </Link>
             <Link
-              href="/contact"
+              href={localeHref("/contact")}
               className="flex min-h-[48px] items-center rounded-full border border-black/10 px-8 text-sm font-semibold text-slate-700 transition-colors hover:border-blue-500/40 hover:bg-black/5 dark:border-white/10 dark:text-white dark:hover:bg-white/5"
             >
               {h.cta2}
