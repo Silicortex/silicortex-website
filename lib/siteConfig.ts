@@ -1,7 +1,7 @@
 export const siteConfig = {
   name: "Silicortex",
   logoText: "Silicortex",
-  slogan: "We Build the Machines That Build Your Future",
+  slogan: "We Build the Products That Power Your Business",
   contactEmail: "mohamadkatramez98@gmail.com",
   contactPhone: "+49 174 6197197",
   socialLinks: {

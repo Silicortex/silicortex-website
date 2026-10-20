@@ -148,7 +148,7 @@ export function Hero() {
 
           <motion.div variants={itemVariants} className="flex flex-wrap justify-center gap-4">
             <Link
-              href={localeHref("/work")}
+              href={localeHref("/services")}
               className="glow-border flex min-h-[48px] items-center rounded-full bg-blue-600 px-8 text-sm font-semibold text-white transition-colors hover:bg-blue-500"
             >
               {h.cta1}

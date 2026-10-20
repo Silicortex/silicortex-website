@@ -11,11 +11,11 @@ const de: Dictionary = {
     cta: "Loslegen",
   },
   hero: {
-    badge: "KI & Automatisierungsagentur",
-    title: "Wir bauen die Maschinen,\ndie Ihre Zukunft gestalten",
+    badge: "Full-Service-Digitalagentur",
+    title: "Wir bauen die Produkte,\ndie Ihr Geschäft voranbringen",
     subtitle:
-      "KI-gestützte Automatisierung, die Routinearbeit eliminiert, Ihre Prozesse skaliert und schneller handelt als Ihre Mitbewerber.",
-    cta1: "Unsere Arbeit",
+      "KI-gestützte Automatisierung ist unsere Kernkompetenz — ergänzt durch Full-Stack-Software, E-Commerce und Markenidentität, damit Ihr Unternehmen startet, skaliert und die Konkurrenz hinter sich lässt.",
+    cta1: "Unsere Leistungen entdecken",
     cta2: "Kontakt",
     scrollHint: "Zum Erkunden scrollen",
   },
@@ -442,7 +442,7 @@ const de: Dictionary = {
   meta: {
     home: {
       title: "Startseite",
-      description: "Wir bauen die Maschinen, die Ihre Zukunft gestalten",
+      description: "Wir bauen die Produkte, die Ihr Geschäft voranbringen",
     },
     services: {
       title: "Leistungen",

@@ -9,11 +9,11 @@ const en = {
     cta: "Get Started",
   },
   hero: {
-    badge: "AI & Automation Agency",
-    title: "We Build the Machines\nThat Build Your Future",
+    badge: "Full-Service Digital Agency",
+    title: "We Build the Products\nThat Power Your Business",
     subtitle:
-      "AI-powered automation that eliminates repetitive work, scales your operations, and moves faster than your competitors.",
-    cta1: "See Our Work",
+      "AI-powered automation is our flagship specialty — backed by full-stack software, e-commerce, and brand identity, so your business can launch, scale, and outpace the competition.",
+    cta1: "Explore Our Services",
     cta2: "Contact Us",
     scrollHint: "Scroll to explore",
   },
@@ -437,7 +437,7 @@ const en = {
   meta: {
     home: {
       title: "Home",
-      description: "We Build the Machines That Build Your Future",
+      description: "We Build the Products That Power Your Business",
     },
     services: {
       title: "Services",
