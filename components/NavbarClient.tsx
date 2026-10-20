@@ -47,6 +47,7 @@ export function NavbarClient() {
 
   const links: NavLink[] = [
     { href: "/", label: dict.nav.home },
+    { href: "/services", label: dict.nav.services },
     {
       href: "/work",
       label: dict.nav.work,

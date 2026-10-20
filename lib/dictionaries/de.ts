@@ -3,6 +3,7 @@ import type { Dictionary } from "./en"
 const de: Dictionary = {
   nav: {
     home: "Startseite",
+    services: "Leistungen",
     work: "Projekte",
     experience: "Erfahrung",
     network: "Netzwerk",
@@ -50,6 +51,140 @@ const de: Dictionary = {
         description:
           "Logodesign, Namensfindung und ein vollständiges visuelles Identitätssystem, kombiniert mit einer professionellen Website — alles, was ein neues Unternehmen braucht, um von Tag eins an seriös aufzutreten.",
         tag: "Neu",
+      },
+    ],
+  },
+  servicesPage: {
+    header: "Unsere Leistungen",
+    title: "Vier Disziplinen, ein Team",
+    subtitle:
+      "KI und Automatisierung, Software- und Webentwicklung, E-Commerce und Markenidentität — entdecken Sie unten, was jede Disziplin umfasst.",
+    categories: [
+      {
+        id: "ai-automation",
+        label: "KI & Automatisierung",
+        title: "Intelligenz, die arbeitet, während Sie schlafen",
+        description:
+          "Von autonomen Agenten, die reale Aufgaben übernehmen, bis zu visuellen Workflows, die Ihrem Team Routinearbeit abnehmen — wir entwerfen KI-Systeme, die für den produktiven Einsatz gebaut sind, nicht für die Demo.",
+        items: [
+          {
+            title: "KI-Agenten & Assistenten",
+            description:
+              "Autonome Agenten, die denken, recherchieren und handeln. RAG-Systeme beantworten Fragen aus Ihrer eigenen Wissensdatenbank, konversationelle Assistenten übernehmen Support und Vertriebsqualifizierung auf Ihrer Website, in Slack oder WhatsApp, und Recherche-Agenten durchsuchen das Web und schreiben Berichte — alles ohne manuellen Aufwand.",
+            tags: ["LangChain", "Claude AI", "GPT-4", "RAG"],
+          },
+          {
+            title: "Workflow-Automatisierung (n8n)",
+            description:
+              "Visuelle Workflows, die Ihren gesamten Stack verbinden — Webhook-Trigger, KI-Verarbeitung, Datentransformationen, Datenbank-Schreibvorgänge und Benachrichtigungen in einem Canvas, durchgängig und ohne manuellen Aufwand.",
+            tags: ["n8n", "Webhooks", "REST APIs", "PostgreSQL"],
+          },
+          {
+            title: "KI- & Machine-Learning-Integration",
+            description:
+              "Wir integrieren KI direkt in Ihre bestehenden Web- und Datensysteme — prädiktive Prognosen, die maschinelles Lernen mit stochastischen Modellen kombinieren, und generative KI-Funktionen auf Basis fortschrittlichen Prompt Engineerings.",
+            tags: ["GenAI", "Machine Learning", "Predictive Models"],
+          },
+          {
+            title: "KI-Strategie & Beratung",
+            description:
+              "Noch unsicher, wo KI in Ihrem Unternehmen ansetzt? Wir analysieren Ihre Workflows, identifizieren die wirkungsvollsten Automatisierungspotenziale und entwickeln die Roadmap — und bauen anschließend das System.",
+            tags: ["Strategie", "Automatisierungs-Audit", "Roadmapping"],
+          },
+        ],
+      },
+      {
+        id: "software-dev",
+        label: "Software & Webentwicklung",
+        title: "Vom Prototyp zur Produktion, schnell",
+        description:
+          "Full-Stack-Anwendungen mit modernem Tooling, schnell ausgeliefert — robuste Backends, saubere Datenpipelines und die Integrationen, die alles verbinden, was Sie bereits einsetzen.",
+        items: [
+          {
+            title: "Full-Stack-Webentwicklung",
+            description:
+              "Durchgehende Webanwendungen — Frontend-UIs mit React, Next.js, Vue und modernem CSS, kombiniert mit robusten Backend-Architekturen in Python, Java, PHP, Laravel oder Spring Boot. Vom ersten Prototyp bis zur Produktion in Tagen, ohne Abstriche bei der Qualität.",
+            tags: ["React", "Next.js", "Python", "Laravel"],
+          },
+          {
+            title: "Data Engineering",
+            description:
+              "Data Warehouses und Data Lakes, die mitwachsen, mit Pipelines über Dagster und AWS. Wir entwickeln die Datenmodelle und verwalten die Datenbanken — PostgreSQL, MySQL, MongoDB —, auf denen Ihre Anwendungen und Dashboards laufen.",
+            tags: ["Dagster", "AWS", "PostgreSQL", "MongoDB"],
+          },
+          {
+            title: "Systemintegration",
+            description:
+              "Sichere Verbindungen zwischen Ihren Systemen und den Plattformen, die Sie bereits nutzen — RESTful APIs, OAuth 2.0 und direkte Integrationen mit Shopify, Shopware, Meta und Google Analytics.",
+            tags: ["REST APIs", "OAuth 2.0", "Shopify", "Meta"],
+          },
+          {
+            title: "Schnelle Bereitstellung",
+            description:
+              "Moderne CI/CD-Pipelines und Infrastruktur, die Ihr Produkt schnell vor echte Nutzer bringt — vom ersten Commit bis zum produktionsreifen Release, ohne den üblichen Engineering-Aufwand.",
+            tags: ["CI/CD", "Cloud-Infrastruktur", "DevOps"],
+          },
+        ],
+      },
+      {
+        id: "ecommerce",
+        label: "E-Commerce",
+        title: "Online-Shops, die verkaufen",
+        description:
+          "Individuelle Storefronts für jede Branche — Produktkataloge, sicherer Checkout und Zahlungsabwicklung, Bestands- und Auftragsverwaltung und genau die Funktionen, die Ihr Geschäft zum Online-Verkauf braucht.",
+        items: [
+          {
+            title: "Individuelle Storefronts",
+            description:
+              "Ein Shop, der um Ihre Produkte und Ihre Marke gebaut ist — kein generisches Theme. Responsives Design, schnelle Ladezeiten und ein Einkaufserlebnis, zugeschnitten auf Ihre Branche — Fashion, Food oder alles dazwischen.",
+            tags: ["Jede Branche", "Individuelles Design"],
+          },
+          {
+            title: "Sicherer Checkout & Zahlungsabwicklung",
+            description:
+              "Reibungsloser Checkout mit den Zahlungsmethoden, denen Ihre Kunden bereits vertrauen — Kartenzahlung, digitale Wallets und lokale Optionen —, PCI-konform und auf minimale Kaufabbrüche ausgelegt.",
+            tags: ["Sichere Zahlungen", "Checkout"],
+          },
+          {
+            title: "Bestands- & Auftragsverwaltung",
+            description:
+              "Lagerbestände in Echtzeit, automatisierte Auftragsabwicklung und Dashboards, die zeigen, was sich verkauft — damit Sie weniger Zeit mit Tabellen und mehr Zeit mit Wachstum verbringen.",
+            tags: ["Lagerverwaltung", "Auftragsverwaltung"],
+          },
+          {
+            title: "Abonnements, Buchungen & Marktplätze",
+            description:
+              "Die Funktionen, die Ihren Shop einzigartig machen — wiederkehrende Abonnements, Termin- oder Tischbuchungen, oder ein vollständiger Multi-Vendor-Marktplatz, auf dem andere Verkäufer neben Ihnen anbieten.",
+            tags: ["Abonnements", "Buchungen", "Individuelle Funktionen"],
+          },
+        ],
+      },
+      {
+        id: "brand-launch",
+        label: "Markenstart",
+        title: "Starten Sie mit echter Identität",
+        description:
+          "Logodesign und Namensfindung, ein vollständiges visuelles Identitätssystem und eine professionelle Website — alles, was ein neues Unternehmen braucht, um von Tag eins an seriös aufzutreten.",
+        items: [
+          {
+            title: "Logodesign & Namensfindung",
+            description:
+              "Ein Name, der zu Ihrem Unternehmen passt, und ein Logo, das überall funktioniert — Visitenkarten, App-Icons, Social-Profile —, entworfen, um auf den ersten Blick im Gedächtnis zu bleiben und sich in Ihrem Markt abzuheben.",
+            tags: ["Namensfindung", "Logodesign"],
+          },
+          {
+            title: "Visuelles Identitätssystem",
+            description:
+              "Ein vollständiges Set an Markenrichtlinien — Farbpalette, Typografie, Bildsprache und Nutzungsregeln —, damit jedes Stück Marketing, das Sie veröffentlichen, aus einem Guss wirkt.",
+            tags: ["Markenrichtlinien", "Typografie"],
+          },
+          {
+            title: "Professionelle Website",
+            description:
+              "Eine durchdachte, responsive Website, die Ihr Unternehmen vorstellt und Besucher in Kunden verwandelt — aufgebaut auf demselben Identitätssystem, live und bereit, bevor Sie Ihre Türen öffnen.",
+            tags: ["Individuelle Funktionen", "Responsive Design"],
+          },
+        ],
       },
     ],
   },

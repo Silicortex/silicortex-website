@@ -1,6 +1,7 @@
 const en = {
   nav: {
     home: "Home",
+    services: "Services",
     work: "Work",
     experience: "Experience",
     network: "Network",
@@ -48,6 +49,140 @@ const en = {
         description:
           "Logo design, naming, and a complete visual identity system, paired with a professional website — everything a new company needs to launch looking credible.",
         tag: "New",
+      },
+    ],
+  },
+  servicesPage: {
+    header: "Our Services",
+    title: "Four Disciplines, One Team",
+    subtitle:
+      "AI and automation, software and web development, e-commerce, and brand identity — explore what each discipline covers below.",
+    categories: [
+      {
+        id: "ai-automation",
+        label: "AI & Automation",
+        title: "Intelligence That Works While You Sleep",
+        description:
+          "From autonomous agents that handle real tasks to visual workflows that remove busywork from your team's day — we design AI systems built to run in production, not stay in a demo.",
+        items: [
+          {
+            title: "AI Agents & Assistants",
+            description:
+              "Autonomous agents that reason, retrieve, and act. RAG systems answer questions from your own knowledge base, conversational assistants handle support and sales qualification on your website, Slack, or WhatsApp, and research agents scour the web and write reports — all without manual effort.",
+            tags: ["LangChain", "Claude AI", "GPT-4", "RAG"],
+          },
+          {
+            title: "Workflow Automation (n8n)",
+            description:
+              "Visual workflows that connect your entire stack — webhook triggers, AI processing, data transforms, database writes, and notifications in one canvas, running end-to-end with zero manual effort.",
+            tags: ["n8n", "Webhooks", "REST APIs", "PostgreSQL"],
+          },
+          {
+            title: "AI & Machine Learning Integration",
+            description:
+              "We build AI directly into your existing web and data systems — predictive forecasting that combines machine learning with stochastic models, and generative AI features powered by advanced prompt engineering.",
+            tags: ["GenAI", "Machine Learning", "Predictive Models"],
+          },
+          {
+            title: "AI Strategy & Consulting",
+            description:
+              "Not sure where AI fits in your business yet? We audit your workflows, identify the highest-leverage automation opportunities, and build the roadmap — then build the system.",
+            tags: ["Strategy", "Automation Audit", "Roadmapping"],
+          },
+        ],
+      },
+      {
+        id: "software-dev",
+        label: "Software & Web Dev",
+        title: "From Prototype to Production, Fast",
+        description:
+          "Full-stack applications built with modern tooling and shipped fast — robust backends, clean data pipelines, and the integrations that connect everything you already run.",
+        items: [
+          {
+            title: "Full-Stack Web Development",
+            description:
+              "End-to-end web applications — frontend UIs built with React, Next.js, Vue, and modern CSS, backed by robust architectures in Python, Java, PHP, Laravel, or Spring Boot. From first prototype to production in days, without cutting quality.",
+            tags: ["React", "Next.js", "Python", "Laravel"],
+          },
+          {
+            title: "Data Engineering",
+            description:
+              "Data warehouses and data lakes designed to scale, with pipelines managed through Dagster and AWS. We build the data models and manage the databases — PostgreSQL, MySQL, MongoDB — that your applications and dashboards run on.",
+            tags: ["Dagster", "AWS", "PostgreSQL", "MongoDB"],
+          },
+          {
+            title: "System Integration",
+            description:
+              "Secure connections between your systems and the platforms you already run on — RESTful APIs, OAuth 2.0, and direct integrations with Shopify, Shopware, Meta, and Google Analytics.",
+            tags: ["REST APIs", "OAuth 2.0", "Shopify", "Meta"],
+          },
+          {
+            title: "Rapid Deployment",
+            description:
+              "Modern CI/CD and infrastructure that gets your product in front of real users fast — from first commit to a live, production-grade release, without the usual engineering overhead.",
+            tags: ["CI/CD", "Cloud Infra", "DevOps"],
+          },
+        ],
+      },
+      {
+        id: "ecommerce",
+        label: "E-Commerce",
+        title: "Online Stores, Built to Sell",
+        description:
+          "Custom storefronts for any niche — product catalogs, secure checkout and payments, inventory and order management, and the exact features your business needs to sell online.",
+        items: [
+          {
+            title: "Custom Storefronts",
+            description:
+              "A store built around your products and your brand, not a generic theme. Responsive design, fast load times, and a shopping experience tuned for your niche — fashion, food, or anything in between.",
+            tags: ["Any Niche", "Custom Design"],
+          },
+          {
+            title: "Secure Checkout & Payments",
+            description:
+              "Frictionless checkout with the payment methods your customers already trust — card payments, digital wallets, and local options — all PCI-compliant and built to minimize cart abandonment.",
+            tags: ["Secure Payments", "Checkout"],
+          },
+          {
+            title: "Inventory & Order Management",
+            description:
+              "Real-time stock tracking, automated order routing, and dashboards that show you what's selling — so you spend less time on spreadsheets and more time growing.",
+            tags: ["Inventory", "Order Management"],
+          },
+          {
+            title: "Subscriptions, Bookings & Marketplaces",
+            description:
+              "The features that make your store yours — recurring subscriptions, appointment or table bookings, or a full multi-vendor marketplace where other sellers list alongside you.",
+            tags: ["Subscriptions", "Bookings", "Custom Features"],
+          },
+        ],
+      },
+      {
+        id: "brand-launch",
+        label: "Brand Launch",
+        title: "Launch With a Real Identity",
+        description:
+          "Logo design and naming, a complete visual identity system, and a professional website — everything a new company needs to look credible from day one.",
+        items: [
+          {
+            title: "Logo Design & Naming",
+            description:
+              "A name that fits your business and a logo that works everywhere — business cards, app icons, social profiles — designed to be memorable at a glance and distinctive in your market.",
+            tags: ["Naming", "Logo Design"],
+          },
+          {
+            title: "Visual Identity System",
+            description:
+              "A complete set of brand guidelines — color palette, typography, imagery style, and usage rules — so every piece of marketing you put out looks like it came from the same company.",
+            tags: ["Brand Guidelines", "Typography"],
+          },
+          {
+            title: "Professional Website",
+            description:
+              "A polished, responsive website that introduces your business and converts visitors into customers — built on the same identity system, live and ready before you open your doors.",
+            tags: ["Custom Features", "Responsive Design"],
+          },
+        ],
       },
     ],
   },
