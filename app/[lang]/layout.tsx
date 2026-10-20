@@ -14,6 +14,7 @@ export function generateStaticParams() {
 
 export const metadata: Metadata = {
   title: { default: siteConfig.name, template: `%s | ${siteConfig.name}` },
+  description: siteConfig.slogan,
   metadataBase: new URL("https://silicortex.de"),
 }
 
