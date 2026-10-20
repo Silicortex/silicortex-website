@@ -45,6 +45,7 @@ next-env.d.ts
 # Claude Code
 .claude/
 .superpowers/
+.worktrees/
 
 # IDE config
 .continue/
