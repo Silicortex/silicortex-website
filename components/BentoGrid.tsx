@@ -1,5 +1,6 @@
 "use client"
 
+import Link from "next/link"
 import { motion } from "framer-motion"
 import { useLang } from "@/components/providers/LangProvider"
 import { TiltCard } from "@/components/TiltCard"
@@ -9,20 +10,11 @@ import { scaleUp, staggerContainer } from "@/lib/motion"
 const glassCard =
   "group relative overflow-hidden rounded-3xl border border-black/5 p-8 shadow-[0_2px_10px_-3px_rgba(6,81,237,0.1)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_8px_30px_-4px_rgba(6,81,237,0.15)] dark:border-white/10 dark:backdrop-blur-xl dark:hover:border-white/20 dark:hover:shadow-[0_8px_30px_-4px_rgba(0,0,0,0.5)]"
 
-const spanConfigs = [
-  "md:col-span-2 md:row-span-2",
-  "md:col-span-1 md:row-span-2",
-  "md:col-span-1",
-  "md:col-span-1",
-  "md:col-span-1",
-]
-
 const accentColors = [
   "text-blue-600 dark:text-blue-400",
   "text-violet-600 dark:text-violet-400",
   "text-cyan-600 dark:text-[#5dcfd6]",
   "text-emerald-600 dark:text-emerald-400",
-  "text-amber-600 dark:text-amber-400",
 ]
 
 const iconBg = [
@@ -30,7 +22,6 @@ const iconBg = [
   "bg-violet-100 dark:bg-violet-500/10",
   "bg-cyan-100 dark:bg-cyan-500/10",
   "bg-emerald-100 dark:bg-emerald-500/10",
-  "bg-amber-100 dark:bg-amber-500/10",
 ]
 
 const cardBgs = [
@@ -38,19 +29,20 @@ const cardBgs = [
   "bg-gradient-to-br from-violet-50 to-white dark:from-violet-900/20 dark:to-slate-900/50",
   "bg-gradient-to-br from-cyan-50 to-white dark:from-cyan-900/20 dark:to-slate-900/50",
   "bg-gradient-to-br from-emerald-50 to-white dark:from-emerald-900/20 dark:to-slate-900/50",
-  "bg-gradient-to-br from-amber-50 to-white dark:from-amber-900/20 dark:to-slate-900/50",
 ]
 
-const icons = ["🤖", "⚡", "🛠️", "🧭", "🚀"]
+const icons = ["🤖", "💻", "🛒", "🚀"]
 
 function BentoCard({
-  title, description, tag, span, accent, iconBgClass, bgClass, icon, index,
+  id, title, description, tag, accent, iconBgClass, bgClass, icon, index,
 }: {
-  title: string; description: string; tag: string; span: string
+  id: string; title: string; description: string; tag: string
   accent: string; iconBgClass: string; bgClass: string; icon: string; index: number
 }) {
+  const { localeHref } = useLang()
+
   const inner = (
-    <div className={`${glassCard} ${span} ${bgClass} ${index === 0 ? "glow-border" : ""} flex flex-col justify-between gap-6 h-full`}>
+    <div className={`${glassCard} ${bgClass} ${index === 0 ? "glow-border" : ""} flex flex-col justify-between gap-6 h-full`}>
       <div className="flex items-start justify-between gap-4">
         <span className={`flex h-12 w-12 items-center justify-center rounded-2xl text-xl shadow-sm ring-1 ring-inset ring-black/5 dark:ring-white/10 ${iconBgClass}`}>
           {icon}
@@ -71,10 +63,12 @@ function BentoCard({
   )
 
   return (
-    <motion.div variants={scaleUp} className={span}>
-      <TiltCard className="h-full">
-        {inner}
-      </TiltCard>
+    <motion.div variants={scaleUp} className="h-full">
+      <Link href={localeHref(`/services#${id}`)} className="block h-full">
+        <TiltCard className="h-full">
+          {inner}
+        </TiltCard>
+      </Link>
     </motion.div>
   )
 }
@@ -109,10 +103,10 @@ export function BentoGrid() {
           initial="hidden"
           whileInView="visible"
           viewport={{ once: true, margin: "-60px" }}
-          className="grid grid-cols-1 gap-6 md:grid-cols-3 md:grid-rows-3 snap-y"
+          className="grid grid-cols-1 gap-6 sm:grid-cols-2"
         >
-          {s.items.map((item, i) => (
-            <BentoCard key={item.title} {...item} span={spanConfigs[i]} accent={accentColors[i]} iconBgClass={iconBg[i]} bgClass={cardBgs[i]} icon={icons[i]} index={i} />
+          {s.categories.map((item, i) => (
+            <BentoCard key={item.id} {...item} accent={accentColors[i]} iconBgClass={iconBg[i]} bgClass={cardBgs[i]} icon={icons[i]} index={i} />
           ))}
         </motion.div>
       </div>

@@ -22,36 +22,34 @@ const de: Dictionary = {
     title: "Was wir bauen",
     subtitle:
       "End-to-End-Lösungen, die KI-Intelligenz mit Workflow-Automatisierung kombinieren — entwickelt, um stundenlange Handarbeit zu ersetzen.",
-    items: [
+    categories: [
       {
-        title: "KI-Agenten",
+        id: "ai-automation",
+        title: "KI & Automatisierung",
         description:
-          "Aufgabenspezifische autonome Agenten auf Basis von RAG, LLMs und benutzerdefiniertem Tool-Einsatz. Research-Bots, Chatbots und Entscheidungs-Engines.",
-        tag: "Kernleistung",
+          "Autonome Agenten, visuelle Workflow-Automatisierung und die Strategie, die beides verbindet — wir entwerfen und deployen KI-Systeme, die Ihrem Team repetitive Arbeit abnehmen.",
+        tag: "Kern",
       },
       {
-        title: "n8n Automatisierung",
+        id: "software-dev",
+        title: "Software- & Webentwicklung",
         description:
-          "Visuelle Workflow-Automatisierung, die Ihren gesamten Stack verbindet. Von API-Triggern bis zu mehrstufiger Logik — keine repetitive Arbeit mehr.",
-        tag: "Workflows",
-      },
-      {
-        title: "Individuelle Entwicklung",
-        description:
-          "Full-Stack-Anwendungen mit modernem Tooling. Wir entwerfen, entwickeln und deployen produktionsreife Software schnell.",
+          "Full-Stack-Anwendungen mit modernem Tooling, vom ersten Prototyp bis zur Produktion in Tagen. Wir entwerfen, entwickeln und deployen Software schnell, ohne Abstriche bei der Qualität.",
         tag: "Engineering",
       },
       {
-        title: "KI-Beratung",
+        id: "ecommerce",
+        title: "E-Commerce",
         description:
-          "Strategische Beratung zur Identifikation von Automatisierungspotenzialen und Entwicklung einer Roadmap mit messbarem ROI.",
-        tag: "Strategie",
+          "Individuelle Online-Shops für jede Branche — Produktkataloge, sicherer Checkout und genau die Abonnement-, Buchungs- oder Lagerfunktionen, die Ihr Geschäft braucht.",
+        tag: "Neu",
       },
       {
-        title: "Schnelle Lieferung",
+        id: "brand-launch",
+        title: "Markenidentität & Unternehmensstart",
         description:
-          "Vom Konzept zur Produktion in Tagen. Unsere bewährten Workflow-Templates verkürzen die Entwicklungszeit ohne Qualitätsverlust.",
-        tag: "Geschwindigkeit",
+          "Logodesign, Namensfindung und ein vollständiges visuelles Identitätssystem, kombiniert mit einer professionellen Website — alles, was ein neues Unternehmen braucht, um von Tag eins an seriös aufzutreten.",
+        tag: "Neu",
       },
     ],
   },

@@ -20,36 +20,34 @@ const en = {
     title: "What We Build",
     subtitle:
       "End-to-end solutions that combine AI intelligence with workflow automation — built to replace hours of manual effort.",
-    items: [
+    categories: [
       {
-        title: "AI Agents",
+        id: "ai-automation",
+        title: "AI & Automation",
         description:
-          "Task-specific autonomous agents powered by RAG, LLMs, and custom tool-use. Deploy research bots, chatbots, and decision engines.",
-        tag: "Core Service",
+          "Autonomous agents, visual workflow automation, and the strategy to tie them together — we design and deploy AI systems that take repetitive work off your team's plate.",
+        tag: "Core",
       },
       {
-        title: "n8n Automation",
+        id: "software-dev",
+        title: "Software & Web Development",
         description:
-          "Visual workflow automation that connects your entire stack. From API triggers to multi-step logic — no repetitive work left behind.",
-        tag: "Workflow",
-      },
-      {
-        title: "Custom Development",
-        description:
-          "Full-stack applications built with modern tooling. We design, build, and deploy production-grade software fast.",
+          "Full-stack applications built with modern tooling, from first prototype to production in days. We design, build, and ship software fast without cutting quality.",
         tag: "Engineering",
       },
       {
-        title: "AI Consulting",
+        id: "ecommerce",
+        title: "E-Commerce",
         description:
-          "Strategic guidance to identify automation opportunities and build a roadmap that delivers measurable ROI.",
-        tag: "Strategy",
+          "Custom online stores for any niche — product catalogs, secure checkout, and the subscription, booking, or inventory features your business actually needs.",
+        tag: "New",
       },
       {
-        title: "Rapid Deployment",
+        id: "brand-launch",
+        title: "Brand Identity & Business Launch",
         description:
-          "From concept to production in days. Our proven workflow templates compress build time without cutting quality.",
-        tag: "Speed",
+          "Logo design, naming, and a complete visual identity system, paired with a professional website — everything a new company needs to launch looking credible.",
+        tag: "New",
       },
     ],
   },
