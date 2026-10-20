@@ -396,6 +396,12 @@ export default function SalesDashboard() {
   const data = RANGE_DATA[range]
   const scatterData = RANGE_DATA["30D"].map(d => ({ orders: d.orders, revenue: d.revenue, date: d.date }))
   const filteredOrders = filter === "All" ? ORDERS : ORDERS.filter(o => o.status === filter)
+  const STATUS_LABEL: Record<StatusKey, string> = {
+    Completed: d.statusCompleted,
+    Pending: d.statusPending,
+    Processing: d.statusProcessing,
+    Refunded: d.statusRefunded,
+  }
 
   return (
     <ThemeCtx.Provider value={C}>
@@ -478,7 +484,7 @@ export default function SalesDashboard() {
 
           {/* KPIs */}
           <SectionDivider />
-          <SectionHeader icon="📈" label="Key Metrics" title="KPI Overview" accent="#a78bfa" />
+          <SectionHeader icon="📈" label={d.kpiOverview.label} title={d.kpiOverview.title} accent="#a78bfa" />
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 12, marginBottom: 20 }}>
             {KPI.map((k, i) => (
               <div key={k.label} className="kpi" style={{ ...card, animationDelay: `${i * 0.05}s`, padding: "14px 16px" }}>
@@ -496,7 +502,7 @@ export default function SalesDashboard() {
 
           {/* Revenue Area Chart */}
           <SectionDivider />
-          <SectionHeader icon="📉" label="Revenue" title="Revenue Trends" accent="#7c3aed" />
+          <SectionHeader icon="📉" label={d.revenueTrends.label} title={d.revenueTrends.title} accent="#7c3aed" />
           <div style={{ ...card, marginBottom: 20 }}>
             <p style={sectionLabel}>{d.revenueTrend}</p>
             <p style={sectionTitle}>{d.revenueOverTime} · {range}</p>
@@ -519,7 +525,7 @@ export default function SalesDashboard() {
 
           {/* Donut + Bar */}
           <SectionDivider />
-          <SectionHeader icon="🔄" label="Order Analytics" title="Orders & Comparisons" accent="#22d3ee" />
+          <SectionHeader icon="🔄" label={d.orderAnalytics.label} title={d.orderAnalytics.title} accent="#22d3ee" />
           <div className="chart-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1.6fr", gap: 16, marginBottom: 20 }}>
             <div style={card}>
               <p style={sectionLabel}>{d.breakdown}</p>
@@ -577,7 +583,7 @@ export default function SalesDashboard() {
 
           {/* Products + Scatter */}
           <SectionDivider />
-          <SectionHeader icon="📦" label="Product Performance" title="Products & Correlations" accent="#4ade80" />
+          <SectionHeader icon="📦" label={d.productPerformance.label} title={d.productPerformance.title} accent="#4ade80" />
           <div className="chart-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1.4fr", gap: 16, marginBottom: 20 }}>
             <div style={card}>
               <p style={sectionLabel}>{d.products}</p>
@@ -622,7 +628,7 @@ export default function SalesDashboard() {
 
           {/* Orders Table */}
           <SectionDivider />
-          <SectionHeader icon="🧾" label="Transactions" title="Transaction History" accent="#fbbf24" />
+          <SectionHeader icon="🧾" label={d.transactions.label} title={d.transactions.title} accent="#fbbf24" />
           <div style={{ ...card, marginBottom: 20 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14, flexWrap: "wrap", gap: 8 }}>
               <div>
@@ -663,7 +669,7 @@ export default function SalesDashboard() {
                       <td style={{ padding: "10px 8px", color: C.text3 }}>{o.customer}</td>
                       <td style={{ padding: "10px 8px", color: C.text2, fontWeight: 700 }}>${o.amount.toLocaleString("en-US")}</td>
                       <td style={{ padding: "10px 8px" }}>
-                        <span style={{ background: STATUS_COLORS[o.status as StatusKey].bg, color: STATUS_COLORS[o.status as StatusKey].text, padding: "2px 10px", borderRadius: 20, fontSize: 11, fontWeight: 700 }}>{o.status}</span>
+                        <span style={{ background: STATUS_COLORS[o.status as StatusKey].bg, color: STATUS_COLORS[o.status as StatusKey].text, padding: "2px 10px", borderRadius: 20, fontSize: 11, fontWeight: 700 }}>{STATUS_LABEL[o.status as StatusKey]}</span>
                       </td>
                       <td style={{ padding: "10px 0 10px 8px", color: C.dim2 }}>{o.date}</td>
                     </tr>
@@ -675,17 +681,17 @@ export default function SalesDashboard() {
 
           {/* Dataset Overview */}
           <SectionDivider />
-          <SectionHeader icon="🗂️" label="Raw Data" title="Full Dataset" accent="#94a3b8" />
+          <SectionHeader icon="🗂️" label={d.rawData.label} title={d.rawData.title} accent="#94a3b8" />
           <DatasetOverview />
 
           {/* AI Insights */}
           <SectionDivider />
-          <SectionHeader icon="✦" label="AI" title="AI-Powered Insights" accent="#a78bfa" />
+          <SectionHeader icon="✦" label={d.aiInsightsHeader.label} title={d.aiInsightsHeader.title} accent="#a78bfa" />
           <AIInsights range={range} />
 
           {/* Sales Chatbot */}
           <SectionDivider />
-          <SectionHeader icon="💬" label="AI Chatbot" title="Ask Your Sales Data" accent="#38bdf8" />
+          <SectionHeader icon="💬" label={d.chatbotHeader.label} title={d.chatbotHeader.title} accent="#38bdf8" />
           <SalesChatbot />
         </div>
       </div>

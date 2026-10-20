@@ -10,6 +10,13 @@ const de: Dictionary = {
     contact: "Kontakt",
     cta: "Loslegen",
   },
+  navbar: {
+    projectsLabel: "Projekte",
+    toggleLanguage: "Sprache",
+    toggleTheme: "Design umschalten",
+    toggleMenu: "Menü umschalten",
+    toggleSubmenu: "Untermenü umschalten",
+  },
   hero: {
     badge: "Full-Service-Digitalagentur",
     title: "Wir bauen die Produkte,\ndie Ihr Geschäft voranbringen",
@@ -561,6 +568,54 @@ const de: Dictionary = {
     ],
     archLabel: "Architektur:",
     archAfter: "bedeutet, dass Claude mehrere Tools in einer Antwort aufrufen kann, wenn die Frage kombinierte Daten benötigt.",
+    kpiOverview: { label: "Kennzahlen", title: "KPI-Übersicht" },
+    revenueTrends: { label: "Umsatz", title: "Umsatztrends" },
+    orderAnalytics: { label: "Bestellanalyse", title: "Bestellungen & Vergleiche" },
+    productPerformance: { label: "Produktleistung", title: "Produkte & Korrelationen" },
+    transactions: { label: "Transaktionen", title: "Transaktionsverlauf" },
+    rawData: { label: "Rohdaten", title: "Vollständiger Datensatz" },
+    aiInsightsHeader: { label: "KI", title: "KI-gestützte Einblicke" },
+    chatbotHeader: { label: "KI-Chatbot", title: "Fragen Sie Ihre Verkaufsdaten" },
+    chatbot: {
+      greeting: "Hallo! Ich analysiere die Verkaufsdaten von Silicortex für 2025. Fragen Sie mich nach Umsatz, Bestellungen, Top-Plänen, KPIs oder Monatstrends — probieren Sie unten einen Vorschlag aus.",
+      suggestions: [
+        "Wie hoch war Luminas Gesamtumsatz in Q4 2025?",
+        "Welcher Plan bringt den meisten Umsatz?",
+        "Wie schnitt November im Vergleich zu Oktober ab?",
+        "Wie hoch sind Abwanderungsrate und Customer LTV?",
+      ],
+      fallback: "Gute Frage! In einer echten Produktivumgebung würde ich die Live-Datenbank abfragen und Ihnen anhand der Daten eine präzise Antwort geben. Probieren Sie für diese Demo einen der Vorschlags-Chips unten aus, um Beispielantworten zu sehen.",
+      responses: [
+        {
+          keywords: ["q4", "last 3", "last three", "october", "november", "december", "oct", "nov", "dec"],
+          response: "Im Q4 2025 (Okt.–Dez.) erzielte Silicortex **$449,200** Umsatz bei **6,210 Bestellungen**. Oktober trug $138,200 bei, November war mit $162,400 der stärkste Monat dank eines Black-Friday-Spikes ($52,400 in einer Woche), und Dezember schloss mit $148,600 ab. Das ist ein Anstieg von +38% gegenüber dem Q3-Umsatz von $324,600.",
+        },
+        {
+          keywords: ["product", "plan", "best", "top", "revenue", "subscription", "pro", "enterprise", "starter", "business"],
+          response: "Der **Pro Plan (€149/Monat)** ist mit $486,200 Umsatz aus 3,263 Abonnements 2025 der Top-Performer von Lumina. Der Business Plan (€399/Monat) liegt mit $412,800 aus 1,034 Kunden auf Platz zwei. Zusammen machen sie 69% des Gesamtumsatzes aus. Enterprise (€1,200/Monat) trägt $228,400 von nur 190 Kunden bei — der höchste Umsatz pro Kunde bei €1,200/Monat.",
+        },
+        {
+          keywords: ["november", "october", "compare", "vs", "versus", "month"],
+          response: "November übertraf Oktober deutlich: Der Umsatz stieg von $138,200 auf $162,400 (**+18%**), und die Bestellungen stiegen von 1,912 auf 2,242 (+17%). Haupttreiber war die Black-Friday-Woche (19.–25. Nov.), die allein $52,400 generierte — fast das Dreifache einer typischen Woche. Auch die Neukundengewinnung legte zu: 386 im November gegenüber 324 im Oktober (+19%).",
+        },
+        {
+          keywords: ["churn", "ltv", "lifetime", "retention", "repeat", "loyal"],
+          response: "Die Abwanderungsrate von Lumina liegt bei **1,6%** — exzellent für B2B-SaaS, wo der Branchendurchschnitt bei 3–5% liegt. Der Customer LTV liegt bei $620 bei einer Wiederkaufrate von 71%, was auf eine sehr starke Kundenbindung hinweist. Bei der aktuellen JoJ-Wachstumsrate von +18,4% mit 3,040 Neukunden in 2025 wächst die Umsatzbasis gesund.",
+        },
+        {
+          keywords: ["conversion", "rate", "funnel", "lead", "signup"],
+          response: "Die Konversionsrate von Lumina liegt bei **4,1%** — ein Plus von +0,4pp im Jahresvergleich. Mit 18,048 Bestellungen bei geschätzt 410,000 monatlichen Besuchern liegt der Funnel über den SaaS-Benchmarks (typischerweise 2–5%). Der Pro Plan ist der häufigste Einstiegspunkt; eine verbesserte Trial-zu-Paid-Conversion beim Business Plan könnte den größten Umsatzschub bringen.",
+        },
+        {
+          keywords: ["growth", "yoy", "year", "annual", "2025", "total"],
+          response: "Silicortex wuchs 2025 im Jahresvergleich um **+18,4%** und erreichte $1,302,400 Gesamtumsatz bei 18,048 Bestellungen. H2 ($773,800) übertraf H1 ($528,600) um 46%, getrieben von einem starken Q4. Die Neukundengewinnung wuchs um +22,6% auf 3,040, während die Abwanderungsrate auf 1,6% sank — ein Zeichen starker Net Revenue Retention.",
+        },
+        {
+          keywords: ["new customer", "acquisition", "acquire", "onboard"],
+          response: "Lumina gewann 2025 **3,040 Neukunden** — ein Plus von +22,6% gegenüber 2024. Die stärksten Monate für Neukundengewinnung waren November (386 Neukunden) und Oktober (324), was mit den B2B-Jahresendbudgets zusammenfällt. Feb. war mit 142 Neukunden der schwächste Monat — ein guter Ansatzpunkt für eine Winter-Onboarding-Kampagne.",
+        },
+      ],
+    },
   },
 }
 

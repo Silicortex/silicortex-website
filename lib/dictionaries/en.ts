@@ -8,6 +8,13 @@ const en = {
     contact: "Contact",
     cta: "Get Started",
   },
+  navbar: {
+    projectsLabel: "Projects",
+    toggleLanguage: "Language",
+    toggleTheme: "Toggle theme",
+    toggleMenu: "Toggle menu",
+    toggleSubmenu: "Toggle sub-menu",
+  },
   hero: {
     badge: "Full-Service Digital Agency",
     title: "We Build the Products\nThat Power Your Business",
@@ -556,6 +563,54 @@ const en = {
     ],
     archLabel: "Architecture:",
     archAfter: "means Claude can call multiple tools in one response if the question needs combined data.",
+    kpiOverview: { label: "Key Metrics", title: "KPI Overview" },
+    revenueTrends: { label: "Revenue", title: "Revenue Trends" },
+    orderAnalytics: { label: "Order Analytics", title: "Orders & Comparisons" },
+    productPerformance: { label: "Product Performance", title: "Products & Correlations" },
+    transactions: { label: "Transactions", title: "Transaction History" },
+    rawData: { label: "Raw Data", title: "Full Dataset" },
+    aiInsightsHeader: { label: "AI", title: "AI-Powered Insights" },
+    chatbotHeader: { label: "AI Chatbot", title: "Ask Your Sales Data" },
+    chatbot: {
+      greeting: "Hi! I'm analyzing Silicortex's 2025 sales data. Ask me about revenue, orders, top plans, KPIs, or monthly trends — try a suggestion below.",
+      suggestions: [
+        "What were Lumina's total sales in Q4 2025?",
+        "Which plan brings the most revenue?",
+        "How did November compare to October?",
+        "What's the churn rate and customer LTV?",
+      ],
+      fallback: "That's a great question! In a real deployment, I'd query the live database and give you a precise answer using the data. For this demo, try one of the suggestion chips below to see example responses.",
+      responses: [
+        {
+          keywords: ["q4", "last 3", "last three", "october", "november", "december", "oct", "nov", "dec"],
+          response: "In Q4 2025 (Oct–Dec), Silicortex generated **$449,200** in revenue across **6,210 orders**. October contributed $138,200, November was the strongest month at $162,400 driven by a Black Friday spike ($52,400 in one week), and December closed at $148,600. That's a +38% increase compared to Q3's $324,600.",
+        },
+        {
+          keywords: ["product", "plan", "best", "top", "revenue", "subscription", "pro", "enterprise", "starter", "business"],
+          response: "The **Pro Plan (€149/mo)** is Lumina's top earner at $486,200 in 2025 across 3,263 subscriptions. The Business Plan (€399/mo) ranks second at $412,800 from 1,034 customers. Together they account for 69% of total revenue. The Enterprise (€1,200/mo) contributes $228,400 from only 190 clients — the highest revenue-per-customer at €1,200/mo.",
+        },
+        {
+          keywords: ["november", "october", "compare", "vs", "versus", "month"],
+          response: "November significantly outperformed October: revenue grew from $138,200 to $162,400 (**+18%**) and orders jumped from 1,912 to 2,242 (+17%). The main driver was Black Friday week (Nov 19–25) which alone generated $52,400 — nearly 3× a typical week. New customer acquisitions also surged: 386 in November vs 324 in October (+19%).",
+        },
+        {
+          keywords: ["churn", "ltv", "lifetime", "retention", "repeat", "loyal"],
+          response: "Lumina's churn rate is **1.6%** — excellent for B2B SaaS where the industry average is 3–5%. Customer LTV stands at $620 with a 71% repeat purchase rate, indicating very strong retention. At the current +18.4% YoY growth rate with 3,040 new customers in 2025, the revenue base is compounding healthily.",
+        },
+        {
+          keywords: ["conversion", "rate", "funnel", "lead", "signup"],
+          response: "Lumina's conversion rate is **4.1%** — up +0.4pp year-over-year. With 18,048 orders from an estimated 410,000 monthly visitors, the funnel is performing above SaaS benchmarks (typically 2–5%). The Pro Plan is the most common entry point; improving the trial-to-paid flow for the Business Plan could yield the highest revenue uplift.",
+        },
+        {
+          keywords: ["growth", "yoy", "year", "annual", "2025", "total"],
+          response: "Silicortex grew **+18.4%** year-over-year in 2025, ending at $1,302,400 in total revenue across 18,048 orders. H2 ($773,800) outperformed H1 ($528,600) by 46%, driven by a strong Q4. New customer acquisition grew +22.6% to 3,040 while churn dropped to 1.6%, resulting in strong net revenue retention.",
+        },
+        {
+          keywords: ["new customer", "acquisition", "acquire", "onboard"],
+          response: "Lumina acquired **3,040 new customers** in 2025, up +22.6% vs 2024. The strongest acquisition months were November (386 new customers) and October (324), coinciding with end-of-year B2B budget cycles. Feb was the weakest month at 142 new customers — a good target for a winter onboarding campaign.",
+        },
+      ],
+    },
   },
 }
 

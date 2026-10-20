@@ -9,7 +9,7 @@ import { useLang } from "@/components/providers/LangProvider"
 import { useHydrated } from "@/lib/useHydrated"
 import { locales } from "@/lib/dictionaries"
 
-function ThemeToggle() {
+function ThemeToggle({ toggleThemeLabel }: { toggleThemeLabel: string }) {
   const { resolvedTheme, setTheme } = useTheme()
   // The resolved theme is only knowable in the browser, so the placeholder holds
   // the layout until hydration rather than rendering a guess the server cannot make.
@@ -19,7 +19,7 @@ function ThemeToggle() {
   return (
     <button
       onClick={() => setTheme(isDark ? "light" : "dark")}
-      aria-label="Toggle theme"
+      aria-label={toggleThemeLabel}
       className="flex h-8 w-8 items-center justify-center rounded-full border border-black/10 text-slate-500 transition-colors hover:border-blue-500/40 hover:text-blue-500 dark:border-white/10 dark:text-slate-400 dark:hover:text-white"
     >
       {isDark ? (
@@ -125,7 +125,7 @@ export function NavbarClient() {
                 </Link>
                 <button
                   onClick={toggleDropdown}
-                  aria-label="Toggle sub-menu"
+                  aria-label={dict.navbar.toggleSubmenu}
                   className={`flex h-5 w-5 items-center justify-center rounded transition-colors hover:bg-slate-100 dark:hover:bg-white/10 ${
                     isActive ? "text-slate-900 dark:text-white" : "text-slate-400 dark:text-slate-500"
                   }`}
@@ -148,7 +148,7 @@ export function NavbarClient() {
                       className="absolute left-0 top-full mt-2 w-64 rounded-xl border border-black/8 bg-white p-2 shadow-lg dark:border-white/8 dark:bg-slate-900"
                     >
                       <p className="mb-1.5 px-2 text-[10px] font-bold uppercase tracking-widest text-slate-400">
-                        Projects
+                        {dict.navbar.projectsLabel}
                       </p>
                       {link.children.map((child) => {
                         const childHref = localeHref(child.href)
@@ -183,8 +183,8 @@ export function NavbarClient() {
 
         {/* Desktop right */}
         <div className="hidden items-center gap-2 md:flex">
-          <ThemeToggle />
-          <div role="group" aria-label="Language" className="flex items-center gap-0.5 rounded-full border border-black/10 p-0.5 dark:border-white/10">
+          <ThemeToggle toggleThemeLabel={dict.navbar.toggleTheme} />
+          <div role="group" aria-label={dict.navbar.toggleLanguage} className="flex items-center gap-0.5 rounded-full border border-black/10 p-0.5 dark:border-white/10">
             {locales.map((l) => (
               <button
                 key={l}
@@ -210,8 +210,8 @@ export function NavbarClient() {
 
         {/* Mobile: theme + lang + hamburger */}
         <div className="flex items-center gap-2 md:hidden">
-          <ThemeToggle />
-          <div role="group" aria-label="Language" className="flex items-center gap-0.5 rounded-full border border-black/10 p-0.5 dark:border-white/10">
+          <ThemeToggle toggleThemeLabel={dict.navbar.toggleTheme} />
+          <div role="group" aria-label={dict.navbar.toggleLanguage} className="flex items-center gap-0.5 rounded-full border border-black/10 p-0.5 dark:border-white/10">
             {locales.map((l) => (
               <button
                 key={l}
@@ -230,7 +230,7 @@ export function NavbarClient() {
           <button
             onClick={() => setMenuOpen(!menuOpen)}
             className="flex min-h-[48px] min-w-[48px] items-center justify-center rounded-lg text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
-            aria-label="Toggle menu"
+            aria-label={dict.navbar.toggleMenu}
           >
             <span className="flex flex-col gap-1.5">
               <motion.span animate={menuOpen ? { rotate: 45, y: 8 } : { rotate: 0, y: 0 }} className="block h-0.5 w-6 bg-current" />
