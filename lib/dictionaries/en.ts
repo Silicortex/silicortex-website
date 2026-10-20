@@ -22,28 +22,28 @@ const en = {
       "End-to-end solutions that combine AI intelligence with workflow automation — built to replace hours of manual effort.",
     categories: [
       {
-        id: "ai-automation",
+        id: "ai-automation" as const,
         title: "AI & Automation",
         description:
           "Autonomous agents, visual workflow automation, and the strategy to tie them together — we design and deploy AI systems that take repetitive work off your team's plate.",
         tag: "Core",
       },
       {
-        id: "software-dev",
+        id: "software-dev" as const,
         title: "Software & Web Development",
         description:
           "Full-stack applications built with modern tooling, from first prototype to production in days. We design, build, and ship software fast without cutting quality.",
         tag: "Engineering",
       },
       {
-        id: "ecommerce",
+        id: "ecommerce" as const,
         title: "E-Commerce",
         description:
           "Custom online stores for any niche — product catalogs, secure checkout, and the subscription, booking, or inventory features your business actually needs.",
         tag: "New",
       },
       {
-        id: "brand-launch",
+        id: "brand-launch" as const,
         title: "Brand Identity & Business Launch",
         description:
           "Logo design, naming, and a complete visual identity system, paired with a professional website — everything a new company needs to launch looking credible.",
