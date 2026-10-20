@@ -306,6 +306,34 @@ const de: Dictionary = {
     tagline:
       "Wir bauen Automatisierungsinfrastruktur für das nächste Jahrzehnt.",
   },
+  meta: {
+    home: {
+      title: "Startseite",
+      description: "Wir bauen die Maschinen, die Ihre Zukunft gestalten",
+    },
+    services: {
+      title: "Leistungen",
+      description:
+        "KI und Automatisierung, Software- und Webentwicklung, E-Commerce und Markenidentität — das gesamte Leistungsspektrum von Silicortex.",
+    },
+    work: {
+      title: "Projekte",
+      description: "KI-Agenten, Automatisierungs-Workflows und Dashboards von Silicortex.",
+    },
+    experience: {
+      title: "Erfahrung",
+      description: "Technische Exzellenz in KI, Automatisierung und Full-Stack-Entwicklung.",
+    },
+    network: {
+      title: "Netzwerk",
+      description:
+        "Werden Sie Teil des Silicortex-Freelance-Netzwerks. Arbeiten Sie remote an hochwertigen KI- und Automatisierungsprojekten.",
+    },
+    contact: {
+      title: "Kontakt",
+      description: "Nehmen Sie Kontakt mit Silicortex auf, um Ihr Projekt zu starten.",
+    },
+  },
   notFound: {
     title: "Diese Seite existiert nicht",
     description: "Der Link ist möglicherweise veraltet oder die Adresse leicht fehlerhaft.",

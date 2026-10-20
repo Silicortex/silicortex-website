@@ -301,6 +301,34 @@ const en = {
     copyright: "© 2026 Silicortex. All rights reserved.",
     tagline: "Building automation infrastructure for the next decade.",
   },
+  meta: {
+    home: {
+      title: "Home",
+      description: "We Build the Machines That Build Your Future",
+    },
+    services: {
+      title: "Services",
+      description:
+        "AI and automation, software and web development, e-commerce, and brand identity — the full range of digital services Silicortex builds.",
+    },
+    work: {
+      title: "Work",
+      description: "AI agents, automation workflows, and dashboards built by Silicortex.",
+    },
+    experience: {
+      title: "Experience",
+      description: "Technical mastery in AI, automation, and full-stack development.",
+    },
+    network: {
+      title: "Network",
+      description:
+        "Join the Silicortex freelance network. Work remotely on high-value AI and automation projects.",
+    },
+    contact: {
+      title: "Contact",
+      description: "Get in touch with Silicortex to start your project.",
+    },
+  },
   notFound: {
     title: "This page does not exist",
     description: "The link may be outdated, or the address slightly off.",

@@ -1,10 +1,13 @@
 import type { Metadata } from "next"
 import { ContactForm } from "@/components/ContactForm"
 import { ProfileCard } from "@/components/ProfileCard"
+import { getDictionary, type Lang } from "@/lib/dictionaries"
+import { localizedMetadata } from "@/lib/i18n/metadata"
 
-export const metadata: Metadata = {
-  title: "Contact",
-  description: "Get in touch with Silicortex to start your project.",
+export async function generateMetadata({ params }: { params: Promise<{ lang: Lang }> }): Promise<Metadata> {
+  const { lang } = await params
+  const { meta } = getDictionary(lang)
+  return localizedMetadata(lang, "/contact", meta.contact.title, meta.contact.description)
 }
 
 export default function ContactPage() {
