@@ -3,6 +3,7 @@
 import { useState, useContext, createContext } from "react"
 import { useTheme } from "next-themes"
 import { useLang } from "@/components/providers/LangProvider"
+import type { Lang } from "@/lib/dictionaries"
 import { SalesChatbot } from "@/components/SalesChatbot"
 import {
   AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid,
@@ -208,6 +209,39 @@ const STATIC_INSIGHTS_DE: Record<string, string[]> = {
   ],
 }
 
+const STATIC_INSIGHTS_AR: Record<string, string[]> = {
+  "7D": [
+    `كان عيد الميلاد (25 ديسمبر) أدنى يوم من حيث الإيراد بـ ${$(DAILY_7D[1].revenue)} — جدول حملة إعادة تواصل استباقية ليوم 26 ديسمبر.`,
+    `حقق ${_7Dpeak.date} أعلى إيراد أسبوعي بـ ${$(_7Dpeak.revenue)} — تجديدات موازنات B2B بعد العطلات تقود التعافي.`,
+    "الطلبات اليومية تتعافى بنسبة +185% من أدنى نقطة في عيد الميلاد — الزخم قوي مع اقتراب رأس السنة.",
+    `الإيراد الأسبوعي البالغ ${$(_7Dtotal)} يسير على المسار الصحيح؛ دفع ترقيات الخطط السنوية قبل مواعيد موازنة 31 ديسمبر.`,
+  ],
+  "30D": [
+    `كان ${_30Dpeak.date} أقوى يوم في ديسمبر بـ ${$(_30Dpeak.revenue)} — إلحاحية ما قبل عيد الميلاد تقود إغلاقات B2B في نهاية العام.`,
+    "عطلات نهاية الأسبوع تنخفض باستمرار 40–50% مقارنة بأيام الأسبوع — حوّل الإعلانات والتواصل إلى نطاق الإثنين–الخميس.",
+    "تجديدات خطة Pro تسيطر على طلبات ديسمبر؛ استهدف ترقية خطة Business قبل تجديد الموازنات في 1 يناير.",
+    "تعافي الإيراد بعد عيد الميلاد (26–28 ديسمبر: +191%) يؤكد خط أنابيب قويًا مع بداية الربع الأول من 2026.",
+  ],
+  "90D": [
+    `قفز أسبوع الجمعة السوداء (19 نوفمبر) إلى ${$(WEEKLY_90D[7].revenue)} — أعلى إيراد أسبوعي في الربع الرابع؛ كرّر النموذج مع حملة الربع الأول.`,
+    `ارتفاع نهاية الربع في أكتوبر (${$(WEEKLY_90D[3].revenue)} في الأسبوع الرابع) يُظهر سلوك استنفاد موازنات B2B — خطط لحملات في مارس/يونيو/سبتمبر.`,
+    `انخفاض أسبوع عيد الميلاد إلى ${$(WEEKLY_90D[12].revenue)} متوقع — قدّم جهود ديسمبر إلى الأسبوعين 1–2 للتعويض.`,
+    `إجمالي الربع الرابع ${$(_q4)} بزيادة +${Math.round((_q4/_q3-1)*100)}% عن الربع الثالث البالغ ${$(_q3)} — أقوى ربع بفضل الموسمية وتوافق المنتج مع السوق.`,
+  ],
+  "1Y": [
+    `انخفاض فبراير (${$(MONTHLY[1].revenue)}) هو الأدنى في العام — أضف حافز تجديد في يناير لتخفيف هذا التراجع.`,
+    `تفوّق النصف الثاني على النصف الأول بنسبة +${_h2pct}%: ${$(_h2)} مقابل ${$(_h1)} — عجّل توظيف فريق المبيعات قبل النصف الثاني القادم.`,
+    `ارتفاع الجمعة السوداء في نوفمبر (+${Math.round((MONTHLY[10].revenue/MONTHLY[9].revenue-1)*100)}% شهريًا) وتعافي سبتمبر (+${Math.round((MONTHLY[8].revenue/MONTHLY[7].revenue-1)*100)}%) هما أكبر لحظتي نمو.`,
+    "نمو الإيراد السنوي بنسبة +18.4% مع معدل تسرّب 1.6% يشير إلى احتفاظ صحي بصافي الإيرادات — حافظ على الاستثمار في المنتج.",
+  ],
+}
+
+const INSIGHT_SETS: Record<Lang, Record<string, string[]>> = {
+  en: STATIC_INSIGHTS,
+  de: STATIC_INSIGHTS_DE,
+  ar: STATIC_INSIGHTS_AR,
+}
+
 // ─── AI Insights ─────────────────────────────────────────────────────────────
 function AIInsights({ range }: { range: string }) {
   const C = useContext(ThemeCtx)
@@ -221,8 +255,7 @@ function AIInsights({ range }: { range: string }) {
     setTimeout(() => { setShown(true); setAnimating(false) }, 900)
   }
 
-  const insightSet = lang === "de" ? STATIC_INSIGHTS_DE : STATIC_INSIGHTS
-  const insights = insightSet[range] ?? insightSet["1Y"]
+  const insights = INSIGHT_SETS[lang][range] ?? INSIGHT_SETS[lang]["1Y"]
 
   return (
     <div style={{ background: "rgba(124,58,237,0.06)", border: "1px solid rgba(124,58,237,0.22)", borderRadius: 16, padding: 22, marginBottom: 20 }}>

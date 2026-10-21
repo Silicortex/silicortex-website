@@ -7,7 +7,9 @@ import { useTheme } from "next-themes"
 import { motion, AnimatePresence } from "framer-motion"
 import { useLang } from "@/components/providers/LangProvider"
 import { useHydrated } from "@/lib/useHydrated"
-import { locales } from "@/lib/dictionaries"
+import { locales, type Lang } from "@/lib/dictionaries"
+
+const LANG_LABELS: Record<Lang, string> = { en: "EN", de: "DE", ar: "ع" }
 
 function ThemeToggle({ toggleThemeLabel }: { toggleThemeLabel: string }) {
   const { resolvedTheme, setTheme } = useTheme()
@@ -196,7 +198,7 @@ export function NavbarClient() {
                     : "text-slate-500 hover:text-blue-500 dark:text-slate-400 dark:hover:text-white"
                 }`}
               >
-                {l.toUpperCase()}
+                {LANG_LABELS[l]}
               </button>
             ))}
           </div>
@@ -223,7 +225,7 @@ export function NavbarClient() {
                     : "text-slate-500 dark:text-slate-400"
                 }`}
               >
-                {l.toUpperCase()}
+                {LANG_LABELS[l]}
               </button>
             ))}
           </div>

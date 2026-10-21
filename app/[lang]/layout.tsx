@@ -1,12 +1,13 @@
 import type { Metadata } from "next"
 import { notFound } from "next/navigation"
-import { Geist, Geist_Mono } from "next/font/google"
+import { Geist, Geist_Mono, Noto_Sans_Arabic } from "next/font/google"
 import "../globals.css"
 import { siteConfig } from "@/lib/siteConfig"
-import { locales, isValidLocale } from "@/lib/dictionaries"
+import { locales, isValidLocale, isRtl } from "@/lib/dictionaries"
 
 const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] })
 const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] })
+const notoSansArabic = Noto_Sans_Arabic({ variable: "--font-noto-arabic", subsets: ["arabic"] })
 
 export function generateStaticParams() {
   return locales.map((lang) => ({ lang }))
@@ -31,12 +32,9 @@ export default async function RootLayout({
   return (
     <html
       lang={lang}
-      // `lang` narrows to `Lang` ("en" | "de") here, which has no "ar" member yet —
-      // the cast keeps this comparison alive (and the branch reachable) for
-      // when Task 11 adds "ar" to `locales`, without widening `lang`'s type now.
-      dir={(lang as string) === "ar" ? "rtl" : "ltr"}
+      dir={isRtl(lang) ? "rtl" : "ltr"}
       data-scroll-behavior="smooth"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${geistSans.variable} ${geistMono.variable} ${notoSansArabic.variable} h-full antialiased`}
       suppressHydrationWarning
     >
       <body className="min-h-full text-slate-900 dark:text-white">

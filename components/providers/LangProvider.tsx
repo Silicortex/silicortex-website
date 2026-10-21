@@ -2,7 +2,7 @@
 
 import { createContext, useCallback, useContext, type ReactNode } from "react"
 import { useRouter, usePathname } from "next/navigation"
-import { getDictionary, type Dictionary, type Lang } from "@/lib/dictionaries"
+import { getDictionary, isRtl, type Dictionary, type Lang } from "@/lib/dictionaries"
 
 interface LangContextValue {
   lang: Lang
@@ -19,10 +19,7 @@ export function LangProvider({ lang, children }: { lang: Lang; children: ReactNo
   const router = useRouter()
   const pathname = usePathname()
   const dict = getDictionary(lang)
-  // Same ternary as app/[lang]/layout.tsx's `dir`; the cast keeps this comparison
-  // alive (and the branch reachable) for when Task 11 adds "ar" to `Lang`, without
-  // widening `lang`'s type now.
-  const dir: "ltr" | "rtl" = (lang as string) === "ar" ? "rtl" : "ltr"
+  const dir: "ltr" | "rtl" = isRtl(lang) ? "rtl" : "ltr"
 
   const localeHref = useCallback(
     (path: string) => `/${lang}${path === "/" ? "" : path}`,
