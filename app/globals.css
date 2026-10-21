@@ -49,7 +49,7 @@ body {
 /* Arabic gets its own font stack, scoped to the `lang="ar"` subtree set by
    app/[lang]/layout.tsx — no conditional class, no layout-shift risk. */
 :lang(ar) {
-  font-family: var(--font-noto-arabic), var(--font-geist-sans), sans-serif;
+  font-family: var(--font-readex-pro), var(--font-geist-sans), sans-serif;
 }
 
 /* Snap scrolling for homepage sections */

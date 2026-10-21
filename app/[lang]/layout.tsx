@@ -1,13 +1,13 @@
 import type { Metadata } from "next"
 import { notFound } from "next/navigation"
-import { Geist, Geist_Mono, Noto_Sans_Arabic } from "next/font/google"
+import { Geist, Geist_Mono, Readex_Pro } from "next/font/google"
 import "../globals.css"
 import { siteConfig } from "@/lib/siteConfig"
 import { locales, isValidLocale, isRtl } from "@/lib/dictionaries"
 
 const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] })
 const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] })
-const notoSansArabic = Noto_Sans_Arabic({ variable: "--font-noto-arabic", subsets: ["arabic"] })
+const readexPro = Readex_Pro({ variable: "--font-readex-pro", subsets: ["arabic"] })
 
 export function generateStaticParams() {
   return locales.map((lang) => ({ lang }))
@@ -34,7 +34,7 @@ export default async function RootLayout({
       lang={lang}
       dir={isRtl(lang) ? "rtl" : "ltr"}
       data-scroll-behavior="smooth"
-      className={`${geistSans.variable} ${geistMono.variable} ${notoSansArabic.variable} h-full antialiased`}
+      className={`${geistSans.variable} ${geistMono.variable} ${readexPro.variable} h-full antialiased`}
       suppressHydrationWarning
     >
       <body className="min-h-full text-slate-900 dark:text-white">
