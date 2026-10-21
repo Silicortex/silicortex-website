@@ -7,6 +7,7 @@ import { getDictionary, type Dictionary, type Lang } from "@/lib/dictionaries"
 interface LangContextValue {
   lang: Lang
   dict: Dictionary
+  dir: "ltr" | "rtl"
   setLang: (next: Lang) => void
   localeHref: (path: string) => string
 }
@@ -18,6 +19,10 @@ export function LangProvider({ lang, children }: { lang: Lang; children: ReactNo
   const router = useRouter()
   const pathname = usePathname()
   const dict = getDictionary(lang)
+  // Same ternary as app/[lang]/layout.tsx's `dir`; the cast keeps this comparison
+  // alive (and the branch reachable) for when Task 11 adds "ar" to `Lang`, without
+  // widening `lang`'s type now.
+  const dir: "ltr" | "rtl" = (lang as string) === "ar" ? "rtl" : "ltr"
 
   const localeHref = useCallback(
     (path: string) => `/${lang}${path === "/" ? "" : path}`,
@@ -35,7 +40,7 @@ export function LangProvider({ lang, children }: { lang: Lang; children: ReactNo
   )
 
   return (
-    <LangContext.Provider value={{ lang, dict, setLang, localeHref }}>
+    <LangContext.Provider value={{ lang, dict, dir, setLang, localeHref }}>
       {children}
     </LangContext.Provider>
   )

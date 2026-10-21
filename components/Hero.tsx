@@ -97,7 +97,7 @@ function TypingSubtitle({ text }: { text: string }) {
         <motion.span
           animate={{ opacity: [1, 0] }}
           transition={{ duration: 0.5, repeat: Infinity, repeatType: "reverse" }}
-          className="ml-0.5 inline-block h-[1.1em] w-0.5 translate-y-[0.1em] bg-blue-500"
+          className="ms-0.5 inline-block h-[1.1em] w-0.5 translate-y-[0.1em] bg-blue-500"
         />
       )}
     </p>

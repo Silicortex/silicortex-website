@@ -122,7 +122,7 @@ export function SalesChatbot() {
             {messages.map((m, i) => (
               <div key={i} style={{ display: "flex", justifyContent: m.role === "user" ? "flex-end" : "flex-start" }}>
                 {m.role === "assistant" && (
-                  <div style={{ width: 28, height: 28, borderRadius: "50%", background: "linear-gradient(135deg,#7c3aed,#06b6d4)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, flexShrink: 0, marginRight: 10, marginTop: 2 }}>✦</div>
+                  <div style={{ width: 28, height: 28, borderRadius: "50%", background: "linear-gradient(135deg,#7c3aed,#06b6d4)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, flexShrink: 0, marginInlineEnd: 10, marginTop: 2 }}>✦</div>
                 )}
                 <div
                   style={{
@@ -186,7 +186,7 @@ export function SalesChatbot() {
             {d.howItWorksSteps.map((s, i) => (
               <div key={s.step} style={{ background: C.surface, border: `1px solid ${C.borderLo}`, borderRadius: 14, padding: 18, position: "relative" }}>
                 {i < d.howItWorksSteps.length - 1 && (
-                  <div style={{ position: "absolute", top: "50%", right: -8, transform: "translateY(-50%)", color: C.arrowColor, fontSize: 16, zIndex: 1 }}>→</div>
+                  <div style={{ position: "absolute", top: "50%", insetInlineEnd: -8, transform: "translateY(-50%)", color: C.arrowColor, fontSize: 16, zIndex: 1 }}>→</div>
                 )}
                 <div style={{ fontSize: 11, fontWeight: 800, color: s.color, letterSpacing: 2, marginBottom: 10 }}>{s.step}</div>
                 <p style={{ margin: "0 0 6px", color: C.text2, fontWeight: 700, fontSize: 13 }}>{s.title}</p>

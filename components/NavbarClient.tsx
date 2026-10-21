@@ -75,7 +75,7 @@ export function NavbarClient() {
         <Link href={localeHref("/")} className="flex items-center" onClick={() => setMenuOpen(false)}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/favicon.ico" alt="Silicortex" className="h-10 w-auto" />
-          <span className="ml-2 text-sm font-bold tracking-tight">
+          <span className="ms-2 text-sm font-bold tracking-tight">
             <span className="text-[#5dcfd6]">Silicortex</span>
           </span>
         </Link>
@@ -145,7 +145,7 @@ export function NavbarClient() {
                       animate={{ opacity: 1, y: 0, scale: 1 }}
                       exit={{ opacity: 0, y: 6, scale: 0.97 }}
                       transition={{ duration: 0.15 }}
-                      className="absolute left-0 top-full mt-2 w-64 rounded-xl border border-black/8 bg-white p-2 shadow-lg dark:border-white/8 dark:bg-slate-900"
+                      className="absolute start-0 top-full mt-2 w-64 rounded-xl border border-black/8 bg-white p-2 shadow-lg dark:border-white/8 dark:bg-slate-900"
                     >
                       <p className="mb-1.5 px-2 text-[10px] font-bold uppercase tracking-widest text-slate-400">
                         {dict.navbar.projectsLabel}
@@ -303,7 +303,7 @@ export function NavbarClient() {
                           animate={{ opacity: 1, height: "auto" }}
                           exit={{ opacity: 0, height: 0 }}
                           transition={{ duration: 0.2 }}
-                          className="overflow-hidden pl-4"
+                          className="overflow-hidden ps-4"
                         >
                           {link.children.map((child) => {
                             const childHref = localeHref(child.href)

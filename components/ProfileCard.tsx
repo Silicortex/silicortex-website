@@ -18,7 +18,7 @@ export function ProfileCard() {
         </div>
 
         {/* Bio */}
-        <div className="flex-1 text-center sm:text-left">
+        <div className="flex-1 text-center sm:text-start">
           <h3 className="mb-0.5 text-xl font-bold text-slate-900 dark:text-white">Mohamad Katramez</h3>
           <p className="mb-3 text-sm font-medium text-blue-500 dark:text-blue-400">Full-Stack Developer & Data Engineer</p>
           <p className="mb-5 text-sm leading-relaxed text-slate-600 dark:text-slate-400">

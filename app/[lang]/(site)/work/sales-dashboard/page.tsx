@@ -271,7 +271,7 @@ function DatasetOverview() {
   const d = dict.salesDashboard
   const [open, setOpen] = useState(false)
   const card = { background: C.surface, border: `1px solid ${C.border}`, borderRadius: 16, padding: 20 }
-  const thS: React.CSSProperties = { textAlign: "left", color: C.dim, fontWeight: 700, fontSize: 11, textTransform: "uppercase", letterSpacing: 1, paddingBottom: 10, borderBottom: `1px solid ${C.borderLo}` }
+  const thS: React.CSSProperties = { textAlign: "start", color: C.dim, fontWeight: 700, fontSize: 11, textTransform: "uppercase", letterSpacing: 1, paddingBottom: 10, borderBottom: `1px solid ${C.borderLo}` }
   const tdS: React.CSSProperties = { padding: "9px 8px", borderBottom: `1px solid ${C.borderLo}`, fontSize: 13 }
 
   return (
@@ -544,7 +544,7 @@ export default function SalesDashboard() {
                     <div key={d.name} style={{ display: "flex", alignItems: "center", gap: 8 }}>
                       <span style={{ width: 10, height: 10, borderRadius: "50%", background: d.color, flexShrink: 0 }} />
                       <span style={{ fontSize: 12, color: C.muted }}>{d.name}</span>
-                      <span style={{ fontSize: 12, fontWeight: 700, color: C.text2, marginLeft: "auto" }}>{d.value}%</span>
+                      <span style={{ fontSize: 12, fontWeight: 700, color: C.text2, marginInlineStart: "auto" }}>{d.value}%</span>
                     </div>
                   ))}
                 </div>
@@ -655,7 +655,7 @@ export default function SalesDashboard() {
                 <thead>
                   <tr>
                     {[d.colOrder, d.colCustomer, d.colAmount, d.colStatus, d.colDate].map(h => (
-                      <th key={h} style={{ textAlign: "left", color: C.dim, fontWeight: 600, fontSize: 11, textTransform: "uppercase", letterSpacing: 1, paddingBottom: 10, borderBottom: `1px solid ${C.borderLo}` }}>{h}</th>
+                      <th key={h} style={{ textAlign: "start", color: C.dim, fontWeight: 600, fontSize: 11, textTransform: "uppercase", letterSpacing: 1, paddingBottom: 10, borderBottom: `1px solid ${C.borderLo}` }}>{h}</th>
                     ))}
                   </tr>
                 </thead>

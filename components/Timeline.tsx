@@ -6,7 +6,7 @@ import { AnimatedHeading } from "@/components/AnimatedHeading"
 import { slideIn } from "@/lib/motion"
 
 export function Timeline() {
-  const { dict } = useLang()
+  const { dict, dir } = useLang()
   const exp = dict.experience
 
   return (
@@ -32,7 +32,7 @@ export function Timeline() {
         </motion.div>
 
         <div className="relative">
-          <div className="absolute start-6 top-0 bottom-0 w-px bg-gradient-to-b from-blue-500/50 via-blue-500/20 to-transparent sm:start-1/2 sm:-translate-x-1/2" />
+          <div className="absolute start-6 top-0 bottom-0 w-px bg-gradient-to-b from-blue-500/50 via-blue-500/20 to-transparent sm:start-1/2 sm:-translate-x-1/2 sm:rtl:translate-x-1/2" />
 
           <div className="flex flex-col gap-12">
             {exp.items.map((item, i) => {
@@ -40,13 +40,13 @@ export function Timeline() {
               return (
                 <motion.div
                   key={item.title}
-                  variants={slideIn(direction)}
+                  variants={slideIn(direction, 32, dir)}
                   initial="hidden"
                   whileInView="visible"
                   viewport={{ once: true, margin: "-60px" }}
                   className={`relative flex gap-6 sm:gap-0 ${i % 2 === 0 ? "sm:flex-row" : "sm:flex-row-reverse"}`}
                 >
-                  <div className="absolute start-6 top-6 -translate-x-1/2 sm:start-1/2">
+                  <div className="absolute start-6 top-6 -translate-x-1/2 rtl:translate-x-1/2 sm:start-1/2">
                     <div className="h-3 w-3 rounded-full border-2 border-blue-500 bg-slate-50 shadow-[0_0_12px_rgba(59,130,246,0.6)] dark:bg-slate-950" />
                   </div>
 

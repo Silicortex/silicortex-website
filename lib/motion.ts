@@ -20,9 +20,11 @@ export const scaleUp: Variants = {
 export function slideIn(
   direction: "left" | "right" | "up" | "down" = "up",
   offset = 32,
+  dir: "ltr" | "rtl" = "ltr",
 ): Variants {
   const isX = direction === "left" || direction === "right"
-  const value = direction === "right" || direction === "down" ? offset : -offset
+  let value = direction === "right" || direction === "down" ? offset : -offset
+  if (isX && dir === "rtl") value = -value
   const springTransition = { type: "spring" as const, stiffness: 60, damping: 18 }
   return {
     hidden: isX ? { x: value, opacity: 0 } : { y: value, opacity: 0 },
