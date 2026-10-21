@@ -102,12 +102,12 @@ const de: LegalContent = {
         ],
       },
       {
-        heading: "5. Kontaktformular (Formspree)",
+        heading: "5. Kontaktformular",
         paragraphs: [
-          "Wenn Sie uns über das Kontaktformular schreiben, werden die von Ihnen eingegebenen Daten (Name, optional Firma, E-Mail-Adresse, Nachricht) sowie technisch Ihre IP-Adresse und der Zeitpunkt der Übermittlung an den Dienst Formspree übermittelt. Formspree, Inc. (USA) nimmt die Übermittlung entgegen und leitet sie an unsere E-Mail-Adresse weiter; die Nachricht wird zusätzlich im Formspree-Konto gespeichert. Wir verwenden die Daten ausschließlich zur Bearbeitung Ihrer Anfrage und für Anschlussfragen.",
-          "Rechtsgrundlage ist Art. 6 Abs. 1 lit. b DSGVO (vorvertragliche Maßnahmen auf Ihre Anfrage hin) bzw. Art. 6 Abs. 1 lit. f DSGVO (berechtigtes Interesse an der Beantwortung von Anfragen). Formspree verarbeitet die Daten in den USA; die Übermittlung erfolgt auf Grundlage der Datenschutzbestimmungen und der vertraglichen Garantien von Formspree. Wir löschen Anfragen, sobald sie abschließend bearbeitet sind und keine gesetzlichen Aufbewahrungspflichten entgegenstehen. Sie können uns alternativ jederzeit per E-Mail oder Telefon erreichen.",
+          "Wenn Sie uns über das Kontaktformular schreiben, werden die von Ihnen eingegebenen Daten (Name, optional Firma, E-Mail-Adresse, Nachricht) an unseren eigenen Server bei Vercel übermittelt (siehe Ziffer 3) und von dort als E-Mail an unser Postfach gesendet. Für den E-Mail-Versand nutzen wir den Dienst Resend (Plus Five Five, Inc., 2261 Market Street #5039, San Francisco, CA 94114, USA). Resend verarbeitet dabei den Inhalt der Nachricht sowie Ihre E-Mail-Adresse als Antwortadresse und speichert Versandprotokolle für einen begrenzten Zeitraum; auf unserem Server wird nichts gespeichert. Wir verwenden die Daten ausschließlich zur Bearbeitung Ihrer Anfrage und für Anschlussfragen.",
+          "Rechtsgrundlage ist Art. 6 Abs. 1 lit. b DSGVO (vorvertragliche Maßnahmen auf Ihre Anfrage hin) bzw. Art. 6 Abs. 1 lit. f DSGVO (berechtigtes Interesse an der Beantwortung von Anfragen). Mit Resend besteht ein Auftragsverarbeitungsvertrag nach Art. 28 DSGVO; Resend ist unter dem EU-U.S. Data Privacy Framework zertifiziert, und die Übermittlung in die USA erfolgt auf Grundlage des Angemessenheitsbeschlusses der Europäischen Kommission (Art. 45 DSGVO) sowie ergänzend der EU-Standardvertragsklauseln. Wir löschen Anfragen, sobald sie abschließend bearbeitet sind und keine gesetzlichen Aufbewahrungspflichten entgegenstehen. Sie können uns alternativ jederzeit per E-Mail oder Telefon erreichen.",
         ],
-        link: { label: "Datenschutzerklärung von Formspree", href: "https://formspree.io/legal/privacy-policy/" },
+        link: { label: "Datenschutzerklärung von Resend", href: "https://resend.com/legal/privacy-policy" },
       },
       {
         heading: "6. Kontakt per E-Mail, Telefon oder WhatsApp",

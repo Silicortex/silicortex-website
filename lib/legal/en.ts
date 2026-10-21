@@ -95,12 +95,12 @@ const en: LegalContent = {
         ],
       },
       {
-        heading: "5. Contact form (Formspree)",
+        heading: "5. Contact form",
         paragraphs: [
-          "If you write to us via the contact form, the data you enter (name, company if given, email address, message) together with your IP address and the time of submission is transmitted to the service Formspree. Formspree, Inc. (USA) receives the submission and forwards it to our email address; the message is also stored in the Formspree account. We use the data solely to handle your enquiry and any follow-up questions.",
-          "The legal basis is Art. 6 (1) (b) GDPR (pre-contractual steps taken at your request) or Art. 6 (1) (f) GDPR (legitimate interest in answering enquiries). Formspree processes the data in the USA; the transfer is based on Formspree's privacy terms and contractual safeguards. We delete enquiries once they have been fully dealt with and no statutory retention obligation applies. You can always reach us by email or phone instead.",
+          "If you write to us via the contact form, the data you enter (name, company if given, email address, message) is sent to our own server at Vercel (see section 3) and from there as an email to our mailbox. For sending that email we use the service Resend (Plus Five Five, Inc., 2261 Market Street #5039, San Francisco, CA 94114, USA). Resend processes the message content and your email address as the reply-to address and keeps delivery logs for a limited period; nothing is stored on our server. We use the data solely to handle your enquiry and any follow-up questions.",
+          "The legal basis is Art. 6 (1) (b) GDPR (pre-contractual steps taken at your request) or Art. 6 (1) (f) GDPR (legitimate interest in answering enquiries). A data processing agreement pursuant to Art. 28 GDPR is in place with Resend; Resend is certified under the EU-U.S. Data Privacy Framework, and transfers to the USA are based on the European Commission's adequacy decision (Art. 45 GDPR), supplemented by the EU Standard Contractual Clauses. We delete enquiries once they have been fully dealt with and no statutory retention obligation applies. You can always reach us by email or phone instead.",
         ],
-        link: { label: "Formspree privacy policy", href: "https://formspree.io/legal/privacy-policy/" },
+        link: { label: "Resend privacy policy", href: "https://resend.com/legal/privacy-policy" },
       },
       {
         heading: "6. Contact by email, phone or WhatsApp",

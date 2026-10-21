@@ -20,6 +20,7 @@
     "react": "latest",
     "react-dom": "latest",
     "recharts": "^3.8.1",
+    "resend": "^6.34.1",
     "server-only": "^0.0.1"
   },
   "devDependencies": {

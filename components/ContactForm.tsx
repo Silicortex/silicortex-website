@@ -11,16 +11,30 @@ export function ContactForm() {
   const { dict } = useLang()
   const f = dict.contact.form
   const [submitted, setSubmitted] = useState(false)
+  const [sending, setSending] = useState(false)
+  const [failed, setFailed] = useState(false)
 
+  // Posts to this site's own /api/contact (see app/api/contact/route.ts), so
+  // the visitor's data never goes from the browser to a third party.
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault()
     const data = new FormData(e.currentTarget)
-    const res = await fetch("https://formspree.io/f/xojyddpg", {
-      method: "POST",
-      body: data,
-      headers: { Accept: "application/json" },
-    })
-    if (res.ok) setSubmitted(true)
+    const body = Object.fromEntries(["name", "company", "email", "message", "website"].map((k) => [k, String(data.get(k) ?? "")]))
+    setSending(true)
+    setFailed(false)
+    try {
+      const res = await fetch("/api/contact", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Accept: "application/json" },
+        body: JSON.stringify(body),
+      })
+      if (res.ok) setSubmitted(true)
+      else setFailed(true)
+    } catch {
+      setFailed(true)
+    } finally {
+      setSending(false)
+    }
   }
 
   return (
@@ -60,7 +74,7 @@ export function ContactForm() {
               <p className="text-sm text-slate-500 dark:text-slate-400">{siteConfig.contactEmail}</p>
             </div>
           ) : (
-            <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+            <form onSubmit={handleSubmit} className="relative flex flex-col gap-5">
               <div className="grid gap-5 sm:grid-cols-2">
                 <FormField label={f.name} name="name" type="text" required />
                 <FormField label={f.company} name="company" type="text" />
@@ -76,11 +90,25 @@ export function ContactForm() {
                   className="w-full resize-none rounded-xl border border-black/10 bg-white px-4 py-3 text-sm text-slate-900 placeholder-slate-400 outline-none transition-colors focus:border-blue-500/50 dark:border-white/10 dark:bg-white/5 dark:text-white dark:placeholder-slate-600"
                 />
               </div>
+              {/* Honeypot: hidden from people, filled by bots; the server drops
+                  any submission that carries a value here. */}
+              <div className="absolute -left-[9999px] h-px w-px overflow-hidden" aria-hidden="true">
+                <label>
+                  Website
+                  <input type="text" name="website" tabIndex={-1} autoComplete="off" />
+                </label>
+              </div>
+              {failed && (
+                <p role="alert" className="text-sm text-red-600 dark:text-red-400">
+                  {f.error} <bdi>{siteConfig.contactEmail}</bdi>
+                </p>
+              )}
               <button
                 type="submit"
-                className="glow-border mt-2 flex min-h-[48px] items-center justify-center rounded-full bg-blue-600 px-8 text-sm font-semibold text-white transition-colors hover:bg-blue-500"
+                disabled={sending}
+                className="glow-border mt-2 flex min-h-[48px] items-center justify-center rounded-full bg-blue-600 px-8 text-sm font-semibold text-white transition-colors hover:bg-blue-500 disabled:opacity-60"
               >
-                {f.submit}
+                {sending ? "…" : f.submit}
               </button>
             </form>
           )}

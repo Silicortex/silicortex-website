@@ -384,6 +384,7 @@ const en = {
       message: "Tell us about your project",
       submit: "Send Message",
       success: "Message sent! We'll be in touch shortly.",
+      error: "Sorry, the message could not be sent. Please try again or email us directly:",
     },
   },
   footer: {

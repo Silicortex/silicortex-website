@@ -382,6 +382,7 @@ const de: Dictionary = {
       message: "Erzählen Sie uns von Ihrem Projekt",
       submit: "Nachricht senden",
       success: "Nachricht gesendet! Wir melden uns in Kürze.",
+      error: "Die Nachricht konnte leider nicht gesendet werden. Bitte versuchen Sie es erneut oder schreiben Sie uns direkt:",
     },
   },
   footer: {
