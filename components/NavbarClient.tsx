@@ -54,7 +54,7 @@ export function NavbarClient() {
       href: "/work",
       label: dict.nav.work,
       children: [
-        { href: "/work/sales-dashboard", label: "Sales Dashboard", icon: "📊", desc: "AI-powered analytics demo" },
+        { href: "/work/sales-dashboard", label: dict.navbar.salesDashboardLabel, icon: "📊", desc: dict.navbar.salesDashboardDesc },
       ],
     },
     { href: "/experience", label: dict.nav.experience },

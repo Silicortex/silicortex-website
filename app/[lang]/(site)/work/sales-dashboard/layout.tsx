@@ -1,4 +1,5 @@
 import Link from "next/link"
+import { getDictionary, type Lang } from "@/lib/dictionaries"
 
 export default async function SalesDashboardLayout({
   children,
@@ -9,6 +10,7 @@ export default async function SalesDashboardLayout({
   params: Promise<{ lang: string }>
 }) {
   const { lang } = await params
+  const dict = getDictionary(lang as Lang)
   return (
     <>
       <div className="fixed inset-x-0 top-16 z-40 border-b border-black/5 bg-white/90 backdrop-blur-md dark:border-white/5 dark:bg-slate-950/90">
@@ -20,10 +22,10 @@ export default async function SalesDashboardLayout({
             <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
               <path d="M9 2L4 7l5 5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
-            Work
+            {dict.nav.work}
           </Link>
           <span className="text-xs text-slate-400 dark:text-slate-600">/</span>
-          <span className="text-xs font-medium text-slate-700 dark:text-slate-300">Sales Dashboard</span>
+          <span className="text-xs font-medium text-slate-700 dark:text-slate-300">{dict.navbar.salesDashboardLabel}</span>
         </div>
       </div>
       <div className="pt-[6.5rem]">{children}</div>

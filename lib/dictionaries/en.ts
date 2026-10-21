@@ -20,6 +20,8 @@ const en = {
     toggleTheme: "Toggle theme",
     toggleMenu: "Toggle menu",
     toggleSubmenu: "Toggle sub-menu",
+    salesDashboardLabel: "Sales Dashboard",
+    salesDashboardDesc: "AI-powered analytics demo",
   },
   hero: {
     badge: "Full-Service Digital Agency",
@@ -33,7 +35,7 @@ const en = {
   services: {
     title: "What We Build",
     subtitle:
-      "End-to-end solutions that combine AI intelligence with workflow automation — built to replace hours of manual effort.",
+      "AI-driven automation, full-stack software, e-commerce, and brand identity — everything your business needs to launch, run, and scale, under one roof.",
     categories: [
       {
         id: "ai-automation" as const,
@@ -434,6 +436,10 @@ const en = {
     title: "Let's Build Something",
     subtitle:
       "Tell us about your project. We'll respond within 24 hours with a clear plan.",
+    profile: {
+      title: "Full-Stack Developer & Data Engineer",
+      bio: "Based in Wiesbaden, Germany. B.Sc. Applied Informatics from Hochschule RheinMain. 3+ years at schubwerk GmbH building analytics tools, data warehouses, and AI integrations. Passionate about machine learning, automation, and shipping products that matter.",
+    },
     form: {
       name: "Your Name",
       company: "Company (optional)",

@@ -16,6 +16,8 @@ const de: Dictionary = {
     toggleTheme: "Design umschalten",
     toggleMenu: "Menü umschalten",
     toggleSubmenu: "Untermenü umschalten",
+    salesDashboardLabel: "Sales-Dashboard",
+    salesDashboardDesc: "KI-gestützte Analyse-Demo",
   },
   hero: {
     badge: "Full-Service-Digitalagentur",
@@ -29,7 +31,7 @@ const de: Dictionary = {
   services: {
     title: "Was wir bauen",
     subtitle:
-      "End-to-End-Lösungen, die KI-Intelligenz mit Workflow-Automatisierung kombinieren — entwickelt, um stundenlange Handarbeit zu ersetzen.",
+      "KI-gestützte Automatisierung, Full-Stack-Software, E-Commerce und Markenidentität — alles, was Ihr Unternehmen braucht, um zu starten, zu wachsen und zu skalieren, unter einem Dach.",
     categories: [
       {
         id: "ai-automation",
@@ -432,6 +434,10 @@ const de: Dictionary = {
     title: "Lassen Sie uns etwas bauen",
     subtitle:
       "Erzählen Sie uns von Ihrem Projekt. Wir antworten innerhalb von 24 Stunden mit einem klaren Plan.",
+    profile: {
+      title: "Full-Stack-Entwickler & Data Engineer",
+      bio: "Ansässig in Wiesbaden, Deutschland. B.Sc. in Angewandter Informatik von der Hochschule RheinMain. Mehr als 3 Jahre bei schubwerk GmbH: Entwicklung von Analyse-Tools, Data Warehouses und KI-Integrationen. Begeistert von maschinellem Lernen, Automatisierung und Produkten, die wirklich etwas bewegen.",
+    },
     form: {
       name: "Ihr Name",
       company: "Unternehmen (optional)",

@@ -12,6 +12,14 @@ import { getDictionary, defaultLocale } from "@/lib/dictionaries"
 // carry a real `lang` down to this file even if it could receive one. The
 // dictionary's own invalid-locale fallback already defaults to English, so
 // this 404 page does the same deliberately rather than guessing the locale.
+//
+// NOTE: this file is currently unreachable dead code. app/global-not-found.tsx
+// now handles every real-world 404 (both an invalid /xx/... segment and any
+// unmatched path under a valid one), rendering before this file ever gets a
+// chance to. We keep this locale-aware version anyway as a defensive
+// fallback, in case that global-not-found routing behavior changes in a
+// future Next.js release and per-segment not-found.js files start being
+// reached again.
 export default async function NotFound() {
   const lang = defaultLocale
   const dict = getDictionary(lang)

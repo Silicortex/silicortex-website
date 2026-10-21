@@ -86,7 +86,7 @@ function renderArchSegments(segments: ArchSegment[], C: { text2: string }) {
 
 export function SalesChatbot() {
   const { resolvedTheme } = useTheme()
-  const { dict } = useLang()
+  const { dict, dir } = useLang()
   const d = dict.salesDashboard
   const C = resolvedTheme === "light" ? LIGHT : DARK
 
@@ -210,7 +210,19 @@ export function SalesChatbot() {
             {d.howItWorksSteps.map((s, i) => (
               <div key={s.step} style={{ background: C.surface, border: `1px solid ${C.borderLo}`, borderRadius: 14, padding: 18, position: "relative" }}>
                 {i < d.howItWorksSteps.length - 1 && (
-                  <div style={{ position: "absolute", top: "50%", insetInlineEnd: -8, transform: "translateY(-50%)", color: C.arrowColor, fontSize: 16, zIndex: 1 }}>→</div>
+                  <div
+                    style={{
+                      position: "absolute",
+                      top: "50%",
+                      insetInlineEnd: -8,
+                      transform: `translateY(-50%) ${dir === "rtl" ? "scaleX(-1)" : ""}`,
+                      color: C.arrowColor,
+                      fontSize: 16,
+                      zIndex: 1,
+                    }}
+                  >
+                    →
+                  </div>
                 )}
                 <div style={{ fontSize: 11, fontWeight: 800, color: s.color, letterSpacing: 2, marginBottom: 10 }}>{s.step}</div>
                 <p style={{ margin: "0 0 6px", color: C.text2, fontWeight: 700, fontSize: 13 }}>{s.title}</p>

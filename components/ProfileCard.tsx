@@ -1,7 +1,12 @@
+"use client"
+
 import Image from "next/image"
 import { siteConfig } from "@/lib/siteConfig"
+import { useLang } from "@/components/providers/LangProvider"
 
 export function ProfileCard() {
+  const { dict } = useLang()
+  const profile = dict.contact.profile
   return (
     <div className="mx-auto mb-16 max-w-2xl">
       <div className="flex flex-col items-center gap-6 rounded-2xl border border-black/8 bg-black/[0.02] p-8 backdrop-blur-sm dark:border-white/8 dark:bg-white/3 sm:flex-row sm:items-start">
@@ -20,11 +25,9 @@ export function ProfileCard() {
         {/* Bio */}
         <div className="flex-1 text-center sm:text-start">
           <h3 className="mb-0.5 text-xl font-bold text-slate-900 dark:text-white">Mohamad Katramez</h3>
-          <p className="mb-3 text-sm font-medium text-blue-500 dark:text-blue-400">Full-Stack Developer & Data Engineer</p>
+          <p className="mb-3 text-sm font-medium text-blue-500 dark:text-blue-400">{profile.title}</p>
           <p className="mb-5 text-sm leading-relaxed text-slate-600 dark:text-slate-400">
-            Based in Wiesbaden, Germany. B.Sc. Applied Informatics from Hochschule RheinMain.
-            3+ years at schubwerk GmbH building analytics tools, data warehouses, and AI integrations.
-            Passionate about machine learning, automation, and shipping products that matter.
+            {profile.bio}
           </p>
 
           <div className="flex flex-wrap justify-center gap-3 sm:justify-start">
