@@ -42,7 +42,7 @@ function BentoCard({
   const { localeHref } = useLang()
 
   const inner = (
-    <div className={`${glassCard} ${bgClass} ${index === 0 ? "glow-border" : ""} flex flex-col justify-between gap-6 h-full`}>
+    <div className={`${glassCard} ${bgClass} flex flex-col justify-between gap-6 h-full`}>
       <div className="flex items-start justify-between gap-4">
         <span className={`flex h-12 w-12 items-center justify-center rounded-2xl text-xl shadow-sm ring-1 ring-inset ring-black/5 dark:ring-white/10 ${iconBgClass}`}>
           {icon}
@@ -64,7 +64,9 @@ function BentoCard({
 
   return (
     <motion.div variants={scaleUp} className="h-full">
-      <Link href={localeHref(`/services#${id}`)} className="block h-full">
+      {/* The lead card's glow sits on the Link, not the card: the card is
+          overflow-hidden and would clip the pseudo-element that carries it. */}
+      <Link href={localeHref(`/services#${id}`)} className={`block h-full rounded-3xl ${index === 0 ? "glow-border" : ""}`}>
         <TiltCard className="h-full">
           {inner}
         </TiltCard>

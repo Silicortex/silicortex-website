@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server"
-import { defaultLocale, isValidLocale } from "@/lib/dictionaries"
+import { defaultLocale, isValidLocale } from "@/lib/dictionaries/locales"
 
 const COOKIE_NAME = "silicortex-lang"
 
