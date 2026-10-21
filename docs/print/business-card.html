@@ -246,6 +246,9 @@
     letter-spacing: 0.02em;
   }
 
+  /* Print mode: each card IS its own page, at exact business-card size —
+     one page per side, ready to send straight to a card printer or print
+     shop without any cutting. */
   @media print {
     body { background: #fff; }
     .instructions { display: none; }
@@ -256,11 +259,22 @@
       margin: 0;
       padding: 0;
       max-width: none;
+      width: var(--card-w);
+      height: var(--card-h);
+      page-break-after: always;
+      break-after: page;
     }
+    .sheet:last-child { page-break-after: auto; break-after: auto; }
     .sheet-label { display: none; }
-    .row { gap: 8mm; }
-    .card { box-shadow: none; outline-color: #ccc; }
-    @page { size: A4; margin: 15mm; }
+    .row { gap: 0; }
+    .card {
+      width: var(--card-w);
+      height: var(--card-h);
+      border-radius: 0;
+      box-shadow: none;
+      outline: none;
+    }
+    @page { size: 85mm 55mm; margin: 0; }
   }
 </style>
 </head>
@@ -269,11 +283,11 @@
   <div class="instructions">
     <h1>Printing this card</h1>
     <p><strong>A ready-to-print PDF is at <code>business-card.pdf</code> in this same folder</strong> — open that and print directly, no setup needed. This HTML page is the editable source (update the details below and regenerate the PDF if anything changes).</p>
-    <p>Two 85&nbsp;×&nbsp;55&nbsp;mm panels — the standard German/EU business card size. Print on cardstock (250–350 gsm) and cut along the dashed guide.</p>
+    <p>The PDF is two pages, each sized exactly 85&nbsp;×&nbsp;55&nbsp;mm (the standard German/EU business card) — page 1 is the front, page 2 is the back. No cutting needed if you're printing on pre-cut business card stock or sending it to a print shop.</p>
     <ul>
-      <li><strong>Easiest:</strong> print the front only, single-sided — everything essential (name, role, company) is already there.</li>
-      <li><strong>Double-sided:</strong> print front and back on separate cardstock sheets, cut both out, and glue them back-to-back.</li>
-      <li><strong>Best quality:</strong> send <code>business-card.pdf</code> to a local print shop and ask for duplex printing at 85×55&nbsp;mm.</li>
+      <li><strong>Pre-cut card stock:</strong> load it in your printer and print the PDF at <em>actual size / 100%</em> (not "fit to page") — each page prints directly onto one card.</li>
+      <li><strong>Print shop:</strong> send <code>business-card.pdf</code> as-is and ask for duplex (double-sided) printing at 85×55&nbsp;mm — the two pages already line up as front/back.</li>
+      <li><strong>No card stock on hand:</strong> print both pages on regular cardstock and trim to the page edge with a ruler/cutter.</li>
       <li>The QR code links to <code>https://www.silicortex.de</code> — test it with a phone camera before your print run.</li>
     </ul>
   </div>
