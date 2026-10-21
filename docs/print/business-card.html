@@ -6,7 +6,7 @@
 <title>Silicortex — Business Card (Print)</title>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800&family=Geist+Mono:wght@500&display=swap" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@500&family=Unbounded:wght@600;700;800&display=swap" rel="stylesheet" />
 <style>
   :root {
     --navy: #020617;
@@ -91,32 +91,24 @@
     background-size: 4mm 4mm;
   }
 
-  /* Pure radial-gradient glow — no filter:blur. A blurred layer gets
-     rasterized by Chromium's PDF/print path at screen resolution, which
-     looks soft on screen but visibly low-quality once printed or zoomed.
-     A gradient alone is resolution-independent vector content: identical
-     soft falloff, crisp at any print DPI. */
-  .card-glow {
+  /* Flat geometric accent instead of soft "light" blobs — solid color,
+     no gradient or blur, so it stays genuinely crisp at any print size
+     and reads as a deliberate graphic device rather than atmosphere. */
+  .card-accent {
     position: absolute;
-    width: 62mm;
-    height: 62mm;
-    border-radius: 50%;
-    opacity: 0.55;
+    inset-block: 0;
+    inset-inline-start: 0;
+    width: 2.6mm;
+    background: var(--teal);
   }
-
-  /* ---------------- FRONT ---------------- */
-  .front .card-glow {
-    top: -26mm;
-    inset-inline-end: -24mm;
-    background: radial-gradient(circle, var(--blue) 0%, var(--blue) 8%, transparent 62%);
-  }
-  .front .card-glow.b {
-    top: auto;
-    bottom: -28mm;
-    inset-inline-start: -24mm;
-    inset-inline-end: auto;
-    background: radial-gradient(circle, var(--teal) 0%, var(--teal) 8%, transparent 62%);
-    opacity: 0.35;
+  .card-accent::after {
+    content: "";
+    position: absolute;
+    inset-inline-start: 100%;
+    top: 0;
+    width: 0.9mm;
+    height: 100%;
+    background: var(--blue);
   }
 
   .front-content {
@@ -125,7 +117,7 @@
     display: flex;
     flex-direction: column;
     justify-content: space-between;
-    padding: 6mm 7mm;
+    padding: 6mm 7mm 6mm 10mm;
   }
 
   .brand-row {
@@ -133,10 +125,11 @@
     align-items: center;
     gap: 2.6mm;
   }
-  .brand-row img { width: 7mm; height: 7mm; display: block; }
+  .brand-row img { width: 6.4mm; height: 6.4mm; display: block; }
   .brand-name {
-    font-weight: 800;
-    font-size: 4.6mm;
+    font-family: "Unbounded", "Geist", sans-serif;
+    font-weight: 700;
+    font-size: 4.2mm;
     letter-spacing: -0.01em;
     color: #fff;
   }
@@ -146,24 +139,29 @@
     margin-top: 2mm;
   }
   .person-name {
+    font-family: "Unbounded", "Geist", sans-serif;
     font-weight: 700;
-    font-size: 5.4mm;
+    font-size: 4.7mm;
+    line-height: 1.25;
     color: #fff;
     letter-spacing: -0.01em;
-    margin: 0 0 1.6mm;
+    margin: 0 0 2.2mm;
   }
   .person-role {
-    font-size: 3mm;
+    font-size: 2.9mm;
     font-weight: 500;
     color: var(--teal);
-    margin: 0;
+    margin: 0 0 2.4mm;
+    padding-top: 2.4mm;
+    border-top: 0.25mm solid rgba(93,207,214,0.3);
+    display: inline-block;
   }
 
   .tagline {
-    font-size: 2.6mm;
+    font-size: 2.5mm;
     color: var(--ink-dim);
     line-height: 1.5;
-    max-width: 58mm;
+    max-width: 55mm;
   }
 
   /* ---------------- BACK ---------------- */
@@ -172,15 +170,8 @@
     height: 100%;
     display: flex;
     align-items: center;
-    padding: 6mm 6mm 6mm 7mm;
+    padding: 6mm 6mm 6mm 10mm;
     gap: 4mm;
-  }
-
-  .back .card-glow {
-    top: -30mm;
-    inset-inline-start: -28mm;
-    background: radial-gradient(circle, var(--teal) 0%, var(--teal) 8%, transparent 62%);
-    opacity: 0.3;
   }
 
   .contact-col {
@@ -301,8 +292,7 @@
     <div class="row">
       <div class="card front">
         <div class="card-bg-grid"></div>
-        <div class="card-glow"></div>
-        <div class="card-glow b"></div>
+        <div class="card-accent"></div>
         <div class="front-content">
           <div class="brand-row">
             <img src="assets/logo-mark.png" alt="Silicortex logo" />
@@ -312,7 +302,7 @@
             <p class="person-name">Mohamad Katramez</p>
             <p class="person-role">Founder · Full-Stack Development &amp; AI</p>
           </div>
-          <p class="tagline">AI &amp; Automation · Software &amp; Web · E-Commerce · Brand Identity</p>
+          <p class="tagline">AI &amp; Automation · Software &amp; Web · E&#8209;Commerce · Brand Identity</p>
         </div>
       </div>
     </div>
@@ -323,7 +313,7 @@
     <div class="row">
       <div class="card back">
         <div class="card-bg-grid"></div>
-        <div class="card-glow"></div>
+        <div class="card-accent"></div>
         <div class="back-content">
           <div class="contact-col">
             <div class="contact-item">
