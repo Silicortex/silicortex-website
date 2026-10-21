@@ -91,27 +91,31 @@
     background-size: 4mm 4mm;
   }
 
+  /* Pure radial-gradient glow — no filter:blur. A blurred layer gets
+     rasterized by Chromium's PDF/print path at screen resolution, which
+     looks soft on screen but visibly low-quality once printed or zoomed.
+     A gradient alone is resolution-independent vector content: identical
+     soft falloff, crisp at any print DPI. */
   .card-glow {
     position: absolute;
-    width: 34mm;
-    height: 34mm;
+    width: 62mm;
+    height: 62mm;
     border-radius: 50%;
-    filter: blur(14mm);
     opacity: 0.55;
   }
 
   /* ---------------- FRONT ---------------- */
   .front .card-glow {
-    top: -12mm;
-    inset-inline-end: -10mm;
-    background: radial-gradient(circle, var(--blue), transparent 70%);
+    top: -26mm;
+    inset-inline-end: -24mm;
+    background: radial-gradient(circle, var(--blue) 0%, var(--blue) 8%, transparent 62%);
   }
   .front .card-glow.b {
     top: auto;
-    bottom: -14mm;
-    inset-inline-start: -10mm;
+    bottom: -28mm;
+    inset-inline-start: -24mm;
     inset-inline-end: auto;
-    background: radial-gradient(circle, var(--teal), transparent 70%);
+    background: radial-gradient(circle, var(--teal) 0%, var(--teal) 8%, transparent 62%);
     opacity: 0.35;
   }
 
@@ -173,9 +177,9 @@
   }
 
   .back .card-glow {
-    top: -16mm;
-    inset-inline-start: -14mm;
-    background: radial-gradient(circle, var(--teal), transparent 70%);
+    top: -30mm;
+    inset-inline-start: -28mm;
+    background: radial-gradient(circle, var(--teal) 0%, var(--teal) 8%, transparent 62%);
     opacity: 0.3;
   }
 
