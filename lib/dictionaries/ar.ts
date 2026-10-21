@@ -385,6 +385,9 @@ const ar: Dictionary = {
   footer: {
     copyright: "© 2026 Silicortex. جميع الحقوق محفوظة.",
     tagline: "نبني بنية الأتمتة للعقد القادم.",
+    legalLabel: "معلومات قانونية",
+    impressum: "بيانات الناشر",
+    privacy: "سياسة الخصوصية",
   },
   meta: {
     home: {
@@ -408,6 +411,14 @@ const ar: Dictionary = {
     contact: {
       title: "تواصل معنا",
       description: "تواصل مع Silicortex لبدء مشروعك.",
+    },
+    impressum: {
+      title: "بيانات الناشر",
+      description: "بيانات الناشر (Impressum) لموقع silicortex.de: تعريف مقدم الخدمة وبيانات التواصل.",
+    },
+    privacy: {
+      title: "سياسة الخصوصية",
+      description: "كيف يعالج silicortex.de البيانات الشخصية: الاستضافة والتحليلات ونموذج التواصل وملفات تعريف الارتباط وحقوقك.",
     },
   },
   notFound: {

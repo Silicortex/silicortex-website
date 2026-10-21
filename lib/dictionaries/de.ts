@@ -388,6 +388,9 @@ const de: Dictionary = {
     copyright: "© 2026 Silicortex. Alle Rechte vorbehalten.",
     tagline:
       "Wir bauen Automatisierungsinfrastruktur für das nächste Jahrzehnt.",
+    legalLabel: "Rechtliches",
+    impressum: "Impressum",
+    privacy: "Datenschutz",
   },
   meta: {
     home: {
@@ -411,6 +414,14 @@ const de: Dictionary = {
     contact: {
       title: "Kontakt",
       description: "Nehmen Sie Kontakt mit Silicortex auf, um Ihr Projekt zu starten.",
+    },
+    impressum: {
+      title: "Impressum",
+      description: "Impressum von silicortex.de: Anbieterkennzeichnung und Kontaktdaten.",
+    },
+    privacy: {
+      title: "Datenschutzerklärung",
+      description: "Wie silicortex.de personenbezogene Daten verarbeitet: Hosting, Reichweitenmessung, Kontaktformular, Cookies und Ihre Rechte.",
     },
   },
   notFound: {

@@ -389,6 +389,9 @@ const en = {
   footer: {
     copyright: "© 2026 Silicortex. All rights reserved.",
     tagline: "Building automation infrastructure for the next decade.",
+    legalLabel: "Legal",
+    impressum: "Legal Notice",
+    privacy: "Privacy Policy",
   },
   meta: {
     home: {
@@ -412,6 +415,14 @@ const en = {
     contact: {
       title: "Contact",
       description: "Get in touch with Silicortex to start your project.",
+    },
+    impressum: {
+      title: "Legal Notice",
+      description: "Legal notice (Impressum) for silicortex.de: provider identification and contact details.",
+    },
+    privacy: {
+      title: "Privacy Policy",
+      description: "How silicortex.de processes personal data: hosting, analytics, contact form, cookies and your rights.",
     },
   },
   notFound: {
