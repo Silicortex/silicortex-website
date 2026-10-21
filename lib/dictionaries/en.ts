@@ -1,3 +1,9 @@
+// A segment of the SalesChatbot "architecture callout" sentence(s), which mix
+// plain prose with inline <code> identifiers and a <strong> emphasis — too
+// structured for a single translated string, so each locale supplies its own
+// ordered segment list and SalesChatbot.tsx renders each segment by `type`.
+export type ArchSegment = { type: "text" | "code" | "strong"; value: string }
+
 const en = {
   nav: {
     home: "Home",
@@ -562,7 +568,22 @@ const en = {
       { step: "04", title: "Claude answers in plain English", desc: "The AI receives the data and writes a clear, human-readable response with numbers formatted nicely.", color: "#fbbf24" },
     ],
     archLabel: "Architecture:",
-    archAfter: "means Claude can call multiple tools in one response if the question needs combined data.",
+    archFlow: [
+      { type: "text", value: "Browser → " },
+      { type: "code", value: "/api/chat" },
+      { type: "text", value: " (Next.js server) → Claude with 3 tools (" },
+      { type: "code", value: "query_sales_by_period" },
+      { type: "text", value: ", " },
+      { type: "code", value: "query_product_performance" },
+      { type: "text", value: ", " },
+      { type: "code", value: "query_kpis" },
+      { type: "text", value: ") → mock DB → Claude formats answer → Browser." },
+    ] as ArchSegment[],
+    archLoop: [
+      { type: "text", value: "The " },
+      { type: "strong", value: "agentic loop" },
+      { type: "text", value: " means Claude can call multiple tools in one response if the question needs combined data." },
+    ] as ArchSegment[],
     kpiOverview: { label: "Key Metrics", title: "KPI Overview" },
     revenueTrends: { label: "Revenue", title: "Revenue Trends" },
     orderAnalytics: { label: "Order Analytics", title: "Orders & Comparisons" },

@@ -1,8 +1,9 @@
 "use client"
 
-import { useState, useRef, useEffect } from "react"
+import { Fragment, useState, useRef, useEffect } from "react"
 import { useTheme } from "next-themes"
 import { useLang } from "@/components/providers/LangProvider"
+import type { ArchSegment } from "@/lib/dictionaries/en"
 
 interface Message {
   role: "user" | "assistant"
@@ -58,6 +59,29 @@ function getStaticResponse(
     if (item.keywords.some(k => lower.includes(k))) return item.response
   }
   return fallback
+}
+
+// Renders the mixed prose/code/emphasis segments that make up the
+// "architecture callout" sentences (see lib/dictionaries/en.ts's ArchSegment
+// type). `code` segments are wrapped in <bdi> so identifiers like
+// `query_sales_by_period` — full of slashes and underscores — aren't
+// visually reordered when this renders inside an RTL (Arabic) paragraph.
+function renderArchSegments(segments: ArchSegment[], C: { text2: string }) {
+  return segments.map((seg, i) => {
+    if (seg.type === "code") {
+      return (
+        <bdi key={i}>
+          <code style={{ color: "#a78bfa", background: "rgba(139,92,246,0.1)", padding: "1px 6px", borderRadius: 4 }}>
+            {seg.value}
+          </code>
+        </bdi>
+      )
+    }
+    if (seg.type === "strong") {
+      return <strong key={i} style={{ color: C.text2 }}>{seg.value}</strong>
+    }
+    return <Fragment key={i}>{seg.value}</Fragment>
+  })
 }
 
 export function SalesChatbot() {
@@ -196,8 +220,8 @@ export function SalesChatbot() {
           </div>
           <div style={{ marginTop: 16, background: "rgba(6,182,212,0.06)", border: "1px solid rgba(6,182,212,0.18)", borderRadius: 12, padding: "14px 18px", fontSize: 12, color: C.dim2, lineHeight: 1.7 }}>
             <span style={{ color: "#22d3ee", fontWeight: 700 }}>{d.archLabel} </span>
-            Browser → <code style={{ color: "#a78bfa", background: "rgba(139,92,246,0.1)", padding: "1px 6px", borderRadius: 4 }}>/api/chat</code> (Next.js server) → Claude with 3 tools (<code style={{ color: "#a78bfa", background: "rgba(139,92,246,0.1)", padding: "1px 6px", borderRadius: 4 }}>query_sales_by_period</code>, <code style={{ color: "#a78bfa", background: "rgba(139,92,246,0.1)", padding: "1px 6px", borderRadius: 4 }}>query_product_performance</code>, <code style={{ color: "#a78bfa", background: "rgba(139,92,246,0.1)", padding: "1px 6px", borderRadius: 4 }}>query_kpis</code>) → mock DB → Claude formats answer → Browser.{" "}
-            The <strong style={{ color: C.text2 }}>agentic loop</strong> {d.archAfter}
+            {renderArchSegments(d.archFlow, C)}{" "}
+            {renderArchSegments(d.archLoop, C)}
           </div>
         </div>
       </div>
