@@ -6,17 +6,35 @@
 <title>Silicortex — Business Card (Print)</title>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@500&family=Unbounded:wght@600;700;800&display=swap" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@500&family=Unbounded:wght@600;700&family=Readex+Pro:wght@400;500;600&display=swap" rel="stylesheet" />
+<script>
+  // ?lang=en|ar and ?theme=dark|light select which cards print. With no
+  // params (screen preview) every variant is shown.
+  (function () {
+    var q = new URLSearchParams(location.search);
+    var lang = q.get("lang"), theme = q.get("theme");
+    if (lang) document.documentElement.setAttribute("data-lang", lang);
+    if (theme) document.documentElement.setAttribute("data-theme", theme);
+  })();
+</script>
 <style>
   :root {
-    --navy: #020617;
-    --navy-2: #0b1324;
-    --blue: #3b82f6;
-    --teal: #5dcfd6;
-    --ink: #e8edf7;
-    --ink-dim: #a7b4cc;
     --card-w: 85mm;
     --card-h: 55mm;
+    --teal: #5dcfd6;
+    /* dark theme tokens */
+    --bg: #020617;
+    --fg: #ffffff;
+    --fg-2: #c9d2e3;
+    --fg-3: #7d8aa3;
+    --qr-border: transparent;
+  }
+  html[data-theme="light"] {
+    --bg: #ffffff;
+    --fg: #0b1324;
+    --fg-2: #3f4b60;
+    --fg-3: #7d8aa3;
+    --qr-border: #e3e7ee;
   }
 
   * { box-sizing: border-box; }
@@ -45,13 +63,12 @@
 
   .sheet {
     max-width: 900px;
-    margin: 22px auto 60px;
+    margin: 22px auto 40px;
     padding: 24px;
     background: #fff;
     border: 1px solid #dde1e8;
     border-radius: 12px;
   }
-
   .sheet-label {
     font-size: 11px;
     font-weight: 600;
@@ -60,14 +77,9 @@
     color: #8892a6;
     margin: 0 0 14px;
   }
+  .row { display: flex; flex-wrap: wrap; gap: 20px; }
 
-  .row {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 20px;
-  }
-
-  /* ---- Card shell: exact print dimensions, cut guide ---- */
+  /* ---- Card shell ---- */
   .card {
     position: relative;
     width: var(--card-w);
@@ -76,69 +88,72 @@
     overflow: hidden;
     outline: 0.3mm dashed #b7bfcc;
     outline-offset: 2mm;
-    box-shadow: 0 10px 30px -10px rgba(2, 6, 23, 0.35);
-    background: var(--navy);
-    color: var(--ink);
+    background: var(--bg);
+    color: var(--fg);
     flex-shrink: 0;
   }
-
-  .card-bg-grid {
-    position: absolute;
-    inset: 0;
-    background-image:
-      linear-gradient(to right, rgba(93,207,214,0.07) 1px, transparent 1px),
-      linear-gradient(to bottom, rgba(93,207,214,0.07) 1px, transparent 1px);
-    background-size: 4mm 4mm;
+  .card.light {
+    --bg: #ffffff;
+    --fg: #0b1324;
+    --fg-2: #3f4b60;
+    --fg-3: #7d8aa3;
+    --qr-border: #e3e7ee;
+    box-shadow: 0 1px 2px rgba(2,6,23,0.06);
   }
 
+  /* Arabic cards */
+  .card[dir="rtl"] { font-family: "Readex Pro", "Geist", sans-serif; }
+  .card[dir="rtl"] .person-role,
+  .card[dir="rtl"] .services,
+  .card[dir="rtl"] .contact-item .txt,
+  .card[dir="rtl"] .contact-item .label,
+  .card[dir="rtl"] .qr-caption { font-family: "Readex Pro", sans-serif; }
+
+  /* ---------------- FRONT ---------------- */
   .front-content {
     position: relative;
     height: 100%;
     display: flex;
     flex-direction: column;
     justify-content: space-between;
-    padding: 6mm 7mm;
+    padding: 6.5mm 7mm;
   }
 
-  .brand-row {
-    display: flex;
-    align-items: center;
-    gap: 2.6mm;
-  }
-  .brand-row img { width: 6.4mm; height: 6.4mm; display: block; }
+  .brand-row { display: flex; align-items: center; gap: 2.2mm; }
+  .brand-row img { width: 5.6mm; height: 5.6mm; display: block; }
   .brand-name {
     font-family: "Unbounded", "Geist", sans-serif;
     font-weight: 700;
-    font-size: 4.2mm;
+    font-size: 3.4mm;
     letter-spacing: -0.01em;
-    color: #fff;
+    color: var(--teal);
+    line-height: 1;
   }
-  .brand-name span { color: var(--teal); }
 
-  .person-block {
-    margin-top: 2mm;
-  }
+  .person-block { display: flex; flex-direction: column; gap: 1.4mm; }
   .person-name {
     font-family: "Unbounded", "Geist", sans-serif;
-    font-weight: 700;
-    font-size: 4.7mm;
-    line-height: 1.25;
-    color: #fff;
+    font-weight: 600;
+    font-size: 4mm;
+    line-height: 1.2;
     letter-spacing: -0.01em;
-    margin: 0 0 2.2mm;
+    color: var(--fg);
+    margin: 0;
   }
   .person-role {
-    font-size: 2.9mm;
+    font-size: 2.55mm;
     font-weight: 500;
-    color: var(--teal);
-    margin: 0 0 2.4mm;
+    color: var(--fg-2);
+    margin: 0;
+    line-height: 1.5;
   }
-
-  .tagline {
-    font-size: 2.3mm;
-    color: var(--ink-dim);
+  .services {
+    margin: 1.8mm 0 0;
+    font-size: 2.05mm;
+    font-weight: 400;
     line-height: 1.65;
-    max-width: 71mm;
+    color: var(--fg-3);
+    max-width: 70mm;
   }
 
   /* ---------------- BACK ---------------- */
@@ -147,166 +162,126 @@
     height: 100%;
     display: flex;
     align-items: center;
-    padding: 6mm 6mm 6mm 7mm;
-    gap: 4mm;
+    justify-content: space-between;
+    padding: 6.5mm 7mm;
+    gap: 5mm;
   }
-
   .contact-col {
-    position: relative;
-    flex: 1;
     display: flex;
     flex-direction: column;
-    gap: 2.6mm;
+    gap: 3mm;
     min-width: 0;
+    flex: 1;
   }
-
-  .contact-item {
-    display: flex;
-    align-items: center;
-    gap: 2mm;
-  }
-  .contact-item .ico {
-    width: 4.6mm;
-    height: 4.6mm;
-    border-radius: 50%;
-    background: rgba(93,207,214,0.14);
-    border: 0.25mm solid rgba(93,207,214,0.35);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-  }
-  .contact-item .ico svg { width: 2.6mm; height: 2.6mm; }
+  .contact-item { display: flex; align-items: flex-start; gap: 2.2mm; }
+  .contact-item svg { width: 3mm; height: 3mm; flex-shrink: 0; margin-top: 0.35mm; }
   .contact-item .txt {
+    display: flex;
+    flex-direction: column;
     font-size: 2.5mm;
-    color: var(--ink);
-    line-height: 1.3;
-    overflow-wrap: break-word;
+    line-height: 1.35;
+    color: var(--fg);
     white-space: nowrap;
   }
-  .contact-item .txt .label {
-    display: block;
-    font-size: 2.1mm;
-    color: var(--ink-dim);
+  .contact-item .label {
+    font-size: 1.85mm;
+    letter-spacing: 0.08em;
     text-transform: uppercase;
-    letter-spacing: 0.04em;
-    margin-bottom: 0.3mm;
+    color: var(--fg-3);
+    margin-bottom: 0.4mm;
   }
+  .card[dir="rtl"] .contact-item .label { letter-spacing: 0; }
 
   .qr-col {
-    position: relative;
-    flex-shrink: 0;
     display: flex;
     flex-direction: column;
     align-items: center;
     gap: 1.6mm;
+    flex-shrink: 0;
   }
   .qr-box {
     width: 17mm;
     height: 17mm;
     background: #fff;
-    border-radius: 2mm;
-    padding: 1.6mm;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    border: 0.25mm solid var(--qr-border);
+    border-radius: 1.6mm;
+    padding: 1.5mm;
   }
-  .qr-box svg { width: 100%; height: 100%; }
-  .qr-caption {
-    font-size: 2.1mm;
-    color: var(--ink-dim);
-    letter-spacing: 0.02em;
-  }
+  .qr-box svg { width: 100%; height: 100%; display: block; }
+  .qr-caption { font-size: 2mm; color: var(--fg-3); letter-spacing: 0.02em; }
 
-  /* Print mode: each card IS its own page, at exact business-card size —
-     one page per side, ready to send straight to a card printer or print
-     shop without any cutting. */
+  /* ---------------- PRINT: one card per page at exact size ---------------- */
   @media print {
     body { background: #fff; }
-    .instructions { display: none; }
+    .instructions, .sheet-label { display: none; }
     .sheet {
-      box-shadow: none;
-      border: none;
-      border-radius: 0;
-      margin: 0;
-      padding: 0;
-      max-width: none;
-      width: var(--card-w);
-      height: var(--card-h);
-      page-break-after: always;
-      break-after: page;
+      box-shadow: none; border: none; border-radius: 0;
+      margin: 0; padding: 0; max-width: none;
+      width: var(--card-w); height: var(--card-h);
+      page-break-after: always; break-after: page;
     }
-    .sheet:last-child { page-break-after: auto; break-after: auto; }
-    .sheet-label { display: none; }
+    .sheet:last-of-type { page-break-after: auto; break-after: auto; }
     .row { gap: 0; }
-    .card {
-      width: var(--card-w);
-      height: var(--card-h);
-      border-radius: 0;
-      box-shadow: none;
-      outline: none;
-    }
+    .card { width: var(--card-w); height: var(--card-h); border-radius: 0; outline: none; box-shadow: none; }
     @page { size: 85mm 55mm; margin: 0; }
+
+    /* ?lang / ?theme pick which sheets print */
+    html[data-lang="en"] .sheet[data-lang="ar"],
+    html[data-lang="ar"] .sheet[data-lang="en"],
+    html[data-theme="dark"] .sheet[data-theme="light"],
+    html[data-theme="light"] .sheet[data-theme="dark"] { display: none; }
   }
 </style>
 </head>
 <body>
 
   <div class="instructions">
-    <h1>Printing this card</h1>
-    <p><strong>A ready-to-print PDF is at <code>business-card.pdf</code> in this same folder</strong> — open that and print directly, no setup needed. This HTML page is the editable source (update the details below and regenerate the PDF if anything changes).</p>
-    <p>The PDF is two pages, each sized exactly 85&nbsp;×&nbsp;55&nbsp;mm (the standard German/EU business card) — page 1 is the front, page 2 is the back. No cutting needed if you're printing on pre-cut business card stock or sending it to a print shop.</p>
+    <h1>Printing these cards</h1>
+    <p><strong>Ready-to-print PDFs are in this folder:</strong> <code>business-card.pdf</code> (English) and <code>business-card-ar.pdf</code> (Arabic), each two pages at exactly 85&nbsp;×&nbsp;55&nbsp;mm — page 1 front, page 2 back. <code>business-card-light.pdf</code> / <code>business-card-ar-light.pdf</code> are the same cards on white.</p>
     <ul>
-      <li><strong>Pre-cut card stock:</strong> load it in your printer and print the PDF at <em>actual size / 100%</em> (not "fit to page") — each page prints directly onto one card.</li>
-      <li><strong>Print shop:</strong> send <code>business-card.pdf</code> as-is and ask for duplex (double-sided) printing at 85×55&nbsp;mm — the two pages already line up as front/back.</li>
-      <li><strong>No card stock on hand:</strong> print both pages on regular cardstock and trim to the page edge with a ruler/cutter.</li>
-      <li>The QR code links to <code>https://www.silicortex.de</code> — test it with a phone camera before your print run.</li>
+      <li><strong>Print shop:</strong> send the PDF as-is and ask for duplex printing at 85×55&nbsp;mm.</li>
+      <li><strong>Pre-cut card stock at home:</strong> print at <em>actual size / 100%</em>, never "fit to page".</li>
+      <li>The QR code links to <code>https://www.silicortex.de</code> — test it with a phone camera before a print run.</li>
+      <li>This HTML is the editable source. After changing it, regenerate the PDFs (see <code>README</code> note at the bottom of this file).</li>
     </ul>
   </div>
 
-  <div class="sheet">
-    <p class="sheet-label">Front</p>
+  <!-- ===================== ENGLISH · DARK ===================== -->
+  <div class="sheet" data-lang="en" data-theme="dark">
+    <p class="sheet-label">English · Front</p>
     <div class="row">
       <div class="card front">
-        <div class="card-bg-grid"></div>
         <div class="front-content">
           <div class="brand-row">
             <img src="assets/logo-mark.png" alt="Silicortex logo" />
-            <span class="brand-name">Silic<span>ortex</span></span>
+            <span class="brand-name">Silicortex</span>
           </div>
           <div class="person-block">
             <p class="person-name">Mohamad Katramez</p>
             <p class="person-role">Full-Stack Development &amp; AI</p>
+            <p class="services">AI Agents + Automation + AI Consulting + Web Development + Data Engineering + System Integration + E&#8209;Commerce Stores + Checkout &amp; Payments + Logo &amp; Branding + Business Websites</p>
           </div>
-          <p class="tagline">AI Agents + Automation + AI Consulting + Web Development + Data Engineering + System Integration + E&#8209;Commerce Stores + Checkout &amp; Payments + Logo &amp; Branding + Business Websites</p>
         </div>
       </div>
     </div>
   </div>
 
-  <div class="sheet">
-    <p class="sheet-label">Back</p>
+  <div class="sheet" data-lang="en" data-theme="dark">
+    <p class="sheet-label">English · Back</p>
     <div class="row">
       <div class="card back">
-        <div class="card-bg-grid"></div>
         <div class="back-content">
           <div class="contact-col">
             <div class="contact-item">
-              <span class="ico">
-                <svg viewBox="0 0 24 24" fill="none" stroke="#5dcfd6" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
-              </span>
-              <span class="txt">mohamadkatramez98@gmail.com</span>
+              <svg viewBox="0 0 24 24" fill="none" stroke="#5dcfd6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+              <span class="txt"><span class="label">Email</span>mohamadkatramez98@gmail.com</span>
             </div>
             <div class="contact-item">
-              <span class="ico">
-                <svg viewBox="0 0 32 32" fill="#5dcfd6"><path d="M16.001 3.2c-7.07 0-12.8 5.73-12.8 12.8 0 2.26.6 4.46 1.73 6.4L3.2 28.8l6.4-1.68a12.74 12.74 0 0 0 6.4 1.73h.01c7.07 0 12.8-5.73 12.8-12.8s-5.73-12.85-12.81-12.85Zm0 23.42h-.01a10.6 10.6 0 0 1-5.4-1.48l-.39-.23-4.02 1.05 1.07-3.92-.25-.4a10.6 10.6 0 0 1-1.63-5.64c0-5.87 4.78-10.65 10.65-10.65 2.84 0 5.52 1.11 7.53 3.12a10.57 10.57 0 0 1 3.11 7.54c0 5.87-4.77 10.61-10.66 10.61Zm5.83-7.95c-.32-.16-1.9-.94-2.19-1.05-.3-.1-.5-.16-.72.16-.21.32-.83 1.04-1.02 1.26-.19.21-.37.24-.69.08-.32-.16-1.35-.5-2.56-1.58-.95-.84-1.59-1.89-1.78-2.2-.19-.32-.02-.49.14-.65.14-.14.32-.37.47-.56.16-.18.21-.32.32-.53.1-.21.05-.4-.03-.56-.08-.16-.72-1.73-.99-2.37-.26-.63-.52-.54-.72-.55h-.62c-.21 0-.56.08-.85.4-.29.32-1.12 1.1-1.12 2.67 0 1.57 1.15 3.09 1.31 3.3.16.21 2.25 3.43 5.45 4.81.76.33 1.36.52 1.82.67.76.24 1.46.21 2.01.13.61-.09 1.9-.78 2.17-1.53.27-.75.27-1.4.19-1.53-.08-.13-.29-.21-.61-.37Z"/></svg>
-              </span>
+              <svg viewBox="0 0 32 32" fill="#5dcfd6"><path d="M16.001 3.2c-7.07 0-12.8 5.73-12.8 12.8 0 2.26.6 4.46 1.73 6.4L3.2 28.8l6.4-1.68a12.74 12.74 0 0 0 6.4 1.73h.01c7.07 0 12.8-5.73 12.8-12.8s-5.73-12.85-12.81-12.85Zm0 23.42h-.01a10.6 10.6 0 0 1-5.4-1.48l-.39-.23-4.02 1.05 1.07-3.92-.25-.4a10.6 10.6 0 0 1-1.63-5.64c0-5.87 4.78-10.65 10.65-10.65 2.84 0 5.52 1.11 7.53 3.12a10.57 10.57 0 0 1 3.11 7.54c0 5.87-4.77 10.61-10.66 10.61Zm5.83-7.95c-.32-.16-1.9-.94-2.19-1.05-.3-.1-.5-.16-.72.16-.21.32-.83 1.04-1.02 1.26-.19.21-.37.24-.69.08-.32-.16-1.35-.5-2.56-1.58-.95-.84-1.59-1.89-1.78-2.2-.19-.32-.02-.49.14-.65.14-.14.32-.37.47-.56.16-.18.21-.32.32-.53.1-.21.05-.4-.03-.56-.08-.16-.72-1.73-.99-2.37-.26-.63-.52-.54-.72-.55h-.62c-.21 0-.56.08-.85.4-.29.32-1.12 1.1-1.12 2.67 0 1.57 1.15 3.09 1.31 3.3.16.21 2.25 3.43 5.45 4.81.76.33 1.36.52 1.82.67.76.24 1.46.21 2.01.13.61-.09 1.9-.78 2.17-1.53.27-.75.27-1.4.19-1.53-.08-.13-.29-.21-.61-.37Z"/></svg>
               <span class="txt"><span class="label">WhatsApp</span>+49 174 6197197</span>
             </div>
             <div class="contact-item">
-              <span class="ico">
-                <svg viewBox="0 0 24 24" fill="#5dcfd6"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 0 1-2.063-2.065 2.064 2.064 0 1 1 2.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
-              </span>
+              <svg viewBox="0 0 24 24" fill="#5dcfd6"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 0 1-2.063-2.065 2.064 2.064 0 1 1 2.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
               <span class="txt"><span class="label">LinkedIn</span>linkedin.com/in/mohamad-katramez</span>
             </div>
           </div>
@@ -321,5 +296,84 @@
     </div>
   </div>
 
+  <!-- ===================== ARABIC · DARK ===================== -->
+  <div class="sheet" data-lang="ar" data-theme="dark">
+    <p class="sheet-label">Arabic · Front</p>
+    <div class="row">
+      <div class="card front" dir="rtl" lang="ar">
+        <div class="front-content">
+          <div class="brand-row">
+            <img src="assets/logo-mark.png" alt="Silicortex logo" />
+            <span class="brand-name"><bdi>Silicortex</bdi></span>
+          </div>
+          <div class="person-block">
+            <p class="person-name"><bdi>Mohamad Katramez</bdi></p>
+            <p class="person-role">مطوّر برمجيات متكامل <bdi>(Full-Stack)</bdi> ومهندس بيانات</p>
+            <p class="services">وكلاء الذكاء الاصطناعي + أتمتة سير العمل + استشارات الذكاء الاصطناعي + تطوير الويب + هندسة البيانات + تكامل الأنظمة + متاجر إلكترونية + دفع آمن + تصميم الشعار والهوية + مواقع إلكترونية احترافية</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="sheet" data-lang="ar" data-theme="dark">
+    <p class="sheet-label">Arabic · Back</p>
+    <div class="row">
+      <div class="card back" dir="rtl" lang="ar">
+        <div class="back-content">
+          <div class="contact-col">
+            <div class="contact-item">
+              <svg viewBox="0 0 24 24" fill="none" stroke="#5dcfd6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+              <span class="txt"><span class="label">البريد الإلكتروني</span><bdi>mohamadkatramez98@gmail.com</bdi></span>
+            </div>
+            <div class="contact-item">
+              <svg viewBox="0 0 32 32" fill="#5dcfd6"><path d="M16.001 3.2c-7.07 0-12.8 5.73-12.8 12.8 0 2.26.6 4.46 1.73 6.4L3.2 28.8l6.4-1.68a12.74 12.74 0 0 0 6.4 1.73h.01c7.07 0 12.8-5.73 12.8-12.8s-5.73-12.85-12.81-12.85Zm0 23.42h-.01a10.6 10.6 0 0 1-5.4-1.48l-.39-.23-4.02 1.05 1.07-3.92-.25-.4a10.6 10.6 0 0 1-1.63-5.64c0-5.87 4.78-10.65 10.65-10.65 2.84 0 5.52 1.11 7.53 3.12a10.57 10.57 0 0 1 3.11 7.54c0 5.87-4.77 10.61-10.66 10.61Zm5.83-7.95c-.32-.16-1.9-.94-2.19-1.05-.3-.1-.5-.16-.72.16-.21.32-.83 1.04-1.02 1.26-.19.21-.37.24-.69.08-.32-.16-1.35-.5-2.56-1.58-.95-.84-1.59-1.89-1.78-2.2-.19-.32-.02-.49.14-.65.14-.14.32-.37.47-.56.16-.18.21-.32.32-.53.1-.21.05-.4-.03-.56-.08-.16-.72-1.73-.99-2.37-.26-.63-.52-.54-.72-.55h-.62c-.21 0-.56.08-.85.4-.29.32-1.12 1.1-1.12 2.67 0 1.57 1.15 3.09 1.31 3.3.16.21 2.25 3.43 5.45 4.81.76.33 1.36.52 1.82.67.76.24 1.46.21 2.01.13.61-.09 1.9-.78 2.17-1.53.27-.75.27-1.4.19-1.53-.08-.13-.29-.21-.61-.37Z"/></svg>
+              <span class="txt"><span class="label">واتساب</span><bdi>+49 174 6197197</bdi></span>
+            </div>
+            <div class="contact-item">
+              <svg viewBox="0 0 24 24" fill="#5dcfd6"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 0 1-2.063-2.065 2.064 2.064 0 1 1 2.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
+              <span class="txt"><span class="label">لينكد إن</span><bdi>linkedin.com/in/mohamad-katramez</bdi></span>
+            </div>
+          </div>
+          <div class="qr-col">
+            <div class="qr-box">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 33 33" shape-rendering="crispEdges"><path fill="#ffffff" d="M0 0h33v33H0z"/><path stroke="#000000" d="M4 4.5h7m2 0h3m1 0h1m2 0h1m1 0h7M4 5.5h1m5 0h1m2 0h1m1 0h6m1 0h1m5 0h1M4 6.5h1m1 0h3m1 0h1m1 0h2m4 0h1m3 0h1m1 0h3m1 0h1M4 7.5h1m1 0h3m1 0h1m1 0h1m2 0h5m2 0h1m1 0h3m1 0h1M4 8.5h1m1 0h3m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h3m1 0h1M4 9.5h1m5 0h1m1 0h1m2 0h1m1 0h1m1 0h2m1 0h1m5 0h1M4 10.5h7m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h7M12 11.5h4m3 0h1M4 12.5h1m1 0h5m2 0h3m1 0h2m3 0h5M4 13.5h4m3 0h2m1 0h3m1 0h1m1 0h2m1 0h1m3 0h1M4 14.5h2m1 0h2m1 0h1m3 0h1m3 0h2m1 0h5m1 0h2M4 15.5h2m3 0h1m5 0h1m3 0h3m1 0h1m4 0h1M7 16.5h1m2 0h2m1 0h1m1 0h4m2 0h4m1 0h3M4 17.5h4m1 0h1m4 0h1m5 0h2m1 0h1m1 0h1m1 0h1M4 18.5h1m2 0h1m1 0h2m1 0h2m1 0h2m1 0h8m1 0h2M4 19.5h1m4 0h1m2 0h2m1 0h1m2 0h2m1 0h1m1 0h2m3 0h1M4 20.5h1m2 0h2m1 0h1m1 0h1m1 0h5m1 0h5m1 0h1M12 21.5h1m1 0h1m1 0h5m3 0h2M4 22.5h7m2 0h2m5 0h1m1 0h1m1 0h1m1 0h3M4 23.5h1m5 0h1m1 0h2m6 0h1m3 0h2m1 0h2M4 24.5h1m1 0h3m1 0h1m1 0h2m2 0h2m1 0h6m1 0h1M4 25.5h1m1 0h3m1 0h1m1 0h1m1 0h2m1 0h1m2 0h1m1 0h1m1 0h5M4 26.5h1m1 0h3m1 0h1m1 0h1m1 0h1m1 0h4m5 0h2m1 0h1M4 27.5h1m5 0h1m2 0h2m5 0h2m1 0h3m2 0h1M4 28.5h7m1 0h3m1 0h3m4 0h6"/></svg>
+            </div>
+            <p class="qr-caption"><bdi>silicortex.de</bdi></p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== LIGHT VARIANTS ===================== -->
+  <!-- Same content, white background. Generated by cloning the dark sheets
+       at load time so the text lives in exactly one place above. -->
+  <script>
+    (function () {
+      var dark = Array.prototype.slice.call(document.querySelectorAll('.sheet[data-theme="dark"]'));
+      dark.forEach(function (sheet) {
+        var clone = sheet.cloneNode(true);
+        clone.setAttribute("data-theme", "light");
+        var label = clone.querySelector(".sheet-label");
+        if (label) label.textContent = label.textContent + " · Light";
+        clone.querySelector(".card").classList.add("light");
+        document.body.appendChild(clone);
+      });
+    })();
+  </script>
+
+  <!--
+    README — regenerating the PDFs (from the repo root, with docs/print served
+    on a local port, e.g. `python3 -m http.server 8111` inside docs/print):
+
+      ?lang=en&theme=dark   -> business-card.pdf
+      ?lang=ar&theme=dark   -> business-card-ar.pdf
+      ?lang=en&theme=light  -> business-card-light.pdf
+      ?lang=ar&theme=light  -> business-card-ar-light.pdf
+
+    Print each URL with print backgrounds on and "use CSS page size" so the
+    @page rule (85mm x 55mm, zero margin) is respected.
+  -->
 </body>
 </html>
