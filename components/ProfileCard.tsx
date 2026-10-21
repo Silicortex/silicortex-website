@@ -3,9 +3,19 @@
 import Image from "next/image"
 import { siteConfig } from "@/lib/siteConfig"
 import { useLang } from "@/components/providers/LangProvider"
+import type { Lang } from "@/lib/dictionaries/locales"
+
+// The card PDFs are rendered from docs/print/business-card.html by
+// `npm run cards:build`; there is no German edition, so German visitors get
+// the English card.
+const BUSINESS_CARD: Record<Lang, string> = {
+  en: "/downloads/silicortex-business-card-en.pdf",
+  de: "/downloads/silicortex-business-card-en.pdf",
+  ar: "/downloads/silicortex-business-card-ar.pdf",
+}
 
 export function ProfileCard() {
-  const { dict } = useLang()
+  const { dict, lang } = useLang()
   const profile = dict.contact.profile
   return (
     <div className="mx-auto mb-16 max-w-2xl">
@@ -65,6 +75,16 @@ export function ProfileCard() {
                   <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 9.91a16 16 0 0 0 6.29 6.29l.91-.91a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 17.92z"/>
                 </svg>
                 <bdi>{siteConfig.contactPhone}</bdi>
+              </a>
+              <a
+                href={BUSINESS_CARD[lang]}
+                download
+                className="flex items-center gap-2 rounded-full border border-black/10 bg-white/60 px-4 py-2 text-xs font-semibold text-slate-600 shadow-sm transition-all hover:-translate-y-0.5 hover:border-black/20 hover:text-slate-900 hover:shadow-md dark:border-white/10 dark:bg-white/5 dark:text-slate-400 dark:hover:text-white"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/>
+                </svg>
+                {profile.downloadCard}
               </a>
             </div>
           </div>

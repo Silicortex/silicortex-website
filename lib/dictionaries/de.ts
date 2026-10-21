@@ -371,6 +371,7 @@ const de: Dictionary = {
     subtitle:
       "Erzählen Sie uns von Ihrem Projekt. Wir antworten innerhalb von 24 Stunden mit einem klaren Plan.",
     profile: {
+      downloadCard: "Visitenkarte (PDF)",
       title: "Full-Stack-Entwickler & Data Engineer",
       bio: "Ansässig in Wiesbaden, Deutschland. B.Sc. in Angewandter Informatik von der Hochschule RheinMain. Mehr als 3 Jahre bei schubwerk GmbH: Entwicklung von Analyse-Tools, Data Warehouses und KI-Integrationen. Begeistert von maschinellem Lernen, Automatisierung und Produkten, die wirklich etwas bewegen.",
     },

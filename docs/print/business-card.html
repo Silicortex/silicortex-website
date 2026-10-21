@@ -239,12 +239,12 @@
 
   <div class="instructions">
     <h1>Printing these cards</h1>
-    <p><strong>Ready-to-print PDFs are in this folder:</strong> <code>business-card.pdf</code> (English) and <code>business-card-ar.pdf</code> (Arabic), each two pages at exactly 85&nbsp;×&nbsp;55&nbsp;mm — page 1 front, page 2 back. <code>business-card-light.pdf</code> / <code>business-card-ar-light.pdf</code> are the same cards on white.</p>
+    <p><strong>This file is the single source of the business card.</strong> The ready-to-print PDFs live in <code>public/downloads/</code> — <code>silicortex-business-card-en.pdf</code> and <code>silicortex-business-card-ar.pdf</code>, each two pages at exactly 85&nbsp;×&nbsp;55&nbsp;mm (page 1 front, page 2 back), plus <code>-light</code> variants on white. The same files are offered for download on the website's contact page, in the visitor's language.</p>
     <ul>
+      <li><strong>After editing this file:</strong> run <code>npm run cards:build</code> from the repo root and commit <code>public/downloads</code>. The site refuses to build while the PDFs are older than this source, so a card change cannot go live without the download changing too.</li>
       <li><strong>Print shop:</strong> send the PDF as-is and ask for duplex printing at 85×55&nbsp;mm. A matte or soft-touch laminate suits the dark card; ask about spot UV on the logo if you want a premium finish.</li>
       <li><strong>Pre-cut card stock at home:</strong> print at <em>actual size / 100%</em>, never "fit to page".</li>
       <li>The QR code links to <code>https://www.silicortex.de</code> — test it with a phone camera before a print run.</li>
-      <li>This HTML is the editable source. After changing it, regenerate the PDFs (see <code>README</code> note at the bottom of this file).</li>
     </ul>
   </div>
 
@@ -354,16 +354,10 @@
   </script>
 
   <!--
-    README — regenerating the PDFs (from the repo root, with docs/print served
-    on a local port, e.g. `python3 -m http.server 8111` inside docs/print):
-
-      ?lang=en&theme=dark   -> business-card.pdf
-      ?lang=ar&theme=dark   -> business-card-ar.pdf
-      ?lang=en&theme=light  -> business-card-light.pdf
-      ?lang=ar&theme=light  -> business-card-ar-light.pdf
-
-    Print each URL with print backgrounds on and "use CSS page size" so the
-    @page rule (85mm x 55mm, zero margin) is respected.
+    Regenerating the PDFs: `npm run cards:build` (scripts/build-business-cards.mjs)
+    renders the four ?lang/?theme variants into public/downloads/ with a local
+    Chrome and records a hash of this file in business-cards.manifest.json;
+    `npm run cards:check` (run before every `next build`) fails when they drift.
   -->
 </body>
 </html>

@@ -373,6 +373,7 @@ const en = {
     subtitle:
       "Tell us about your project. We'll respond within 24 hours with a clear plan.",
     profile: {
+      downloadCard: "Business card (PDF)",
       title: "Full-Stack Developer & Data Engineer",
       bio: "Based in Wiesbaden, Germany. B.Sc. Applied Informatics from Hochschule RheinMain. 3+ years at schubwerk GmbH building analytics tools, data warehouses, and AI integrations. Passionate about machine learning, automation, and shipping products that matter.",
     },

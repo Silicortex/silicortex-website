@@ -4,9 +4,12 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "prebuild": "node scripts/check-business-cards.mjs",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "cards:build": "node scripts/build-business-cards.mjs",
+    "cards:check": "node scripts/check-business-cards.mjs"
   },
   "dependencies": {
     "@vercel/analytics": "^2.0.1",
@@ -25,6 +28,7 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "latest",
+    "playwright-core": "^1.59.1",
     "tailwindcss": "^4",
     "typescript": "^5"
   }
