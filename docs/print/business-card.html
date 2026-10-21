@@ -91,33 +91,13 @@
     background-size: 4mm 4mm;
   }
 
-  /* Flat geometric accent instead of soft "light" blobs — solid color,
-     no gradient or blur, so it stays genuinely crisp at any print size
-     and reads as a deliberate graphic device rather than atmosphere. */
-  .card-accent {
-    position: absolute;
-    inset-block: 0;
-    inset-inline-start: 0;
-    width: 2.6mm;
-    background: var(--teal);
-  }
-  .card-accent::after {
-    content: "";
-    position: absolute;
-    inset-inline-start: 100%;
-    top: 0;
-    width: 0.9mm;
-    height: 100%;
-    background: var(--blue);
-  }
-
   .front-content {
     position: relative;
     height: 100%;
     display: flex;
     flex-direction: column;
     justify-content: space-between;
-    padding: 6mm 7mm 6mm 10mm;
+    padding: 6mm 7mm;
   }
 
   .brand-row {
@@ -167,7 +147,7 @@
     height: 100%;
     display: flex;
     align-items: center;
-    padding: 6mm 6mm 6mm 10mm;
+    padding: 6mm 6mm 6mm 7mm;
     gap: 4mm;
   }
 
@@ -289,7 +269,6 @@
     <div class="row">
       <div class="card front">
         <div class="card-bg-grid"></div>
-        <div class="card-accent"></div>
         <div class="front-content">
           <div class="brand-row">
             <img src="assets/logo-mark.png" alt="Silicortex logo" />
@@ -310,7 +289,6 @@
     <div class="row">
       <div class="card back">
         <div class="card-bg-grid"></div>
-        <div class="card-accent"></div>
         <div class="back-content">
           <div class="contact-col">
             <div class="contact-item">
