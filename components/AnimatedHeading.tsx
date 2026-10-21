@@ -2,6 +2,7 @@
 
 import { motion } from "framer-motion"
 import { wordReveal, wordItem } from "@/lib/motion"
+import { useLang } from "@/components/providers/LangProvider"
 
 interface Props {
   as?: "h1" | "h2" | "h3"
@@ -12,8 +13,13 @@ interface Props {
 }
 
 export function AnimatedHeading({ as: Tag = "h2", children, className, style, delay = 0 }: Props) {
+  const { lang } = useLang()
   const MotionTag = motion[Tag]
   const words = children.split(" ")
+  // Arabic diacritics (tashkeel) sit above the letter and extend past the tight
+  // line-height tuned for Latin display type \u2014 without headroom here, the
+  // per-word overflow:hidden clip (needed for the reveal animation) cuts them off.
+  const wordLineHeight = lang === "ar" ? 1.5 : undefined
 
   return (
     <MotionTag
@@ -30,7 +36,7 @@ export function AnimatedHeading({ as: Tag = "h2", children, className, style, de
       {words.map((word, i) => (
         <span
           key={i}
-          style={{ display: "inline-block", overflow: "hidden", verticalAlign: "bottom" }}
+          style={{ display: "inline-block", overflow: "hidden", verticalAlign: "bottom", lineHeight: wordLineHeight }}
         >
           <motion.span variants={wordItem} style={{ display: "inline-block" }}>
             {word}{i < words.length - 1 ? "\u00a0" : ""}

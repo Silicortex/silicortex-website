@@ -5,7 +5,6 @@ const ar: Dictionary = {
     home: "الرئيسية",
     services: "الخدمات",
     work: "الأعمال",
-    experience: "الخبرة",
     network: "الشبكة",
     contact: "تواصل",
     cta: "ابدأ الآن",
@@ -333,69 +332,6 @@ const ar: Dictionary = {
       }
     }
   },
-  experience: {
-    title: "الخبرة والتعليم",
-    subtitle: "مطوّر متكامل (Full-Stack) ومهندس بيانات، مقيم في فيسبادن، ألمانيا.",
-    items: [
-      {
-        year: "04/2026",
-        title: "تطوير تطبيقات الذكاء الاصطناعي التوليدي: الانطلاقة",
-        company: "IBM Skills Network",
-        description:
-          "إنهاء ناجح لدورة تدريبية عبر الإنترنت معتمدة من IBM ومُقدَّمة عبر Coursera. تعلّم المفاهيم الأساسية والأساليب العملية لتطوير تطبيقات الذكاء الاصطناعي التوليدي.",
-        link: "https://coursera.org/verify/SEXN3DTP7GGC",
-        tags: ["الذكاء الاصطناعي التوليدي", "IBM", "Coursera", "تطبيقات الذكاء الاصطناعي"],
-      },
-      {
-        year: "08/2024 – 03/2026",
-        title: "مطوّر متكامل (Full-Stack) وتكامل الذكاء الاصطناعي",
-        company: "schubwerk GmbH · Wiesbaden",
-        description:
-          "قاد تطوير أدوات التحليلات، وبنى مستودع بيانات من الصفر، ودمج الذكاء الاصطناعي في الأنظمة القائمة. مسؤول عن جميع جوانب تطوير الويب مع تركيز على الابتكار المستمر.",
-        tags: ["Next.js", "TypeScript", "Dagster", "مستودع بيانات", "تكامل الذكاء الاصطناعي", "Docker"],
-      },
-      {
-        year: "10/2023 – 08/2024",
-        title: "طالب عامل — تطوير الويب",
-        company: "schubwerk GmbH · Wiesbaden",
-        description:
-          "إصلاح أخطاء في نظام الشركة، وتطوير تكاملات برمجية جديدة (Shopify، Shopware، Google Analytics، Meta)، وتولي مسؤولية مشاريع ميزات جديدة.",
-        tags: ["PHP", "Laravel", "Vue.js", "REST APIs", "OAuth 2.0"],
-      },
-      {
-        year: "01/2024 – 04/2024",
-        title: "رسالة البكالوريوس — تعلم الآلة",
-        company: "Hochschule RheinMain · Wiesbaden",
-        description:
-          "تطوير نظام للتنبؤ بالمبيعات يجمع بين تعلم الآلة ونماذج العمليات العشوائية. منفَّذ بلغتي PHP وPython، وقُدِّم كمشروع نهائي لدرجة البكالوريوس في المعلوماتية التطبيقية.",
-        tags: ["Python", "PHP", "تعلم الآلة", "التنبؤ", "نماذج عشوائية"],
-      },
-      {
-        year: "09/2022 – 04/2023",
-        title: "تدريب — تطوير الويب",
-        company: "schubwerk GmbH · Wiesbaden",
-        description:
-          "تهيئة عبر البرمجة الثنائية (Pair Programming)، وكسب خبرة عملية بـ PHP-Laravel وVue.js. تطوير وحدات فرعية بشكل مستقل وبرمجة واجهات أنظمة خارجية.",
-        tags: ["PHP", "Laravel", "Vue.js", "Bootstrap", "PostgreSQL"],
-      },
-      {
-        year: "09/2021 – 10/2021",
-        title: "تدريب — تطوير وحدة أعمال",
-        company: "Evoila GmbH · Mainz",
-        description:
-          "تطوير بـ Java/Spring Boot، واختبار وحدات باستخدام JUnit، وإدارة إصدارات Git، وإدارة قواعد بيانات PostgreSQL في بيئة مؤسسية محترفة.",
-        tags: ["Java", "Spring Boot", "JUnit", "PostgreSQL", "Git"],
-      },
-      {
-        year: "10/2019 – 04/2024",
-        title: "بكالوريوس المعلوماتية التطبيقية",
-        company: "Hochschule RheinMain · Wiesbaden",
-        description:
-          "درجة بكالوريوس مع تركيز على التطوير المتكامل (Full Stack)، وعلم البيانات، وإدارة المشاريع، وتعلم الآلة.",
-        tags: ["التطوير المتكامل", "علم البيانات", "تعلم الآلة", "إدارة المشاريع"],
-      },
-    ],
-  },
   network: {
     title: "انضم إلى الفريق",
     subtitle: "نبني شبكة موزّعة من أفضل المطورين.",
@@ -462,10 +398,6 @@ const ar: Dictionary = {
     work: {
       title: "الأعمال",
       description: "وكلاء ذكاء اصطناعي، وسير عمل أتمتة، ولوحات بيانات من بناء Silicortex.",
-    },
-    experience: {
-      title: "الخبرة",
-      description: "تمكّن تقني في الذكاء الاصطناعي والأتمتة والتطوير المتكامل.",
     },
     network: {
       title: "الشبكة",

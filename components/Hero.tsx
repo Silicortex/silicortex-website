@@ -4,6 +4,7 @@ import { useEffect, useState } from "react"
 import Link from "next/link"
 import { motion, type Variants } from "framer-motion"
 import { useLang } from "@/components/providers/LangProvider"
+import type { Lang } from "@/lib/dictionaries"
 import { wordItem } from "@/lib/motion"
 
 function HeroBackground() {
@@ -38,8 +39,12 @@ function HeroBackground() {
   )
 }
 
-function WordRevealHeading({ text, className, style }: { text: string; className?: string; style?: React.CSSProperties }) {
+function WordRevealHeading({ text, className, style, lang }: { text: string; className?: string; style?: React.CSSProperties; lang: Lang }) {
   const lines = text.split("\n")
+  // Arabic diacritics (tashkeel) sit above the letter and extend past the tight
+  // line-height tuned for Latin display type — without headroom here, the
+  // per-word overflow:hidden clip (needed for the reveal animation) cuts them off.
+  const wordLineHeight = lang === "ar" ? 1.6 : undefined
   return (
     <h1 className={className} style={style}>
       {lines.map((line, li) => {
@@ -47,7 +52,7 @@ function WordRevealHeading({ text, className, style }: { text: string; className
         return (
           <span key={li} style={{ display: "block" }}>
             {words.map((word, wi) => (
-              <span key={wi} style={{ display: "inline-block", overflow: "hidden", verticalAlign: "bottom" }}>
+              <span key={wi} style={{ display: "inline-block", overflow: "hidden", verticalAlign: "bottom", lineHeight: wordLineHeight }}>
                 <motion.span
                   variants={wordItem}
                   initial="hidden"
@@ -115,7 +120,7 @@ const itemVariants: Variants = {
 }
 
 export function Hero() {
-  const { dict, localeHref } = useLang()
+  const { dict, localeHref, lang } = useLang()
   const h = dict.hero
 
   return (
@@ -138,8 +143,9 @@ export function Hero() {
 
           <WordRevealHeading
             text={h.title}
+            lang={lang}
             className="text-balance font-bold tracking-tight text-slate-900 dark:text-white"
-            style={{ fontSize: "clamp(2.25rem, 5vw + 1rem, 4.5rem)", lineHeight: 1.1 }}
+            style={{ fontSize: "clamp(2.25rem, 5vw + 1rem, 4.5rem)", lineHeight: lang === "ar" ? 1.3 : 1.1 }}
           />
 
           <motion.div variants={itemVariants}>

@@ -9,7 +9,6 @@ const en = {
     home: "Home",
     services: "Services",
     work: "Work",
-    experience: "Experience",
     network: "Network",
     contact: "Contact",
     cta: "Get Started",
@@ -337,69 +336,6 @@ const en = {
       }
     }
   },
-  experience: {
-    title: "Experience & Education",
-    subtitle: "Full-Stack Developer & Data Engineer based in Wiesbaden, Germany.",
-    items: [
-      {
-        year: "04/2026",
-        title: "Develop Generative AI Applications: Get Started",
-        company: "IBM Skills Network",
-        description:
-          "Successfully completed an online course authorized by IBM and offered through Coursera. Learned foundational concepts and practical approaches for developing Generative AI applications.",
-        link: "https://coursera.org/verify/SEXN3DTP7GGC",
-        tags: ["Generative AI", "IBM", "Coursera", "AI Applications"],
-      },
-      {
-        year: "08/2024 – 03/2026",
-        title: "Full-Stack Developer & AI Integration",
-        company: "schubwerk GmbH · Wiesbaden",
-        description:
-          "Led development of analytics tools, built a Data Warehouse from scratch, and integrated AI into existing systems. Responsible for all aspects of web development with a focus on continuous innovation.",
-        tags: ["Next.js", "TypeScript", "Dagster", "Data Warehouse", "AI Integration", "Docker"],
-      },
-      {
-        year: "10/2023 – 08/2024",
-        title: "Working Student — Web Development",
-        company: "schubwerk GmbH · Wiesbaden",
-        description:
-          "Fixed bugs in the company system, developed new API integrations (Shopify, Shopware, Google Analytics, Meta), and took ownership of new feature projects.",
-        tags: ["PHP", "Laravel", "Vue.js", "REST APIs", "OAuth 2.0"],
-      },
-      {
-        year: "01/2024 – 04/2024",
-        title: "Bachelor Thesis — Machine Learning",
-        company: "Hochschule RheinMain · Wiesbaden",
-        description:
-          "Developed a sales forecasting system combining machine learning with stochastic process models. Implemented in PHP and Python, delivered as the final project of a B.Sc. in Applied Informatics.",
-        tags: ["Python", "PHP", "Machine Learning", "Forecasting", "Stochastic Models"],
-      },
-      {
-        year: "09/2022 – 04/2023",
-        title: "Internship — Web Development",
-        company: "schubwerk GmbH · Wiesbaden",
-        description:
-          "Onboarded via pair-programming, acquired hands-on experience with PHP-Laravel and Vue.js. Independently developed sub-modules and programmed third-party system interfaces.",
-        tags: ["PHP", "Laravel", "Vue.js", "Bootstrap", "PostgreSQL"],
-      },
-      {
-        year: "09/2021 – 10/2021",
-        title: "Internship — Business Unit Development",
-        company: "Evoila GmbH · Mainz",
-        description:
-          "Java/Spring Boot development, unit testing with JUnit, Git version control, and PostgreSQL database management in a professional enterprise environment.",
-        tags: ["Java", "Spring Boot", "JUnit", "PostgreSQL", "Git"],
-      },
-      {
-        year: "10/2019 – 04/2024",
-        title: "B.Sc. Applied Informatics",
-        company: "Hochschule RheinMain · Wiesbaden",
-        description:
-          "Bachelor's degree with focus on Full Stack Development, Data Science, Project Management, and Machine Learning.",
-        tags: ["Full Stack", "Data Science", "Machine Learning", "Project Management"],
-      },
-    ],
-  },
   network: {
     title: "Join the Team",
     subtitle: "We're building a distributed network of elite builders.",
@@ -466,10 +402,6 @@ const en = {
     work: {
       title: "Work",
       description: "AI agents, automation workflows, and dashboards built by Silicortex.",
-    },
-    experience: {
-      title: "Experience",
-      description: "Technical mastery in AI, automation, and full-stack development.",
     },
     network: {
       title: "Network",

@@ -57,7 +57,6 @@ export function NavbarClient() {
         { href: "/work/sales-dashboard", label: dict.navbar.salesDashboardLabel, icon: "📊", desc: dict.navbar.salesDashboardDesc },
       ],
     },
-    { href: "/experience", label: dict.nav.experience },
     { href: "/network", label: dict.nav.network },
     { href: "/contact", label: dict.nav.contact },
   ]

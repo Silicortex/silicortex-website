@@ -5,7 +5,6 @@ const de: Dictionary = {
     home: "Startseite",
     services: "Leistungen",
     work: "Projekte",
-    experience: "Erfahrung",
     network: "Netzwerk",
     contact: "Kontakt",
     cta: "Loslegen",
@@ -333,69 +332,6 @@ const de: Dictionary = {
       }
     }
   },
-  experience: {
-    title: "Erfahrung & Ausbildung",
-    subtitle: "Full-Stack Developer & Data Engineer mit Sitz in Wiesbaden.",
-    items: [
-      {
-        year: "04/2026",
-        title: "Develop Generative AI Applications: Get Started",
-        company: "IBM Skills Network",
-        description:
-          "Erfolgreicher Abschluss eines von IBM autorisierten und über Coursera angebotenen Online-Kurses. Erlernung von Grundlagen und praktischen Ansätzen zur Entwicklung generativer KI-Anwendungen.",
-        link: "https://coursera.org/verify/SEXN3DTP7GGC",
-        tags: ["Generative KI", "IBM", "Coursera", "KI-Anwendungen"],
-      },
-      {
-        year: "08/2024 – 03/2026",
-        title: "Full-Stack Developer & KI-Integration",
-        company: "schubwerk GmbH · Wiesbaden",
-        description:
-          "Aufbau eines Data Warehouses, Integration von KI in bestehende Systeme und kontinuierliche Weiterentwicklung von Analytics-Tools.",
-        tags: ["Next.js", "TypeScript", "Dagster", "Data Warehouse", "KI-Integration", "Docker"],
-      },
-      {
-        year: "10/2023 – 08/2024",
-        title: "Werkstudent – Webentwicklung",
-        company: "schubwerk GmbH · Wiesbaden",
-        description:
-          "Behebung von Bugs, Entwicklung neuer API-Verbindungen (Shopify, Shopware, Google Analytics, Meta) und Übernahme neuer Projekte.",
-        tags: ["PHP", "Laravel", "Vue.js", "REST APIs", "OAuth 2.0"],
-      },
-      {
-        year: "01/2024 – 04/2024",
-        title: "Bachelorarbeit – Maschinelles Lernen",
-        company: "Hochschule RheinMain · Wiesbaden",
-        description:
-          "Entwicklung eines Prognose­systems zur Vorhersage von Verkaufsdaten, das maschinelles Lernen und stochastische Prozessmodelle kombiniert.",
-        tags: ["Python", "PHP", "Machine Learning", "Prognosemodelle"],
-      },
-      {
-        year: "09/2022 – 04/2023",
-        title: "Praktikum – Webentwicklung",
-        company: "schubwerk GmbH · Wiesbaden",
-        description:
-          "Einarbeitung via Pair-Programming, eigenständige Entwicklung von Teilmodulen und Anbindung von Drittsystemen.",
-        tags: ["PHP", "Laravel", "Vue.js", "Bootstrap", "PostgreSQL"],
-      },
-      {
-        year: "09/2021 – 10/2021",
-        title: "Praktikum – Business Unit Development",
-        company: "Evoila GmbH · Mainz",
-        description:
-          "Java/Spring-Boot-Entwicklung, Unit-Tests mit JUnit, Git-Versionierung und Arbeit mit PostgreSQL-Datenbanken.",
-        tags: ["Java", "Spring Boot", "JUnit", "PostgreSQL", "Git"],
-      },
-      {
-        year: "10/2019 – 04/2024",
-        title: "B.Sc. Angewandte Informatik",
-        company: "Hochschule RheinMain · Wiesbaden",
-        description:
-          "Bachelorstudium mit Schwerpunkten in Full Stack Development, Data Science, Projektmanagement und Machine Learning.",
-        tags: ["Full Stack", "Data Science", "Machine Learning", "Projektmanagement"],
-      },
-    ],
-  },
   network: {
     title: "Werde Teil des Teams",
     subtitle:
@@ -465,10 +401,6 @@ const de: Dictionary = {
     work: {
       title: "Projekte",
       description: "KI-Agenten, Automatisierungs-Workflows und Dashboards von Silicortex.",
-    },
-    experience: {
-      title: "Erfahrung",
-      description: "Technische Exzellenz in KI, Automatisierung und Full-Stack-Entwicklung.",
     },
     network: {
       title: "Netzwerk",
