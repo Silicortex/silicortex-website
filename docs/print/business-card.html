@@ -155,6 +155,9 @@
     color: var(--fg-3);
     max-width: 70mm;
   }
+  /* Items never break internally; lines break only at the separators, and
+     each "+" is glued to the item after it so no line ends on a dangling "+". */
+  .services .i { white-space: nowrap; }
 
   /* ---------------- BACK ---------------- */
   .back-content {
@@ -235,6 +238,13 @@
 </head>
 <body>
 
+  <!-- The QR code (https://www.silicortex.de), defined once and cloned
+       into every .qr-box below. Regenerate with `npx qrcode -t svg <url>`
+       if the URL ever changes. -->
+  <template id="qr-svg">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 33 33" shape-rendering="crispEdges"><path fill="#ffffff" d="M0 0h33v33H0z"/><path stroke="#000000" d="M4 4.5h7m2 0h3m1 0h1m2 0h1m1 0h7M4 5.5h1m5 0h1m2 0h1m1 0h6m1 0h1m5 0h1M4 6.5h1m1 0h3m1 0h1m1 0h2m4 0h1m3 0h1m1 0h3m1 0h1M4 7.5h1m1 0h3m1 0h1m1 0h1m2 0h5m2 0h1m1 0h3m1 0h1M4 8.5h1m1 0h3m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h3m1 0h1M4 9.5h1m5 0h1m1 0h1m2 0h1m1 0h1m1 0h2m1 0h1m5 0h1M4 10.5h7m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h7M12 11.5h4m3 0h1M4 12.5h1m1 0h5m2 0h3m1 0h2m3 0h5M4 13.5h4m3 0h2m1 0h3m1 0h1m1 0h2m1 0h1m3 0h1M4 14.5h2m1 0h2m1 0h1m3 0h1m3 0h2m1 0h5m1 0h2M4 15.5h2m3 0h1m5 0h1m3 0h3m1 0h1m4 0h1M7 16.5h1m2 0h2m1 0h1m1 0h4m2 0h4m1 0h3M4 17.5h4m1 0h1m4 0h1m5 0h2m1 0h1m1 0h1m1 0h1M4 18.5h1m2 0h1m1 0h2m1 0h2m1 0h2m1 0h8m1 0h2M4 19.5h1m4 0h1m2 0h2m1 0h1m2 0h2m1 0h1m1 0h2m3 0h1M4 20.5h1m2 0h2m1 0h1m1 0h1m1 0h5m1 0h5m1 0h1M12 21.5h1m1 0h1m1 0h5m3 0h2M4 22.5h7m2 0h2m5 0h1m1 0h1m1 0h1m1 0h3M4 23.5h1m5 0h1m1 0h2m6 0h1m3 0h2m1 0h2M4 24.5h1m1 0h3m1 0h1m1 0h2m2 0h2m1 0h6m1 0h1M4 25.5h1m1 0h3m1 0h1m1 0h1m1 0h2m1 0h1m2 0h1m1 0h1m1 0h5M4 26.5h1m1 0h3m1 0h1m1 0h1m1 0h1m1 0h4m5 0h2m1 0h1M4 27.5h1m5 0h1m2 0h2m5 0h2m1 0h3m2 0h1M4 28.5h7m1 0h3m1 0h3m4 0h6"/></svg>
+  </template>
+
   <div class="instructions">
     <h1>Printing these cards</h1>
     <p><strong>Ready-to-print PDFs are in this folder:</strong> <code>business-card.pdf</code> (English) and <code>business-card-ar.pdf</code> (Arabic), each two pages at exactly 85&nbsp;×&nbsp;55&nbsp;mm — page 1 front, page 2 back. <code>business-card-light.pdf</code> / <code>business-card-ar-light.pdf</code> are the same cards on white.</p>
@@ -258,8 +268,8 @@
           </div>
           <div class="person-block">
             <p class="person-name">Mohamad Katramez</p>
-            <p class="person-role">Full-Stack Development &amp; AI</p>
-            <p class="services">AI Agents + Automation + AI Consulting + Web Development + Data Engineering + System Integration + E&#8209;Commerce Stores + Checkout &amp; Payments + Logo &amp; Branding + Business Websites</p>
+            <p class="person-role">Full-Stack Developer &amp; Data Engineer</p>
+            <p class="services"><span class="i">AI Agents</span> +&nbsp;<span class="i">Automation</span> +&nbsp;<span class="i">AI Consulting</span> +&nbsp;<span class="i">Web Development</span> +&nbsp;<span class="i">Data Engineering</span> +&nbsp;<span class="i">System Integration</span> +&nbsp;<span class="i">E-Commerce Stores</span> +&nbsp;<span class="i">Checkout &amp; Payments</span> +&nbsp;<span class="i">Logo &amp; Branding</span> +&nbsp;<span class="i">Business Websites</span></p>
           </div>
         </div>
       </div>
@@ -286,9 +296,7 @@
             </div>
           </div>
           <div class="qr-col">
-            <div class="qr-box">
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 33 33" shape-rendering="crispEdges"><path fill="#ffffff" d="M0 0h33v33H0z"/><path stroke="#000000" d="M4 4.5h7m2 0h3m1 0h1m2 0h1m1 0h7M4 5.5h1m5 0h1m2 0h1m1 0h6m1 0h1m5 0h1M4 6.5h1m1 0h3m1 0h1m1 0h2m4 0h1m3 0h1m1 0h3m1 0h1M4 7.5h1m1 0h3m1 0h1m1 0h1m2 0h5m2 0h1m1 0h3m1 0h1M4 8.5h1m1 0h3m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h3m1 0h1M4 9.5h1m5 0h1m1 0h1m2 0h1m1 0h1m1 0h2m1 0h1m5 0h1M4 10.5h7m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h7M12 11.5h4m3 0h1M4 12.5h1m1 0h5m2 0h3m1 0h2m3 0h5M4 13.5h4m3 0h2m1 0h3m1 0h1m1 0h2m1 0h1m3 0h1M4 14.5h2m1 0h2m1 0h1m3 0h1m3 0h2m1 0h5m1 0h2M4 15.5h2m3 0h1m5 0h1m3 0h3m1 0h1m4 0h1M7 16.5h1m2 0h2m1 0h1m1 0h4m2 0h4m1 0h3M4 17.5h4m1 0h1m4 0h1m5 0h2m1 0h1m1 0h1m1 0h1M4 18.5h1m2 0h1m1 0h2m1 0h2m1 0h2m1 0h8m1 0h2M4 19.5h1m4 0h1m2 0h2m1 0h1m2 0h2m1 0h1m1 0h2m3 0h1M4 20.5h1m2 0h2m1 0h1m1 0h1m1 0h5m1 0h5m1 0h1M12 21.5h1m1 0h1m1 0h5m3 0h2M4 22.5h7m2 0h2m5 0h1m1 0h1m1 0h1m1 0h3M4 23.5h1m5 0h1m1 0h2m6 0h1m3 0h2m1 0h2M4 24.5h1m1 0h3m1 0h1m1 0h2m2 0h2m1 0h6m1 0h1M4 25.5h1m1 0h3m1 0h1m1 0h1m1 0h2m1 0h1m2 0h1m1 0h1m1 0h5M4 26.5h1m1 0h3m1 0h1m1 0h1m1 0h1m1 0h4m5 0h2m1 0h1M4 27.5h1m5 0h1m2 0h2m5 0h2m1 0h3m2 0h1M4 28.5h7m1 0h3m1 0h3m4 0h6"/></svg>
-            </div>
+            <div class="qr-box"></div>
             <p class="qr-caption">silicortex.de</p>
           </div>
         </div>
@@ -309,7 +317,7 @@
           <div class="person-block">
             <p class="person-name"><bdi>Mohamad Katramez</bdi></p>
             <p class="person-role">مطوّر برمجيات متكامل <bdi>(Full-Stack)</bdi> ومهندس بيانات</p>
-            <p class="services">وكلاء الذكاء الاصطناعي + أتمتة سير العمل + استشارات الذكاء الاصطناعي + تطوير الويب + هندسة البيانات + تكامل الأنظمة + متاجر إلكترونية + دفع آمن + تصميم الشعار والهوية + مواقع إلكترونية احترافية</p>
+            <p class="services"><span class="i">وكلاء الذكاء الاصطناعي</span> +&nbsp;<span class="i">أتمتة سير العمل</span> +&nbsp;<span class="i">استشارات الذكاء الاصطناعي</span> +&nbsp;<span class="i">تطوير الويب</span> +&nbsp;<span class="i">هندسة البيانات</span> +&nbsp;<span class="i">تكامل الأنظمة</span> +&nbsp;<span class="i">متاجر إلكترونية</span> +&nbsp;<span class="i">دفع آمن</span> +&nbsp;<span class="i">تصميم الشعار والهوية</span> +&nbsp;<span class="i">مواقع إلكترونية احترافية</span></p>
           </div>
         </div>
       </div>
@@ -336,9 +344,7 @@
             </div>
           </div>
           <div class="qr-col">
-            <div class="qr-box">
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 33 33" shape-rendering="crispEdges"><path fill="#ffffff" d="M0 0h33v33H0z"/><path stroke="#000000" d="M4 4.5h7m2 0h3m1 0h1m2 0h1m1 0h7M4 5.5h1m5 0h1m2 0h1m1 0h6m1 0h1m5 0h1M4 6.5h1m1 0h3m1 0h1m1 0h2m4 0h1m3 0h1m1 0h3m1 0h1M4 7.5h1m1 0h3m1 0h1m1 0h1m2 0h5m2 0h1m1 0h3m1 0h1M4 8.5h1m1 0h3m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h3m1 0h1M4 9.5h1m5 0h1m1 0h1m2 0h1m1 0h1m1 0h2m1 0h1m5 0h1M4 10.5h7m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h7M12 11.5h4m3 0h1M4 12.5h1m1 0h5m2 0h3m1 0h2m3 0h5M4 13.5h4m3 0h2m1 0h3m1 0h1m1 0h2m1 0h1m3 0h1M4 14.5h2m1 0h2m1 0h1m3 0h1m3 0h2m1 0h5m1 0h2M4 15.5h2m3 0h1m5 0h1m3 0h3m1 0h1m4 0h1M7 16.5h1m2 0h2m1 0h1m1 0h4m2 0h4m1 0h3M4 17.5h4m1 0h1m4 0h1m5 0h2m1 0h1m1 0h1m1 0h1M4 18.5h1m2 0h1m1 0h2m1 0h2m1 0h2m1 0h8m1 0h2M4 19.5h1m4 0h1m2 0h2m1 0h1m2 0h2m1 0h1m1 0h2m3 0h1M4 20.5h1m2 0h2m1 0h1m1 0h1m1 0h5m1 0h5m1 0h1M12 21.5h1m1 0h1m1 0h5m3 0h2M4 22.5h7m2 0h2m5 0h1m1 0h1m1 0h1m1 0h3M4 23.5h1m5 0h1m1 0h2m6 0h1m3 0h2m1 0h2M4 24.5h1m1 0h3m1 0h1m1 0h2m2 0h2m1 0h6m1 0h1M4 25.5h1m1 0h3m1 0h1m1 0h1m1 0h2m1 0h1m2 0h1m1 0h1m1 0h5M4 26.5h1m1 0h3m1 0h1m1 0h1m1 0h1m1 0h4m5 0h2m1 0h1M4 27.5h1m5 0h1m2 0h2m5 0h2m1 0h3m2 0h1M4 28.5h7m1 0h3m1 0h3m4 0h6"/></svg>
-            </div>
+            <div class="qr-box"></div>
             <p class="qr-caption"><bdi>silicortex.de</bdi></p>
           </div>
         </div>
@@ -351,6 +357,12 @@
        at load time so the text lives in exactly one place above. -->
   <script>
     (function () {
+      // Fill every QR box from the single template, then clone the dark
+      // sheets into light variants (clones carry the QR with them).
+      var qr = document.getElementById("qr-svg").content;
+      Array.prototype.forEach.call(document.querySelectorAll(".qr-box"), function (box) {
+        box.appendChild(qr.cloneNode(true));
+      });
       var dark = Array.prototype.slice.call(document.querySelectorAll('.sheet[data-theme="dark"]'));
       dark.forEach(function (sheet) {
         var clone = sheet.cloneNode(true);
