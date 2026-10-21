@@ -2,7 +2,8 @@
 
 import { createContext, useCallback, useContext, type ReactNode } from "react"
 import { useRouter, usePathname } from "next/navigation"
-import { getDictionary, isRtl, type Dictionary, type Lang } from "@/lib/dictionaries"
+import { isRtl, type Lang } from "@/lib/dictionaries/locales"
+import type { Dictionary } from "@/lib/dictionaries/en"
 
 interface LangContextValue {
   lang: Lang
@@ -15,10 +16,11 @@ interface LangContextValue {
 const LangContext = createContext<LangContextValue | null>(null)
 const COOKIE_NAME = "silicortex-lang"
 
-export function LangProvider({ lang, children }: { lang: Lang; children: ReactNode }) {
+// `dict` arrives from the server (SiteChrome) so the client bundle carries only
+// the one language the page renders, not all three.
+export function LangProvider({ lang, dict, children }: { lang: Lang; dict: Dictionary; children: ReactNode }) {
   const router = useRouter()
   const pathname = usePathname()
-  const dict = getDictionary(lang)
   const dir: "ltr" | "rtl" = isRtl(lang) ? "rtl" : "ltr"
 
   const localeHref = useCallback(

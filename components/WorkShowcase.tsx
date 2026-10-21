@@ -1,7 +1,7 @@
 "use client"
 
 import { useRef } from "react"
-import { motion, AnimatePresence } from "framer-motion"
+import { motion } from "framer-motion"
 import Link from "next/link"
 import { useLang } from "@/components/providers/LangProvider"
 import { AnimatedHeading } from "@/components/AnimatedHeading"
@@ -214,7 +214,7 @@ export function WorkShowcase() {
 
         {/* Sections */}
         <div className="space-y-24">
-          {SECTIONS.map((section, si) => (
+          {SECTIONS.map((section) => (
             <motion.div
               key={section.id}
               ref={el => { sectionRefs.current[section.id] = el }}
@@ -258,7 +258,7 @@ export function WorkShowcase() {
                 viewport={{ once: true }}
                 className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3"
               >
-                {section.items.map((item, i) => (
+                {section.items.map((item) => (
                   <motion.div
                     key={item.title}
                     variants={scaleUp}

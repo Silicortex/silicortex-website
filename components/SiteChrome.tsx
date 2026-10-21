@@ -4,7 +4,7 @@ import { NavbarClient } from "@/components/NavbarClient"
 import { SiteFooter } from "@/components/SiteFooter"
 import { SpeedInsights } from "@vercel/speed-insights/next"
 import { Analytics } from "@vercel/analytics/next"
-import type { Lang } from "@/lib/dictionaries"
+import { getDictionary, type Lang } from "@/lib/dictionaries"
 
 // The marketing shell, shared by the (site) layout. app/[lang]/not-found.tsx
 // also renders it, but that page is currently unreachable in practice:
@@ -20,10 +20,13 @@ export function SiteChrome({
   lang: Lang
   children: React.ReactNode
 }) {
+  // Resolved here, on the server, so only this language's strings are
+  // serialised to the client.
+  const dict = getDictionary(lang)
   return (
     <>
       <ThemeProvider>
-        <LangProvider lang={lang}>
+        <LangProvider lang={lang} dict={dict}>
           <NavbarClient />
           {children}
           <SiteFooter />

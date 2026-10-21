@@ -415,7 +415,7 @@ function SectionHeader({ icon, label, title, accent }: {
 // ─── Dashboard ────────────────────────────────────────────────────────────────
 export default function SalesDashboard() {
   const { resolvedTheme } = useTheme()
-  const { lang, dict } = useLang()
+  const { dict } = useLang()
   const dark = resolvedTheme !== "light"
   const C = dark ? DARK : LIGHT
   const d = dict.salesDashboard

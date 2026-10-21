@@ -2,27 +2,17 @@ import type { Dictionary } from "./en"
 import en from "./en"
 import de from "./de"
 import ar from "./ar"
+import { defaultLocale, type Lang } from "./locales"
 
-export const locales = ["en", "de", "ar"] as const
-export type Lang = (typeof locales)[number]
-export const defaultLocale: Lang = "en"
-
+// Server-side entry point. Client components must import locale helpers from
+// ./locales instead, so the dictionaries themselves never enter a client
+// bundle; SiteChrome resolves the one dictionary a page needs and hands it to
+// LangProvider as a prop.
+export { locales, defaultLocale, isValidLocale, isRtl, type Lang } from "./locales"
 export type { Dictionary }
 
 const dictionaries: Record<Lang, Dictionary> = { en, de, ar }
 
 export function getDictionary(lang: Lang): Dictionary {
   return dictionaries[lang] ?? dictionaries[defaultLocale]
-}
-
-export function isValidLocale(value: string): value is Lang {
-  return (locales as readonly string[]).includes(value)
-}
-
-// Single source of truth for "is this locale right-to-left" — previously
-// duplicated as an identical `(lang as string) === "ar"` ternary in both
-// LangProvider.tsx and app/[lang]/layout.tsx. Centralizing it here means the
-// two sites can't drift, and a future RTL locale only needs updating here.
-export function isRtl(lang: Lang): boolean {
-  return lang === "ar"
 }

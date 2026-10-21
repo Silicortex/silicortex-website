@@ -1,11 +1,26 @@
 "use client"
 
-import { useEffect, useState } from "react"
 import Link from "next/link"
-import { motion, type Variants } from "framer-motion"
 import { useLang } from "@/components/providers/LangProvider"
-import type { Lang } from "@/lib/dictionaries"
-import { wordItem } from "@/lib/motion"
+import type { Lang } from "@/lib/dictionaries/locales"
+
+// Everything that moves in the hero is a CSS animation (see "Homepage hero" in
+// globals.css), deliberately not framer-motion:
+//
+// - The entrance (badge → headline words → subtitle → buttons) used to be
+//   framer `initial="hidden"` variants. Those server-render as opacity:0 /
+//   clipped and can't play until the JS bundle has downloaded, parsed and
+//   hydrated — on a throttled phone that held the LCP element (the subtitle)
+//   invisible for ~3 s after first paint. CSS keyframes with `animation-delay`
+//   run from the first frame regardless of hydration.
+// - The ambient blobs were `repeat: Infinity` JS animations on
+//   `filter: blur(120px)` layers: a JS frame loop re-rasterising three huge
+//   blurred surfaces forever, measured at ~21 s of main-thread time (homepage
+//   perf 32 vs 93+ on pages without it). The soft edge is now a
+//   radial-gradient and the drift a transform keyframe on the compositor.
+//
+// Users who prefer reduced motion get the static page: globals.css only
+// applies the animations under (prefers-reduced-motion: no-preference).
 
 function HeroBackground() {
   return (
@@ -20,50 +35,47 @@ function HeroBackground() {
           backgroundSize: "60px 60px",
         }}
       />
-      <motion.div
-        animate={{ x: [0, 40, -20, 0], y: [0, -30, 20, 0] }}
-        transition={{ duration: 18, repeat: Infinity, ease: "easeInOut" }}
-        className="absolute left-1/4 top-1/4 h-[500px] w-[500px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-blue-600/10 blur-[120px]"
-      />
-      <motion.div
-        animate={{ x: [0, -30, 40, 0], y: [0, 40, -20, 0] }}
-        transition={{ duration: 22, repeat: Infinity, ease: "easeInOut", delay: 3 }}
-        className="absolute right-1/4 bottom-1/4 h-[400px] w-[400px] translate-x-1/2 translate-y-1/2 rounded-full bg-indigo-600/10 blur-[100px]"
-      />
-      <motion.div
-        animate={{ x: [0, 20, -40, 0], y: [0, -20, 30, 0] }}
-        transition={{ duration: 26, repeat: Infinity, ease: "easeInOut", delay: 6 }}
-        className="absolute left-1/2 top-1/2 h-[300px] w-[300px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-cyan-600/8 blur-[80px]"
-      />
+      <div className="absolute left-1/4 top-1/4 h-[720px] w-[720px] -translate-x-1/2 -translate-y-1/2">
+        <div className="hero-blob hero-blob-1" style={{ background: "radial-gradient(circle closest-side, rgba(37,99,235,0.14), transparent)" }} />
+      </div>
+      <div className="absolute bottom-1/4 right-1/4 h-[580px] w-[580px] translate-x-1/2 translate-y-1/2">
+        <div className="hero-blob hero-blob-2" style={{ background: "radial-gradient(circle closest-side, rgba(79,70,229,0.14), transparent)" }} />
+      </div>
+      <div className="absolute left-1/2 top-1/2 h-[440px] w-[440px] -translate-x-1/2 -translate-y-1/2">
+        <div className="hero-blob hero-blob-3" style={{ background: "radial-gradient(circle closest-side, rgba(8,145,178,0.12), transparent)" }} />
+      </div>
     </div>
   )
 }
 
-function WordRevealHeading({ text, className, style, lang }: { text: string; className?: string; style?: React.CSSProperties; lang: Lang }) {
+const STAGGER = 0.12 // seconds between hero items
+const WORD_STAGGER = 0.07 // seconds between headline words
+
+function WordRevealHeading({ text, className, style, lang, delay }: {
+  text: string; className?: string; style?: React.CSSProperties; lang: Lang; delay: number
+}) {
   const lines = text.split("\n")
   // Arabic diacritics (tashkeel) sit above the letter and extend past the tight
   // line-height tuned for Latin display type — without headroom here, the
   // per-word overflow:hidden clip (needed for the reveal animation) cuts them off.
   const wordLineHeight = lang === "ar" ? 1.6 : undefined
+  let wordIndex = 0
   return (
     <h1 className={className} style={style}>
       {lines.map((line, li) => {
         const words = line.split(" ")
         return (
           <span key={li} style={{ display: "block" }}>
-            {words.map((word, wi) => (
-              <span key={wi} style={{ display: "inline-block", overflow: "hidden", verticalAlign: "bottom", lineHeight: wordLineHeight }}>
-                <motion.span
-                  variants={wordItem}
-                  initial="hidden"
-                  animate="visible"
-                  transition={{ delay: (li * words.length + wi) * 0.07 }}
-                  style={{ display: "inline-block" }}
-                >
-                  {word}{wi < words.length - 1 ? "\u00a0" : ""}
-                </motion.span>
-              </span>
-            ))}
+            {words.map((word, wi) => {
+              const d = delay + wordIndex++ * WORD_STAGGER
+              return (
+                <span key={wi} style={{ display: "inline-block", overflow: "hidden", verticalAlign: "bottom", lineHeight: wordLineHeight }}>
+                  <span className="hero-word" style={{ animationDelay: `${d}s` }}>
+                    {word}{wi < words.length - 1 ? " " : ""}
+                  </span>
+                </span>
+              )
+            })}
           </span>
         )
       })}
@@ -71,88 +83,44 @@ function WordRevealHeading({ text, className, style, lang }: { text: string; cla
   )
 }
 
-function TypingSubtitle({ text }: { text: string }) {
-  const [displayed, setDisplayed] = useState("")
-  const [done, setDone] = useState(false)
-
-  useEffect(() => {
-    let i = 0
-    const delay = 800 // start after heading reveals
-    const timer = setTimeout(() => {
-      const interval = setInterval(() => {
-        i++
-        setDisplayed(text.slice(0, i))
-        if (i >= text.length) {
-          clearInterval(interval)
-          setDone(true)
-        }
-      }, 22)
-      return () => clearInterval(interval)
-    }, delay)
-    return () => clearTimeout(timer)
-  }, [text])
-
-  return (
-    <p
-      className="max-w-2xl text-slate-600 dark:text-slate-400"
-      style={{ fontSize: "clamp(1rem, 1.5vw + 0.5rem, 1.25rem)", lineHeight: 1.7 }}
-    >
-      {displayed}
-      {!done && (
-        <motion.span
-          animate={{ opacity: [1, 0] }}
-          transition={{ duration: 0.5, repeat: Infinity, repeatType: "reverse" }}
-          className="ms-0.5 inline-block h-[1.1em] w-0.5 translate-y-[0.1em] bg-blue-500"
-        />
-      )}
-    </p>
-  )
-}
-
-const containerVariants: Variants = {
-  hidden: {},
-  visible: { transition: { staggerChildren: 0.12 } },
-}
-
-const itemVariants: Variants = {
-  hidden: { opacity: 0, y: 16 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: [0.25, 0.1, 0.25, 1] as [number, number, number, number] } },
-}
-
 export function Hero() {
   const { dict, localeHref, lang } = useLang()
   const h = dict.hero
+  const wordCount = h.title.split(/\s+/).length
+  // Items after the headline wait for the last word to start revealing.
+  const afterHeadline = STAGGER + wordCount * WORD_STAGGER
 
   return (
     <section className="relative flex min-h-screen items-center justify-center overflow-hidden bg-slate-50 pt-16 dark:bg-slate-950">
       <HeroBackground />
 
       <div className="relative mx-auto max-w-5xl px-6 py-24 text-center sm:px-8">
-        <motion.div
-          variants={containerVariants}
-          initial="hidden"
-          animate="visible"
-          className="flex flex-col items-center gap-8"
-        >
-          <motion.div variants={itemVariants}>
+        <div className="flex flex-col items-center gap-8">
+          <div className="hero-item" style={{ animationDelay: "0s" }}>
             <span className="inline-flex items-center gap-2 rounded-full border border-blue-500/20 bg-blue-500/10 px-4 py-1.5 text-sm font-medium text-blue-500 dark:text-blue-400">
               <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-blue-500 dark:bg-blue-400" />
               {h.badge}
             </span>
-          </motion.div>
+          </div>
 
           <WordRevealHeading
             text={h.title}
             lang={lang}
+            delay={STAGGER}
             className="text-balance font-bold tracking-tight text-slate-900 dark:text-white"
             style={{ fontSize: "clamp(2.25rem, 5vw + 1rem, 4.5rem)", lineHeight: lang === "ar" ? 1.3 : 1.1 }}
           />
 
-          <motion.div variants={itemVariants}>
-            <TypingSubtitle text={h.subtitle} />
-          </motion.div>
+          <div className="hero-item" style={{ animationDelay: `${afterHeadline}s` }}>
+            <p
+              className="max-w-2xl text-slate-600 dark:text-slate-400"
+              style={{ fontSize: "clamp(1rem, 1.5vw + 0.5rem, 1.25rem)", lineHeight: 1.7 }}
+            >
+              {h.subtitle}
+            </p>
+          </div>
 
-          <motion.div variants={itemVariants} className="flex flex-wrap justify-center gap-4">
+          <div className="hero-item flex flex-wrap justify-center gap-4" style={{ animationDelay: `${afterHeadline + STAGGER}s` }}>
             <Link
               href={localeHref("/services")}
               className="glow-border flex min-h-[48px] items-center rounded-full bg-blue-600 px-8 text-sm font-semibold text-white transition-colors hover:bg-blue-500"
@@ -165,17 +133,13 @@ export function Hero() {
             >
               {h.cta2}
             </Link>
-          </motion.div>
+          </div>
 
-          <motion.div variants={itemVariants} className="mt-8 flex flex-col items-center gap-2 text-xs text-slate-400 dark:text-slate-600">
+          <div className="hero-item mt-8 flex flex-col items-center gap-2 text-xs text-slate-500 dark:text-slate-400" style={{ animationDelay: `${afterHeadline + STAGGER * 2}s` }}>
             <span>{h.scrollHint}</span>
-            <motion.div
-              animate={{ y: [0, 6, 0] }}
-              transition={{ duration: 1.5, repeat: Infinity }}
-              className="h-4 w-px bg-gradient-to-b from-slate-400 to-transparent dark:from-slate-600"
-            />
-          </motion.div>
-        </motion.div>
+            <div className="hero-scroll-line h-4 w-px bg-gradient-to-b from-slate-400 to-transparent dark:from-slate-500" />
+          </div>
+        </div>
       </div>
     </section>
   )

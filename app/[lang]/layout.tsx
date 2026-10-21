@@ -7,7 +7,10 @@ import { locales, isValidLocale, isRtl } from "@/lib/dictionaries"
 
 const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] })
 const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] })
-const readexPro = Readex_Pro({ variable: "--font-readex-pro", subsets: ["arabic"] })
+// preload: false — the variable is declared on <html> for every locale, but
+// only `:lang(ar)` text uses it (globals.css), so EN/DE pages should not
+// download an Arabic font up front. Browsers fetch it when Arabic text renders.
+const readexPro = Readex_Pro({ variable: "--font-readex-pro", subsets: ["arabic"], preload: false })
 
 export function generateStaticParams() {
   return locales.map((lang) => ({ lang }))

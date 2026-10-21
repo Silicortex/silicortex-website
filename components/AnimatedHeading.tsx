@@ -1,7 +1,7 @@
 "use client"
 
 import { motion } from "framer-motion"
-import { wordReveal, wordItem } from "@/lib/motion"
+import { wordItem } from "@/lib/motion"
 import { useLang } from "@/components/providers/LangProvider"
 
 interface Props {

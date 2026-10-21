@@ -24,7 +24,7 @@ export default async function SalesDashboardLayout({
             </svg>
             {dict.nav.work}
           </Link>
-          <span className="text-xs text-slate-400 dark:text-slate-600">/</span>
+          <span className="text-xs text-slate-500">/</span>
           <span className="text-xs font-medium text-slate-700 dark:text-slate-300">{dict.navbar.salesDashboardLabel}</span>
         </div>
       </div>

@@ -114,10 +114,6 @@ export function SalesChatbot() {
     }, 700)
   }
 
-  const renderContent = (text: string) =>
-    text.replace(/\*\*(.*?)\*\*/g, `<strong style="color:${C.text2}">${"$1"}</strong>`)
-      .replace(/\*\*(.*?)\*\*/g, (_, m) => `<strong style="color:${C.text2}">${m}</strong>`)
-
   const renderMsg = (content: string) => ({
     __html: content.replace(/\*\*(.*?)\*\*/g, `<strong style="color:${C.text2}">$1</strong>`),
   })

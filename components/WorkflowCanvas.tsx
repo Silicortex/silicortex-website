@@ -3,7 +3,7 @@
 import { motion } from "framer-motion"
 import { useLang } from "@/components/providers/LangProvider"
 import { AnimatedHeading } from "@/components/AnimatedHeading"
-import { scaleUp, staggerContainer } from "@/lib/motion"
+import { scaleUp } from "@/lib/motion"
 
 interface Node {
   id: string; label: string; color: string; x: number; y: number

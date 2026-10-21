@@ -2,12 +2,13 @@
 
 import { useEffect, useState } from "react"
 import Link from "next/link"
+import Image from "next/image"
 import { usePathname } from "next/navigation"
 import { useTheme } from "next-themes"
 import { motion, AnimatePresence } from "framer-motion"
 import { useLang } from "@/components/providers/LangProvider"
 import { useHydrated } from "@/lib/useHydrated"
-import { locales, type Lang } from "@/lib/dictionaries"
+import { locales, type Lang } from "@/lib/dictionaries/locales"
 
 const LANG_LABELS: Record<Lang, string> = { en: "EN", de: "DE", ar: "ع" }
 
@@ -62,7 +63,6 @@ export function NavbarClient() {
   ]
 
   const toggleDropdown = () => setDropdownOpen(o => !o)
-  const closeDropdown = () => setDropdownOpen(false)
 
   useEffect(() => {
     document.body.style.overflow = menuOpen ? "hidden" : ""
@@ -74,8 +74,10 @@ export function NavbarClient() {
       <nav className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6">
         {/* Logo */}
         <Link href={localeHref("/")} className="flex items-center" onClick={() => setMenuOpen(false)}>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/favicon.ico" alt="Silicortex" className="h-10 w-auto" />
+          {/* Sized + optimised: the previous <img src="/favicon.ico"> shipped a
+              50 KB 256px ICO for a 40px slot and, lacking dimensions, shifted
+              the header on load. */}
+          <Image src="/logo-mark.png" alt="Silicortex" width={40} height={40} priority className="h-10 w-10" />
           <span className="ms-2 text-sm font-bold tracking-tight">
             <span className="text-[#5dcfd6]">Silicortex</span>
           </span>
