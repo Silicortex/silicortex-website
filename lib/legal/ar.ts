@@ -14,7 +14,7 @@ const ar: LegalContent = {
       },
       {
         heading: "التواصل",
-        lines: ["الهاتف: ⁦+49 174 6197197⁩", "البريد الإلكتروني: mohamadkatramez98@gmail.com"],
+        lines: ["الهاتف: ⁦+49 174 6197197⁩", "البريد الإلكتروني: kontakt@silicortex.de"],
       },
       {
         heading: "رقم التعريف الضريبي لضريبة القيمة المضافة",
@@ -70,7 +70,7 @@ const ar: LegalContent = {
           "Eberleinstraße 46",
           "65195 Wiesbaden، ألمانيا",
           "الهاتف: ⁦+49 174 6197197⁩",
-          "البريد الإلكتروني: mohamadkatramez98@gmail.com",
+          "البريد الإلكتروني: kontakt@silicortex.de",
         ],
       },
       {

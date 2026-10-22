@@ -2,7 +2,7 @@ export const siteConfig = {
   name: "Silicortex",
   logoText: "Silicortex",
   slogan: "We Build the Products That Power Your Business",
-  contactEmail: "mohamadkatramez98@gmail.com",
+  contactEmail: "kontakt@silicortex.de",
   contactPhone: "+49 174 6197197",
   socialLinks: {
     github: "https://github.com/Silicortex",

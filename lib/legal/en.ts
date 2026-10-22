@@ -14,7 +14,7 @@ const en: LegalContent = {
       },
       {
         heading: "Contact",
-        lines: ["Phone: +49 174 6197197", "Email: mohamadkatramez98@gmail.com"],
+        lines: ["Phone: +49 174 6197197", "Email: kontakt@silicortex.de"],
       },
       {
         heading: "VAT identification number",
@@ -70,7 +70,7 @@ const en: LegalContent = {
           "Eberleinstraße 46",
           "65195 Wiesbaden, Germany",
           "Phone: +49 174 6197197",
-          "Email: mohamadkatramez98@gmail.com",
+          "Email: kontakt@silicortex.de",
         ],
       },
       {
