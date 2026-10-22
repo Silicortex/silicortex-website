@@ -41,8 +41,11 @@ stands alone. It carries no text and needs no background shape.
 Gradient: `#174BFF → #00D5E8`. In the symbol it runs along each ribbon from
 cyan at the outer end to deep blue at the inner end.
 
-- **Wordmark "Silicortex":** navy on light backgrounds, white on dark. Never
-  cyan on white, which is too faint for text.
+- **Wordmark "Silicortex" on the website and in the admin:** the symbol's
+  gradient, `#174BFF → #0A9FD8` on light (the cyan end deepened; `#00D5E8` is
+  too faint for text on white) and `#4D7CFF → #00D5E8` on dark, always in the
+  Latin font (Geist), also on Arabic pages.
+- **Wordmark in print and on banners:** solid navy on light, white on dark.
 - **Accents** (icons, links, highlights): cyan on dark, electric blue on light.
 - **In code:** the Tailwind classes `brand-navy`, `brand-blue` and
   `brand-cyan` (e.g. `text-brand-navy`), defined in `app/globals.css` of both

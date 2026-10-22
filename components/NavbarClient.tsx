@@ -83,7 +83,14 @@ export function NavbarClient() {
           <Image src="/brand/silicortex-mark.png" alt="Silicortex" width={40} height={40} priority className="h-10 w-10 dark:hidden" />
           <Image src="/brand/silicortex-mark-dark.png" alt="Silicortex" width={40} height={40} priority className="hidden h-10 w-10 dark:block" />
           <span className="ms-2 text-sm font-bold tracking-tight">
-            <span className="text-brand-navy dark:text-white">Silicortex</span>
+            {/* The wordmark carries the symbol's blue→cyan gradient (the cyan
+                end deepened on light, where #00D5E8 is too faint for text),
+                and stays in Geist in every language: on /ar the page font is
+                Readex Pro, which would set the Latin name differently.
+                lang="en" takes it out of globals.css's :lang(ar) rule. */}
+            <span lang="en" className="bg-gradient-to-r from-brand-blue to-[#0A9FD8] bg-clip-text font-[family-name:var(--font-geist-sans)] text-transparent dark:from-[#4D7CFF] dark:to-brand-cyan">
+              Silicortex
+            </span>
           </span>
         </Link>
 
