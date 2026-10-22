@@ -13,7 +13,7 @@ const glassCard =
 const accentColors = [
   "text-blue-600 dark:text-blue-400",
   "text-violet-600 dark:text-violet-400",
-  "text-cyan-600 dark:text-[#5dcfd6]",
+  "text-cyan-600 dark:text-brand-cyan",
   "text-emerald-600 dark:text-emerald-400",
 ]
 

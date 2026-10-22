@@ -83,7 +83,7 @@ export function NavbarClient() {
           <Image src="/brand/silicortex-mark.png" alt="Silicortex" width={40} height={40} priority className="h-10 w-10 dark:hidden" />
           <Image src="/brand/silicortex-mark-dark.png" alt="Silicortex" width={40} height={40} priority className="hidden h-10 w-10 dark:block" />
           <span className="ms-2 text-sm font-bold tracking-tight">
-            <span className="text-[#5dcfd6]">Silicortex</span>
+            <span className="text-brand-navy dark:text-white">Silicortex</span>
           </span>
         </Link>
 

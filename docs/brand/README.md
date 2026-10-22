@@ -41,6 +41,14 @@ stands alone. It carries no text and needs no background shape.
 Gradient: `#174BFF → #00D5E8`. In the symbol it runs along each ribbon from
 cyan at the outer end to deep blue at the inner end.
 
+- **Wordmark "Silicortex":** navy on light backgrounds, white on dark. Never
+  cyan on white, which is too faint for text.
+- **Accents** (icons, links, highlights): cyan on dark, electric blue on light.
+- **In code:** the Tailwind classes `brand-navy`, `brand-blue` and
+  `brand-cyan` (e.g. `text-brand-navy`), defined in `app/globals.css` of both
+  silicortex-website and silicortex-admin. The business card has the same
+  values as CSS variables.
+
 ## Typography
 
 - **Wordmark and headlines:** Unbounded, Bold (700).
