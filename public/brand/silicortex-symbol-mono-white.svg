@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-132 -132 264 264" width="264" height="264">
+  <title>Silicortex</title>
+  <defs>
+    <clipPath id="sx-clip"><path d="M-12.12 -123.02 Q0 -130.02 12.12 -123.02 L100.48 -72.01 Q112.6 -65.01 112.6 -51.01 L112.6 51.01 Q112.6 65.01 100.48 72.01 L12.12 123.02 Q0 130.02 -12.12 123.02 L-100.48 72.01 Q-112.6 65.01 -112.6 51.01 L-112.6 -51.01 Q-112.6 -65.01 -100.48 -72.01 Z"/></clipPath>
+    <mask id="sx-mu" maskUnits="userSpaceOnUse" x="-132" y="-132" width="264" height="264">
+      <rect x="-132" y="-132" width="264" height="264" fill="#fff"/>
+      <path d="M131.64 45.98 L29.44 -13.02" fill="none" stroke="#000" stroke-width="69.21" stroke-linecap="round"/>
+    </mask>
+    <mask id="sx-ml" maskUnits="userSpaceOnUse" x="-132" y="-132" width="264" height="264">
+      <rect x="-132" y="-132" width="264" height="264" fill="#fff"/>
+      <path d="M-131.64 -45.98 L-29.44 13.02" fill="none" stroke="#000" stroke-width="69.21" stroke-linecap="round"/>
+    </mask>
+  </defs>
+  <g clip-path="url(#sx-clip)">
+    <g mask="url(#sx-mu)"><path d="M86.6 19.98 L86.6 -50 L0 -100 L-86.6 -50 L-86.6 -19.98" fill="none" stroke="#FFFFFF" stroke-width="52" stroke-linejoin="miter" stroke-miterlimit="10" stroke-linecap="butt"/></g>
+    <path d="M-86.6 -50 L-86.6 -19.98 L-29.44 13.02" fill="none" stroke="#FFFFFF" stroke-width="52" stroke-linejoin="miter" stroke-miterlimit="10" stroke-linecap="round"/>
+    <g mask="url(#sx-ml)"><path d="M-86.6 -19.98 L-86.6 50 L0 100 L86.6 50 L86.6 19.98" fill="none" stroke="#FFFFFF" stroke-width="52" stroke-linejoin="miter" stroke-miterlimit="10" stroke-linecap="butt"/></g>
+    <path d="M86.6 50 L86.6 19.98 L29.44 -13.02" fill="none" stroke="#FFFFFF" stroke-width="52" stroke-linejoin="miter" stroke-miterlimit="10" stroke-linecap="round"/>
+  </g>
+</svg>

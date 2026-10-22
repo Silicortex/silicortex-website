@@ -114,6 +114,8 @@
     gap: 3.6mm;
   }
   .front-content img { width: 21mm; height: 21mm; display: block; }
+  /* The symbol's dark edition lifts the deep blue so it stays distinct on --bg. */
+  .card:not(.light) .mark-on-light, .card.light .mark-on-dark { display: none; }
   .brand-name {
     font-family: "Unbounded", "Geist", sans-serif;
     font-weight: 700;
@@ -254,7 +256,8 @@
     <div class="row">
       <div class="card front">
         <div class="front-content">
-          <img src="assets/logo-mark.png" alt="Silicortex logo" />
+          <img class="mark-on-dark" src="assets/silicortex-symbol-dark.svg" alt="Silicortex logo" />
+          <img class="mark-on-light" src="assets/silicortex-symbol.svg" alt="Silicortex logo" />
           <span class="brand-name">Silicortex</span>
         </div>
       </div>
@@ -293,7 +296,8 @@
     <div class="row">
       <div class="card front" dir="rtl" lang="ar">
         <div class="front-content">
-          <img src="assets/logo-mark.png" alt="Silicortex logo" />
+          <img class="mark-on-dark" src="assets/silicortex-symbol-dark.svg" alt="Silicortex logo" />
+          <img class="mark-on-light" src="assets/silicortex-symbol.svg" alt="Silicortex logo" />
           <span class="brand-name"><bdi>Silicortex</bdi></span>
         </div>
       </div>

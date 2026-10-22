@@ -12,7 +12,8 @@ export const MANIFEST_PATH = "public/downloads/business-cards.manifest.json"
 
 export const SOURCE_FILES = [
   "docs/print/business-card.html",
-  "docs/print/assets/logo-mark.png",
+  "docs/print/assets/silicortex-symbol.svg",
+  "docs/print/assets/silicortex-symbol-dark.svg",
   "scripts/build-business-cards.mjs",
   "scripts/business-cards.config.mjs",
 ]
