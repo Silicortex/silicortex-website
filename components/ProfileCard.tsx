@@ -1,21 +1,30 @@
 "use client"
 
 import Image from "next/image"
+import { useTheme } from "next-themes"
 import { siteConfig } from "@/lib/siteConfig"
 import { useLang } from "@/components/providers/LangProvider"
+import { useHydrated } from "@/lib/useHydrated"
 import type { Lang } from "@/lib/dictionaries/locales"
 
 // The card PDFs are rendered from docs/print/business-card.html by
-// `npm run cards:build`; there is no German edition, so German visitors get
-// the English card.
-const BUSINESS_CARD: Record<Lang, string> = {
-  en: "/downloads/silicortex-business-card-en.pdf",
-  de: "/downloads/silicortex-business-card-en.pdf",
-  ar: "/downloads/silicortex-business-card-ar.pdf",
+// `npm run cards:build`, in a dark and a light edition; the download follows
+// the site's current theme. There is no German edition, so German visitors
+// get the English card.
+const BUSINESS_CARD: Record<Lang, Record<"dark" | "light", string>> = {
+  en: { dark: "/downloads/silicortex-business-card-en.pdf", light: "/downloads/silicortex-business-card-en-light.pdf" },
+  de: { dark: "/downloads/silicortex-business-card-en.pdf", light: "/downloads/silicortex-business-card-en-light.pdf" },
+  ar: { dark: "/downloads/silicortex-business-card-ar.pdf", light: "/downloads/silicortex-business-card-ar-light.pdf" },
 }
 
 export function ProfileCard() {
   const { dict, lang } = useLang()
+  // The theme is only knowable in the browser: server HTML and the hydration
+  // pass both link the dark card (the site's default theme), then the link
+  // follows the theme, so React has no attribute mismatch to leave unpatched.
+  const { resolvedTheme } = useTheme()
+  const hydrated = useHydrated()
+  const cardHref = BUSINESS_CARD[lang][hydrated && resolvedTheme === "light" ? "light" : "dark"]
   const profile = dict.contact.profile
   return (
     <div className="mx-auto mb-16 max-w-2xl">
@@ -77,7 +86,7 @@ export function ProfileCard() {
                 <bdi>{siteConfig.contactPhone}</bdi>
               </a>
               <a
-                href={BUSINESS_CARD[lang]}
+                href={cardHref}
                 download
                 className="flex items-center gap-2 rounded-full border border-black/10 bg-white/60 px-4 py-2 text-xs font-semibold text-slate-600 shadow-sm transition-all hover:-translate-y-0.5 hover:border-black/20 hover:text-slate-900 hover:shadow-md dark:border-white/10 dark:bg-white/5 dark:text-slate-400 dark:hover:text-white"
               >
