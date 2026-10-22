@@ -10,7 +10,8 @@
     "lint": "eslint",
     "cards:build": "node scripts/build-business-cards.mjs",
     "cards:check": "node scripts/check-business-cards.mjs",
-    "logo:build": "node scripts/build-logo.mjs"
+    "logo:build": "node scripts/build-logo.mjs",
+    "brand:build": "node scripts/build-brand-kit.mjs"
   },
   "dependencies": {
     "@vercel/analytics": "^2.0.1",
