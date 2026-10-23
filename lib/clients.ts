@@ -20,7 +20,7 @@ export const CLIENTS: Client[] = [
   { name: "Misraba", logo: logo("misraba.png", 154, 160) },
   { name: "EuroCura" },
   { name: "Al Sharq", logo: logo("alsharq.png", 75, 160) },
-  { name: "Sada" },
+  { name: "Sada", logo: logo("sada.png", 472, 110) },
   { name: "Alsalam School", logo: logo("alsalam-school.png", 160, 160) },
   { name: "DVKZWI Wiesbaden", logo: logo("dvkzwi.png", 160, 160) },
   { name: "PowerSource", logo: logo("powersource.png", 360, 96) },
