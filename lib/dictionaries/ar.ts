@@ -339,10 +339,10 @@ const ar: Dictionary = {
     stats: [
       { value: "10", label: "مشاريع" },
       { value: "3", label: "لعملاء" },
-      { value: "6", label: "منتجات خاصة" },
+      { value: "5", label: "منتجات خاصة" },
       { value: "+50", label: "تقنية" },
     ],
-    kinds: { own: "منتج خاص", client: "مشروع لعميل", voluntary: "عمل تطوعي" },
+    kinds: { own: "منتج خاص", project: "مشروع خاص", client: "مشروع لعميل", voluntary: "عمل تطوعي" },
     stockPhoto: "صورة توضيحية — لقطات الشاشة قريبًا",
     builtTitle: "ما بنيناه",
     stackTitle: "التقنيات",

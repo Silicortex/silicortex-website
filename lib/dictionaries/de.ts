@@ -339,10 +339,10 @@ const de: Dictionary = {
     stats: [
       { value: "10", label: "Projekte" },
       { value: "3", label: "für Kunden" },
-      { value: "6", label: "eigene Produkte" },
+      { value: "5", label: "eigene Produkte" },
       { value: "50+", label: "Technologien" },
     ],
-    kinds: { own: "Eigenes Produkt", client: "Kundenprojekt", voluntary: "Ehrenamtlich" },
+    kinds: { own: "Eigenes Produkt", project: "Eigenes Projekt", client: "Kundenprojekt", voluntary: "Ehrenamtlich" },
     stockPhoto: "Symbolbild — Screenshots folgen",
     builtTitle: "Was wir gebaut haben",
     stackTitle: "Technologien",

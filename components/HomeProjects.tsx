@@ -13,6 +13,7 @@ const HIGHLIGHTS: ProjectId[] = ["vibecenter", "translation", "workshop"]
 
 const KIND_STYLE = {
   own: "bg-brand-cyan/10 text-[#0A7F8C] ring-brand-cyan/30 dark:text-brand-cyan",
+  project: "bg-violet-500/10 text-violet-700 ring-violet-500/25 dark:text-violet-300",
   client: "bg-brand-blue/10 text-brand-blue ring-brand-blue/25 dark:text-[#7DA2FF]",
   voluntary: "bg-emerald-500/10 text-emerald-700 ring-emerald-500/25 dark:text-emerald-300",
 } as const

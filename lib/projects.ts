@@ -8,7 +8,7 @@
 // technology listed is one the project's code really uses. Sources of all
 // images: docs/projects-images.md.
 
-export type ProjectKind = "own" | "client" | "voluntary"
+export type ProjectKind = "own" | "project" | "client" | "voluntary"
 export type Frame = "browser" | "phone" | "screen" | "photo" | "video"
 export type TechGroup = "frontend" | "backend" | "ai" | "automation" | "robotics" | "payments" | "infra" | "mobile"
 
@@ -61,7 +61,7 @@ export const PROJECTS: Project[] = [
   },
   {
     id: "robot",
-    kind: "own",
+    kind: "project",
     // The owner's LinkedIn post about Noah (video and details).
     href: "https://www.linkedin.com/posts/mohamad-katramez-a24705215_robotics-pibrocks-ros2-activity-7511658836634714112-PWnQ",
     main: img("robot-dashboard.webp", 1280, 800, "browser", "noah.local:8080"),

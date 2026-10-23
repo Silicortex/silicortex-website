@@ -343,10 +343,10 @@ const en = {
     stats: [
       { value: "10", label: "projects" },
       { value: "3", label: "for clients" },
-      { value: "6", label: "own products" },
+      { value: "5", label: "own products" },
       { value: "50+", label: "technologies" },
     ],
-    kinds: { own: "Own product", client: "Client project", voluntary: "Pro bono" },
+    kinds: { own: "Own product", project: "Own project", client: "Client project", voluntary: "Pro bono" },
     stockPhoto: "Stock photo — screenshots follow",
     builtTitle: "What we built",
     stackTitle: "Technologies",
