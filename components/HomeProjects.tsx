@@ -79,15 +79,19 @@ export function HomeProjects({ lang, dict }: { lang: Lang; dict: Dictionary }) {
             <h3 className="mb-6 text-center text-sm font-semibold text-slate-500 dark:text-slate-400">{p.clientsCarousel}</h3>
             <Marquee
               label={p.clientsCarousel}
-              items={CLIENTS.map((c) =>
-                c.logo ? (
-                  <span key={c.name} className="flex h-16 items-center px-8">
-                    <Image src={c.logo} alt={c.name} width={140} height={48} className="h-10 w-auto opacity-70 grayscale transition hover:opacity-100 hover:grayscale-0 dark:invert" />
-                  </span>
-                ) : (
-                  <span key={c.name} className="flex h-16 items-center px-8 text-lg font-semibold text-slate-500 dark:text-slate-400">{c.name}</span>
-                )
-              )}
+              items={CLIENTS.map((c) => (
+                <span
+                  key={c.name}
+                  className="flex h-28 w-44 flex-col items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 shadow-sm dark:border-white/10"
+                >
+                  {c.logo ? (
+                    <Image src={c.logo.src} alt="" width={c.logo.width} height={c.logo.height} className="h-12 w-auto max-w-[8.5rem] object-contain" />
+                  ) : (
+                    <span className="flex h-12 items-center text-xl font-bold tracking-tight text-brand-navy">{c.name}</span>
+                  )}
+                  <span className="text-xs font-medium text-slate-500">{c.logo ? c.name : "\u00a0"}</span>
+                </span>
+              ))}
             />
           </div>
         )}

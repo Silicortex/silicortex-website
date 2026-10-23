@@ -7,8 +7,23 @@
 
 export type Client = {
   name: string
-  /** Path under /public, e.g. "/clients/name.svg". Without one, the name is shown as text. */
-  logo?: string
+  /** Under /public/clients, trimmed PNG. Without one, the name stands alone. */
+  logo?: { src: string; width: number; height: number }
 }
 
-export const CLIENTS: Client[] = []
+const logo = (file: string, width: number, height: number) => ({ src: `/clients/${file}`, width, height })
+
+// Confirmed by the owner, 23.10.2026: the clients agree to be shown with their
+// logo. Own products are listed too — they are the companies behind the work.
+export const CLIENTS: Client[] = [
+  { name: "Vibe Center", logo: logo("vibe-center.png", 244, 160) },
+  { name: "Misraba", logo: logo("misraba.png", 154, 160) },
+  { name: "EuroCura" },
+  { name: "Al Sharq", logo: logo("alsharq.png", 75, 160) },
+  { name: "Sada" },
+  { name: "Alsalam School", logo: logo("alsalam-school.png", 160, 160) },
+  { name: "DVKZWI Wiesbaden", logo: logo("dvkzwi.png", 160, 160) },
+  { name: "PowerSource", logo: logo("powersource.png", 360, 96) },
+  { name: "Bayt", logo: logo("bayt.png", 200, 160) },
+  { name: "RETO" },
+]
