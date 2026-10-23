@@ -1,9 +1,9 @@
-// Silicortex — fictional B2B SaaS company used as demo dataset
+// Lumina Analytics — a FICTIONAL B2B SaaS company; every figure here is
+// invented demo data. It must never carry the Silicortex name: visitors
+// would read the numbers as ours.
 
 export const COMPANY = {
-  name: "Silicortex",
-  industry: "B2B SaaS · Analytics Platform",
-  location: "Berlin, Germany",
+  name: "Lumina Analytics",
   period: "Jan – Dec 2025",
   description:
     "Lumina Analytics sells subscription-based data analytics tools to mid-size European companies. Five pricing tiers from €49/mo Starter to €1,200/mo Enterprise.",

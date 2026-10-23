@@ -466,7 +466,7 @@ export default function SalesDashboard() {
               {d.heroSubtitle}
             </p>
             <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-              {["Next.js", "Recharts", "Claude AI", "Tool Use", "TypeScript", "React"].map(t => (
+              {["Next.js", "React", "TypeScript", "Recharts"].map(t => (
                 <span key={t} style={{ fontSize: 12, fontWeight: 600, padding: "4px 12px", borderRadius: 20, background: C.surfaceAlt, border: `1px solid ${C.borderMed}`, color: C.muted }}>{t}</span>
               ))}
             </div>
@@ -481,7 +481,7 @@ export default function SalesDashboard() {
             <div style={{ width: 38, height: 38, borderRadius: 10, background: "linear-gradient(135deg,#7c3aed,#06b6d4)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, flexShrink: 0 }}>📊</div>
             <div style={{ flex: 1, minWidth: 200 }}>
               <p style={{ margin: 0, fontWeight: 800, fontSize: 14, color: C.text2 }}>{COMPANY.name}</p>
-              <p style={{ margin: "2px 0 0", fontSize: 12, color: C.dim }}>{COMPANY.industry} · {COMPANY.location} · {d.analyzing} {COMPANY.period}</p>
+              <p style={{ margin: "2px 0 0", fontSize: 12, color: C.dim }}>{d.demoCompany} · {d.analyzing} {COMPANY.period}</p>
             </div>
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
               {[

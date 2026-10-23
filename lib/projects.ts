@@ -10,7 +10,7 @@
 
 export type ProjectKind = "own" | "client" | "voluntary"
 export type Frame = "browser" | "phone" | "screen" | "photo"
-export type TechGroup = "frontend" | "backend" | "ai" | "payments" | "infra" | "mobile"
+export type TechGroup = "frontend" | "backend" | "ai" | "automation" | "payments" | "infra" | "mobile"
 
 export type ProjectImage = {
   src: string
@@ -72,20 +72,21 @@ export const PROJECTS: Project[] = [
   {
     id: "workshop",
     kind: "client",
-    main: img("workshop-board.webp", 1200, 750, "browser"),
-    inset: img("workshop-board-phone.webp", 390, 819, "phone"),
+    main: img("workshop-hero.webp", 1440, 900, "browser"),
     stack: [
       { name: "Next.js", group: "frontend" }, { name: "TypeScript", group: "frontend" },
       { name: "next-intl", group: "frontend" }, { name: "shadcn/ui", group: "frontend" },
       { name: "Prisma", group: "backend" }, { name: "PostgreSQL", group: "backend" },
-      { name: "Claude", group: "ai" }, { name: "Resend", group: "infra" },
+      { name: "Claude", group: "ai" }, { name: "n8n", group: "automation" },
+      { name: "WhatsApp Business API", group: "automation" }, { name: "Resend", group: "infra" },
       { name: "Playwright", group: "infra" }, { name: "Vitest", group: "infra" }, { name: "Docker", group: "infra" },
     ],
   },
   {
     id: "care",
     kind: "client",
-    main: img("care-platform-photo.webp", 1600, 1000, "photo"),
+    main: img("care-platform-home.webp", 1440, 900, "browser"),
+    inset: img("care-platform-admin.webp", 1440, 900, "browser"),
     stack: [
       { name: "Laravel", group: "backend" }, { name: "PHP", group: "backend" },
       { name: "Sanctum", group: "backend" }, { name: "Next.js", group: "frontend" },
@@ -109,7 +110,7 @@ export const PROJECTS: Project[] = [
   {
     id: "commerce",
     kind: "own",
-    main: img("ecommerce-photo.webp", 1600, 1000, "photo"),
+    main: img("ecommerce-home.webp", 1440, 900, "browser"),
     stack: [
       { name: "Medusa v2", group: "backend" }, { name: "Node.js", group: "backend" },
       { name: "Next.js", group: "frontend" }, { name: "React Query", group: "frontend" },
@@ -132,7 +133,7 @@ export const PROJECTS: Project[] = [
   {
     id: "tvLauncher",
     kind: "own",
-    main: img("tv-launcher-photo.webp", 1600, 1000, "photo"),
+    main: img("tv-launcher-home.webp", 1920, 1080, "screen"),
     stack: [
       { name: "Kotlin", group: "mobile" }, { name: "Jetpack Compose", group: "mobile" },
       { name: "Android TV / Fire OS", group: "mobile" }, { name: "Gradle", group: "infra" },
@@ -153,7 +154,7 @@ export const PROJECTS: Project[] = [
 /** Every technology with the number of projects that use it, per group. */
 export function techOverview(): Record<TechGroup, { name: string; count: number }[]> {
   const out: Record<TechGroup, Map<string, number>> = {
-    frontend: new Map(), backend: new Map(), ai: new Map(), payments: new Map(), infra: new Map(), mobile: new Map(),
+    frontend: new Map(), backend: new Map(), ai: new Map(), automation: new Map(), payments: new Map(), infra: new Map(), mobile: new Map(),
   }
   for (const p of PROJECTS) for (const t of p.stack) out[t.group].set(t.name, (out[t.group].get(t.name) ?? 0) + 1)
   return Object.fromEntries(

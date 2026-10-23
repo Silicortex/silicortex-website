@@ -151,7 +151,7 @@ function ProjectBand({ project, index, p }: { project: Project; index: number; p
   )
 }
 
-const GROUP_ORDER: TechGroup[] = ["frontend", "backend", "ai", "infra", "payments", "mobile"]
+const GROUP_ORDER: TechGroup[] = ["frontend", "backend", "ai", "automation", "infra", "payments", "mobile"]
 
 export function ProjectsShowcase({ lang, dict }: { lang: Lang; dict: Dictionary }) {
   const p = dict.projects
@@ -209,6 +209,9 @@ export function ProjectsShowcase({ lang, dict }: { lang: Lang; dict: Dictionary 
               </div>
             ))}
           </div>
+          <p className="mt-10 text-slate-600 dark:text-slate-400">
+            <span className="font-semibold text-slate-900 dark:text-white">{p.techExtraLabel}:</span> {p.techExtra}
+          </p>
         </section>
 
         <section className="grid gap-6 border-t border-slate-200 py-16 dark:border-white/10 sm:py-20 lg:grid-cols-2">

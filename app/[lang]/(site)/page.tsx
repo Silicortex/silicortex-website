@@ -1,6 +1,7 @@
 import type { Metadata } from "next"
 import { Hero } from "@/components/Hero"
 import { BentoGrid } from "@/components/BentoGrid"
+import { HomeProjects } from "@/components/HomeProjects"
 import { getDictionary, type Lang } from "@/lib/dictionaries"
 import { localizedMetadata } from "@/lib/i18n/metadata"
 
@@ -16,7 +17,8 @@ export async function generateMetadata({ params }: { params: Promise<{ lang: Lan
   return { description, alternates }
 }
 
-export default function Home() {
+export default async function Home({ params }: { params: Promise<{ lang: Lang }> }) {
+  const { lang } = await params
   return (
     <main>
       <div className="snap-section">
@@ -24,6 +26,9 @@ export default function Home() {
       </div>
       <div className="snap-section">
         <BentoGrid />
+      </div>
+      <div className="snap-section">
+        <HomeProjects lang={lang} dict={getDictionary(lang)} />
       </div>
     </main>
   )

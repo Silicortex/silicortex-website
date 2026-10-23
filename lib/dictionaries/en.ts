@@ -20,7 +20,7 @@ const en = {
     toggleMenu: "Toggle menu",
     toggleSubmenu: "Toggle sub-menu",
     salesDashboardLabel: "Sales Dashboard",
-    salesDashboardDesc: "AI-powered analytics demo",
+    salesDashboardDesc: "Interactive analytics demo",
   },
   hero: {
     badge: "Full-Service Digital Agency",
@@ -383,8 +383,8 @@ const en = {
           "One system for a repair workshop: jobs on a board from intake to handover, quotes, a parts shop and the public website — in Arabic and English.",
         built: [
           "Job board with drag and drop, on desktop and phone",
-          "Customers, parts stock, services and price lists; quotes as PDF",
-          "Public website and parts shop, editable by the workshop itself",
+          "Automation with n8n and WhatsApp: mechanics report a job’s status by WhatsApp, customers get quotes, invoices and updates automatically",
+          "Customers, parts stock and price lists, quotes as PDF — plus a public website and parts shop the workshop edits itself",
         ],
         note: "",
       },
@@ -470,10 +470,18 @@ const en = {
       frontend: "Frontend",
       backend: "Backend & data",
       ai: "AI",
+      automation: "Automation",
       payments: "Payments",
       infra: "Infrastructure & testing",
       mobile: "Mobile & TV",
     },
+    techExtraLabel: "Also",
+    techExtra: "Shopware: years of hands-on work on online shops.",
+    homeTitle: "Selected projects",
+    homeIntro: "Real projects for clients and for ourselves — with the technologies behind them.",
+    homeAll: "See all nine projects",
+    techCarousel: "Technologies we work with",
+    clientsCarousel: "Companies we have worked with",
     ctaTitle: "Your project next?",
     ctaText: "Tell us what you need — in German, English or Arabic.",
     ctaButton: "Get in touch",
@@ -576,9 +584,10 @@ const en = {
   salesDashboard: {
     heroBadge: "Live Demo",
     heroCrumb: "Dashboards",
-    heroTitle: "AI-Powered Sales Dashboard",
-    heroSubtitle: "A full-featured analytics dashboard with KPI tracking, revenue trend charts, order management, product rankings, and a Claude-powered AI chatbot that answers natural-language questions about the data.",
+    heroTitle: "Sales Dashboard",
+    heroSubtitle: "An analytics dashboard with KPI tracking, revenue trend charts, order breakdowns and product rankings — plus a chat that shows how questions in plain language can be answered from the data. All figures belong to a fictional company, and the chat answers are prepared for this demo; in a client project it is connected to an AI model and the real database.",
     analyzing: "Analyzing:",
+    demoCompany: "Fictional sample company · demo data",
     annualRevenue: "Annual Revenue",
     totalOrdersStat: "Total Orders",
     yoyGrowth: "YoY Growth",
@@ -613,7 +622,7 @@ const en = {
     colStatus: "Status",
     colDate: "Date",
     rawDataset: "Raw Dataset",
-    datasetTitle: "Silicortex · Jan – Dec 2025",
+    datasetTitle: "Lumina · Jan – Dec 2025",
     monthlyRevOrders: "Monthly Revenue & Orders",
     colMonth: "Month",
     colRevenue: "Revenue",
@@ -652,8 +661,8 @@ const en = {
     chatPrewritten: "Responses are pre-written examples",
     chatPlaceholder: "Ask about revenue, orders, products, KPIs…",
     chatSend: "Send",
-    howItWorksLabel: "Under the Hood",
-    howItWorksTitle: "How This Chatbot Works",
+    howItWorksLabel: "In a client project",
+    howItWorksTitle: "How the chat works when it is connected",
     howItWorksSteps: [
       { step: "01", title: "You ask a question", desc: "Type any natural language question about your sales data — no SQL needed.", color: "#a78bfa" },
       { step: "02", title: "Claude decides what to fetch", desc: "The AI reads your question and picks the right database tool (sales by period, product performance, KPIs).", color: "#22d3ee" },
@@ -683,10 +692,10 @@ const en = {
     productPerformance: { label: "Product Performance", title: "Products & Correlations" },
     transactions: { label: "Transactions", title: "Transaction History" },
     rawData: { label: "Raw Data", title: "Full Dataset" },
-    aiInsightsHeader: { label: "AI", title: "AI-Powered Insights" },
-    chatbotHeader: { label: "AI Chatbot", title: "Ask Your Sales Data" },
+    aiInsightsHeader: { label: "Insights", title: "Key Insights" },
+    chatbotHeader: { label: "Chat demo", title: "Ask Your Sales Data" },
     chatbot: {
-      greeting: "Hi! I'm analyzing Silicortex's 2025 sales data. Ask me about revenue, orders, top plans, KPIs, or monthly trends — try a suggestion below.",
+      greeting: "Hi! I'm analyzing Lumina's 2025 sales data. Ask me about revenue, orders, top plans, KPIs, or monthly trends — try a suggestion below.",
       suggestions: [
         "What were Lumina's total sales in Q4 2025?",
         "Which plan brings the most revenue?",
@@ -697,7 +706,7 @@ const en = {
       responses: [
         {
           keywords: ["q4", "last 3", "last three", "october", "november", "december", "oct", "nov", "dec"],
-          response: "In Q4 2025 (Oct–Dec), Silicortex generated **$449,200** in revenue across **6,210 orders**. October contributed $138,200, November was the strongest month at $162,400 driven by a Black Friday spike ($52,400 in one week), and December closed at $148,600. That's a +38% increase compared to Q3's $324,600.",
+          response: "In Q4 2025 (Oct–Dec), Lumina generated **$449,200** in revenue across **6,210 orders**. October contributed $138,200, November was the strongest month at $162,400 driven by a Black Friday spike ($52,400 in one week), and December closed at $148,600. That's a +38% increase compared to Q3's $324,600.",
         },
         {
           keywords: ["product", "plan", "best", "top", "revenue", "subscription", "pro", "enterprise", "starter", "business"],
@@ -717,7 +726,7 @@ const en = {
         },
         {
           keywords: ["growth", "yoy", "year", "annual", "2025", "total"],
-          response: "Silicortex grew **+18.4%** year-over-year in 2025, ending at $1,302,400 in total revenue across 18,048 orders. H2 ($773,800) outperformed H1 ($528,600) by 46%, driven by a strong Q4. New customer acquisition grew +22.6% to 3,040 while churn dropped to 1.6%, resulting in strong net revenue retention.",
+          response: "Lumina grew **+18.4%** year-over-year in 2025, ending at $1,302,400 in total revenue across 18,048 orders. H2 ($773,800) outperformed H1 ($528,600) by 46%, driven by a strong Q4. New customer acquisition grew +22.6% to 3,040 while churn dropped to 1.6%, resulting in strong net revenue retention.",
         },
         {
           keywords: ["new customer", "acquisition", "acquire", "onboard"],

@@ -16,7 +16,7 @@ const de: Dictionary = {
     toggleMenu: "Menü umschalten",
     toggleSubmenu: "Untermenü umschalten",
     salesDashboardLabel: "Sales-Dashboard",
-    salesDashboardDesc: "KI-gestützte Analyse-Demo",
+    salesDashboardDesc: "Interaktive Analyse-Demo",
   },
   hero: {
     badge: "Full-Service-Digitalagentur",
@@ -379,8 +379,8 @@ const de: Dictionary = {
           "Ein System für eine Reparaturwerkstatt: Aufträge auf einer Tafel von der Annahme bis zur Übergabe, Angebote, ein Ersatzteil-Shop und die öffentliche Website — auf Arabisch und Englisch.",
         built: [
           "Auftragstafel mit Drag & Drop, am Rechner und auf dem Handy",
-          "Kunden, Teilelager, Leistungen und Preislisten; Angebote als PDF",
-          "Öffentliche Website und Teile-Shop, von der Werkstatt selbst pflegbar",
+          "Automatisierung mit n8n und WhatsApp: Mechaniker melden den Status per WhatsApp, Kunden erhalten Angebote, Rechnungen und Updates automatisch",
+          "Kunden, Teilelager und Preislisten, Angebote als PDF — dazu öffentliche Website und Teile-Shop, von der Werkstatt selbst gepflegt",
         ],
         note: "",
       },
@@ -466,10 +466,18 @@ const de: Dictionary = {
       frontend: "Frontend",
       backend: "Backend & Daten",
       ai: "KI",
+      automation: "Automatisierung",
       payments: "Zahlungen",
       infra: "Infrastruktur & Tests",
       mobile: "Mobil & TV",
     },
+    techExtraLabel: "Außerdem",
+    techExtra: "Shopware: viel praktische Erfahrung mit Onlineshops.",
+    homeTitle: "Ausgewählte Projekte",
+    homeIntro: "Echte Projekte für Kunden und für uns selbst — mit den Technologien dahinter.",
+    homeAll: "Alle neun Projekte ansehen",
+    techCarousel: "Technologien, mit denen wir arbeiten",
+    clientsCarousel: "Unternehmen, mit denen wir gearbeitet haben",
     ctaTitle: "Ihr Projekt als nächstes?",
     ctaText: "Erzählen Sie uns, was Sie brauchen — auf Deutsch, Englisch oder Arabisch.",
     ctaButton: "Kontakt aufnehmen",
@@ -575,9 +583,10 @@ const de: Dictionary = {
   salesDashboard: {
     heroBadge: "Live-Demo",
     heroCrumb: "Dashboards",
-    heroTitle: "KI-gestütztes Sales-Dashboard",
-    heroSubtitle: "Ein vollständiges Analytics-Dashboard mit KPI-Tracking, Umsatztrend-Charts, Auftragsmanagement, Produkt-Rankings und einem KI-Chatbot, der Fragen in natürlicher Sprache über die Verkaufsdaten beantwortet.",
+    heroTitle: "Sales-Dashboard",
+    heroSubtitle: "Ein Analytics-Dashboard mit KPI-Tracking, Umsatztrends, Auftragsübersichten und Produkt-Rankings — dazu ein Chat, der zeigt, wie sich Fragen in normaler Sprache aus den Daten beantworten lassen. Alle Zahlen gehören zu einer fiktiven Firma, die Chat-Antworten sind für diese Demo vorbereitet; im Kundenprojekt ist der Chat an ein KI-Modell und die echte Datenbank angebunden.",
     analyzing: "Analysiert:",
+    demoCompany: "Fiktive Beispielfirma · Demodaten",
     annualRevenue: "Jahresumsatz",
     totalOrdersStat: "Bestellungen",
     yoyGrowth: "JoJ-Wachstum",
@@ -612,7 +621,7 @@ const de: Dictionary = {
     colStatus: "Status",
     colDate: "Datum",
     rawDataset: "Rohdatensatz",
-    datasetTitle: "Silicortex · Jan – Dez 2025",
+    datasetTitle: "Lumina · Jan – Dez 2025",
     monthlyRevOrders: "Monatlicher Umsatz & Bestellungen",
     colMonth: "Monat",
     colRevenue: "Umsatz",
@@ -651,8 +660,8 @@ const de: Dictionary = {
     chatPrewritten: "Antworten sind vorgefertigt",
     chatPlaceholder: "Fragen Sie nach Umsatz, Bestellungen, Produkten, KPIs…",
     chatSend: "Senden",
-    howItWorksLabel: "Unter der Haube",
-    howItWorksTitle: "Wie dieser Chatbot funktioniert",
+    howItWorksLabel: "Im Kundenprojekt",
+    howItWorksTitle: "So funktioniert der Chat, wenn er angebunden ist",
     howItWorksSteps: [
       { step: "01", title: "Sie stellen eine Frage", desc: "Tippen Sie eine Frage in natürlicher Sprache über Ihre Verkaufsdaten — kein SQL nötig.", color: "#a78bfa" },
       { step: "02", title: "Claude wählt das Tool", desc: "Die KI liest Ihre Frage und wählt das passende Datenbank-Tool (Verkauf, Produkte, KPIs).", color: "#22d3ee" },
@@ -682,10 +691,10 @@ const de: Dictionary = {
     productPerformance: { label: "Produktleistung", title: "Produkte & Korrelationen" },
     transactions: { label: "Transaktionen", title: "Transaktionsverlauf" },
     rawData: { label: "Rohdaten", title: "Vollständiger Datensatz" },
-    aiInsightsHeader: { label: "KI", title: "KI-gestützte Einblicke" },
-    chatbotHeader: { label: "KI-Chatbot", title: "Fragen Sie Ihre Verkaufsdaten" },
+    aiInsightsHeader: { label: "Einblicke", title: "Wichtigste Erkenntnisse" },
+    chatbotHeader: { label: "Chat-Demo", title: "Fragen Sie Ihre Verkaufsdaten" },
     chatbot: {
-      greeting: "Hallo! Ich analysiere die Verkaufsdaten von Silicortex für 2025. Fragen Sie mich nach Umsatz, Bestellungen, Top-Plänen, KPIs oder Monatstrends — probieren Sie unten einen Vorschlag aus.",
+      greeting: "Hallo! Ich analysiere die Verkaufsdaten von Lumina für 2025. Fragen Sie mich nach Umsatz, Bestellungen, Top-Plänen, KPIs oder Monatstrends — probieren Sie unten einen Vorschlag aus.",
       suggestions: [
         "Wie hoch war Luminas Gesamtumsatz in Q4 2025?",
         "Welcher Plan bringt den meisten Umsatz?",
@@ -696,7 +705,7 @@ const de: Dictionary = {
       responses: [
         {
           keywords: ["q4", "last 3", "last three", "october", "november", "december", "oct", "nov", "dec"],
-          response: "Im Q4 2025 (Okt.–Dez.) erzielte Silicortex **$449,200** Umsatz bei **6,210 Bestellungen**. Oktober trug $138,200 bei, November war mit $162,400 der stärkste Monat dank eines Black-Friday-Spikes ($52,400 in einer Woche), und Dezember schloss mit $148,600 ab. Das ist ein Anstieg von +38% gegenüber dem Q3-Umsatz von $324,600.",
+          response: "Im Q4 2025 (Okt.–Dez.) erzielte Lumina **$449,200** Umsatz bei **6,210 Bestellungen**. Oktober trug $138,200 bei, November war mit $162,400 der stärkste Monat dank eines Black-Friday-Spikes ($52,400 in einer Woche), und Dezember schloss mit $148,600 ab. Das ist ein Anstieg von +38% gegenüber dem Q3-Umsatz von $324,600.",
         },
         {
           keywords: ["product", "plan", "best", "top", "revenue", "subscription", "pro", "enterprise", "starter", "business"],
@@ -716,7 +725,7 @@ const de: Dictionary = {
         },
         {
           keywords: ["growth", "yoy", "year", "annual", "2025", "total"],
-          response: "Silicortex wuchs 2025 im Jahresvergleich um **+18,4%** und erreichte $1,302,400 Gesamtumsatz bei 18,048 Bestellungen. H2 ($773,800) übertraf H1 ($528,600) um 46%, getrieben von einem starken Q4. Die Neukundengewinnung wuchs um +22,6% auf 3,040, während die Abwanderungsrate auf 1,6% sank — ein Zeichen starker Net Revenue Retention.",
+          response: "Lumina wuchs 2025 im Jahresvergleich um **+18,4%** und erreichte $1,302,400 Gesamtumsatz bei 18,048 Bestellungen. H2 ($773,800) übertraf H1 ($528,600) um 46%, getrieben von einem starken Q4. Die Neukundengewinnung wuchs um +22,6% auf 3,040, während die Abwanderungsrate auf 1,6% sank — ein Zeichen starker Net Revenue Retention.",
         },
         {
           keywords: ["new customer", "acquisition", "acquire", "onboard"],
