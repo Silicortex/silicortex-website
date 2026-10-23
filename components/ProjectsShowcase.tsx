@@ -65,6 +65,25 @@ function Photo({ image, alt, note }: { image: ProjectImage; alt: string; note: s
   )
 }
 
+function Video({ image, alt }: { image: ProjectImage; alt: string }) {
+  // No <track>: the owner does not want subtitles on this clip.
+  return (
+    <div className="overflow-hidden rounded-2xl bg-slate-950 shadow-2xl shadow-slate-900/30 ring-1 ring-white/10">
+      <video
+        src={image.src}
+        poster={image.poster}
+        width={image.width}
+        height={image.height}
+        controls
+        playsInline
+        preload="none"
+        aria-label={alt}
+        className="block h-auto w-full"
+      />
+    </div>
+  )
+}
+
 function Media({ project, name, p, priority }: { project: Project; name: string; p: P; priority: boolean }) {
   const { main, inset } = project
   const mainEl =
@@ -80,11 +99,12 @@ function Media({ project, name, p, priority }: { project: Project; name: string;
       <div className={inset.frame === "browser" ? "sm:me-24" : "sm:me-16"}>{mainEl}</div>
       <div
         className={`mt-6 sm:absolute sm:bottom-0 sm:end-0 sm:mt-0 ${
-          inset.frame === "phone" ? "mx-auto w-36 sm:w-40" : inset.frame === "photo" ? "mx-auto w-48 sm:w-[30%]" : "w-full sm:w-1/2"
+          inset.frame === "phone" ? "mx-auto w-36 sm:w-40" : inset.frame === "photo" || inset.frame === "video" ? "mx-auto w-52 sm:w-[30%]" : "w-full sm:w-1/2"
         }`}
       >
         {inset.frame === "phone" ? <Phone image={inset} alt={name} />
           : inset.frame === "photo" ? <Photo image={inset} alt={name} note={p.stockPhoto} />
+          : inset.frame === "video" ? <Video image={inset} alt={name} />
           : <Browser image={inset} alt={name} />}
       </div>
     </div>

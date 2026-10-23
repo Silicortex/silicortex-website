@@ -18,7 +18,7 @@ named originals again. Every screenshot was checked by hand for personal data
 | `tv-launcher-home.webp` | TV launcher (own) | `bayt-launcher/docs/design/theme-preview.html`, dark home screen at 1920×1080 | — (no product name on the screen) |
 | `association-website.webp` | DVKZWI Wiesbaden (pro bono) | `dvkzwi-website/theme/screenshot.png` | — |
 | `robot-dashboard.webp` | Noah robot (own) | `pib-brain` dashboard (`dashboard/app/static/noah.html`) rendered locally with its own identity/capabilities data, 23.10.2026 | the live parts that need the robot (camera, "unreachable" status) hidden; header and tile grid unchanged |
-| `robot-noah.webp` | Noah robot (own) | owner's photo, WhatsApp image 01.10.2026, cropped to 4:5 (head to hands) | — |
+| `robot-noah.mp4`, `robot-video-poster.webp` | Noah robot (own) | owner's LinkedIn video `Noah-roboter.mp4` (46 s, 1080×1920, 81 MB) → H.264 720×1280, CRF 27, AAC 96k, faststart, 3.8 MB; poster = frame at 2 s | no subtitles (owner's wish; none were burned in, no track added) |
 | `admin-overview.webp` | Admin & bookkeeping (own) | local screenshot, 23.10.2026 | all euro amounts, dev badge (cropped) |
 | `silicortex-website.webp` | silicortex.de (own) | live screenshot, 23.10.2026 | — |
 

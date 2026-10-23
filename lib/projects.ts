@@ -9,7 +9,7 @@
 // images: docs/projects-images.md.
 
 export type ProjectKind = "own" | "client" | "voluntary"
-export type Frame = "browser" | "phone" | "screen" | "photo"
+export type Frame = "browser" | "phone" | "screen" | "photo" | "video"
 export type TechGroup = "frontend" | "backend" | "ai" | "automation" | "robotics" | "payments" | "infra" | "mobile"
 
 export type ProjectImage = {
@@ -21,6 +21,8 @@ export type ProjectImage = {
   url?: string
   /** A stock photo, not ours: the page says so on the image. */
   stock?: boolean
+  /** Video only: the still shown before it plays. */
+  poster?: string
 }
 
 export type Project = {
@@ -63,8 +65,9 @@ export const PROJECTS: Project[] = [
     // The owner's LinkedIn post about Noah (video and details).
     href: "https://www.linkedin.com/posts/mohamad-katramez-a24705215_robotics-pibrocks-ros2-activity-7511658836634714112-PWnQ",
     main: img("robot-dashboard.webp", 1280, 800, "browser", "noah.local:8080"),
-    // The owner's own photo of Noah (01.10.2026), with the control tablet.
-    inset: img("robot-noah.webp", 960, 1200, "photo"),
+    // The owner's LinkedIn video of Noah (46 s), re-encoded for the web; plays
+    // on click, with sound, without subtitles (owner's wish).
+    inset: { ...img("robot-noah.mp4", 720, 1280, "video"), poster: "/work/robot-video-poster.webp" },
     stack: [
       { name: "pib v4", group: "robotics" }, { name: "Raspberry Pi 5", group: "robotics" },
       { name: "ROS 2 Humble", group: "robotics" }, { name: "rosbridge / roslibpy", group: "robotics" },
