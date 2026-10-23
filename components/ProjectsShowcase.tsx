@@ -136,7 +136,7 @@ function ProjectBand({ project, index, p }: { project: Project; index: number; p
                   rel="noopener"
                   className="inline-flex items-center gap-1.5 rounded-full bg-brand-blue px-4 py-2 font-semibold text-white transition hover:bg-[#2A62FF]"
                 >
-                  {p.visit} <span dir="ltr">{project.href.replace(/^https:\/\/(www\.)?/, "")}</span>
+                  {p.visit} <span dir="ltr">{new URL(project.href).hostname.replace(/^(www|de)\./, "")}</span>
                   <svg aria-hidden viewBox="0 0 24 24" className="h-3.5 w-3.5 rtl:-scale-x-100" fill="none" stroke="currentColor" strokeWidth={2.25} strokeLinecap="round" strokeLinejoin="round">
                     <path d="M7 17L17 7M9 7h8v8" />
                   </svg>
@@ -151,7 +151,7 @@ function ProjectBand({ project, index, p }: { project: Project; index: number; p
   )
 }
 
-const GROUP_ORDER: TechGroup[] = ["frontend", "backend", "ai", "automation", "infra", "payments", "mobile"]
+const GROUP_ORDER: TechGroup[] = ["frontend", "backend", "ai", "automation", "robotics", "infra", "payments", "mobile"]
 
 export function ProjectsShowcase({ lang, dict }: { lang: Lang; dict: Dictionary }) {
   const p = dict.projects

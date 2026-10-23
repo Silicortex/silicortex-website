@@ -335,12 +335,12 @@ const de: Dictionary = {
   projects: {
     title: "Projekte",
     intro:
-      "Neun Projekte, die wir gebaut haben — für Kunden, als eigene Produkte und für einen Verein vor Ort. Kundennamen bleiben vertraulich; was wir gebaut haben und womit, steht hier.",
+      "Zehn Projekte, die wir gebaut haben — für Kunden, als eigene Produkte und für einen Verein vor Ort. Was wir gebaut haben und womit, steht hier.",
     stats: [
-      { value: "9", label: "Projekte" },
+      { value: "10", label: "Projekte" },
       { value: "3", label: "für Kunden" },
-      { value: "5", label: "eigene Produkte" },
-      { value: "40+", label: "Technologien" },
+      { value: "6", label: "eigene Produkte" },
+      { value: "50+", label: "Technologien" },
     ],
     kinds: { own: "Eigenes Produkt", client: "Kundenprojekt", voluntary: "Ehrenamtlich" },
     stockPhoto: "Symbolbild — Screenshots folgen",
@@ -348,6 +348,18 @@ const de: Dictionary = {
     stackTitle: "Technologien",
     visit: "Ansehen",
     items: {
+      robot: {
+        name: "Noah",
+        sector: "Humanoider Roboter · pib v4, Wiesbaden",
+        summary:
+          "Ein humanoider pib-Roboter, den wir aufgebaut und erweitert haben: Noah spricht, erkennt Menschen, zeigt Mimik und gestikuliert mit Händen und Fingern — gesteuert über unser eigenes Dashboard.",
+        built: [
+          "Kachel-basiertes Control-Panel auf dem Tablet: Motoren, Charakter, Menschen, Spiele, Nachmach-Modus, Augen, Konferenz-Modus und Not-Stopp",
+          "Bilderkennung auf dem Roboter selbst: erkennt und begrüßt Menschen mit Namen (nur mit Einwilligung) und erkennt Würfel — das Modell als ONNX verkleinert, damit es auf den Raspberry Pi passt",
+          "Gespräche auf Deutsch und Englisch mit wählbaren Persönlichkeiten, alles in Docker neben pibs eigenem ROS-2-Stack",
+        ],
+        note: "Mit Unterstützung des DVKZWI Wiesbaden, Regionalpartner von pib",
+      },
       vibecenter: {
         name: "Vibe Center",
         sector: "SaaS für Salons und Barbershops",
@@ -361,8 +373,8 @@ const de: Dictionary = {
         note: "Hosting: schubwerk GmbH",
       },
       translation: {
-        name: "Live-Übersetzung für Moscheen",
-        sector: "Religionsgemeinschaft",
+        name: "Sada",
+        sector: "Live-Übersetzung für Moscheen",
         summary:
           "Arabische Predigten und Vorträge werden während des Sprechens erfasst und ins Deutsche und Englische übersetzt — auf einem Bildschirm im Gebetsraum und auf dem Handy jedes Besuchers.",
         built: [
@@ -373,8 +385,8 @@ const de: Dictionary = {
         note: "",
       },
       workshop: {
-        name: "Werkstatt-Software",
-        sector: "Reparatur von Baumaschinen",
+        name: "Misraba",
+        sector: "Reparatur von Baumaschinen · Abu Dhabi",
         summary:
           "Ein System für eine Reparaturwerkstatt: Aufträge auf einer Tafel von der Annahme bis zur Übergabe, Angebote, ein Ersatzteil-Shop und die öffentliche Website — auf Arabisch und Englisch.",
         built: [
@@ -385,8 +397,8 @@ const de: Dictionary = {
         note: "",
       },
       care: {
-        name: "Pflege-Plattform",
-        sector: "Häusliche Pflege",
+        name: "EuroCura",
+        sector: "Plattform für häusliche Pflege",
         summary:
           "Eine Plattform, die Pflegebedürftige und Pflegekräfte zusammenbringt — von der Suche über die Buchung bis zur Bezahlung.",
         built: [
@@ -409,8 +421,8 @@ const de: Dictionary = {
         note: "",
       },
       commerce: {
-        name: "E-Commerce-Plattform",
-        sector: "Onlinehandel",
+        name: "PowerSource",
+        sector: "Onlineshop · Sporternährung und Bekleidung",
         summary:
           "Ein vollständiger Onlineshop auf eigenem Commerce-Backend: Katalog, Warenkorb, Checkout und ein KI-Assistent, der Kundenfragen beantwortet.",
         built: [
@@ -433,8 +445,8 @@ const de: Dictionary = {
         note: "",
       },
       tvLauncher: {
-        name: "TV-Startbildschirm",
-        sector: "Fire TV",
+        name: "Bayt",
+        sector: "Startbildschirm für Fire TV",
         summary:
           "Ein werbefreier Startbildschirm für Fire TV, der arabische Sender und die wichtigsten Apps nach vorne holt — große Kacheln, gemacht für die Fernbedienung.",
         built: [
@@ -445,7 +457,7 @@ const de: Dictionary = {
         note: "",
       },
       association: {
-        name: "Vereins-Website",
+        name: "DVKZWI Wiesbaden",
         sector: "Kulturverein in Wiesbaden",
         summary:
           "Eine Website für einen Kulturverein, gebaut auf einem eigenen WordPress-Theme, damit das Team Veranstaltungen, Projekte und Mitglieder selbst pflegen kann.",
@@ -461,12 +473,13 @@ const de: Dictionary = {
     demoText: "Ein interaktives Vertriebs-Dashboard mit Beispieldaten — direkt im Browser durchklicken.",
     demoCta: "Demo öffnen",
     techTitle: "Technologien in unseren Projekten",
-    techIntro: "Die Zahl zeigt, in wie vielen der neun Projekte eine Technologie steckt.",
+    techIntro: "Die Zahl zeigt, in wie vielen der zehn Projekte eine Technologie steckt.",
     groups: {
       frontend: "Frontend",
       backend: "Backend & Daten",
       ai: "KI",
       automation: "Automatisierung",
+      robotics: "Robotik & Hardware",
       payments: "Zahlungen",
       infra: "Infrastruktur & Tests",
       mobile: "Mobil & TV",
@@ -475,7 +488,7 @@ const de: Dictionary = {
     techExtra: "Shopware: viel praktische Erfahrung mit Onlineshops.",
     homeTitle: "Ausgewählte Projekte",
     homeIntro: "Echte Projekte für Kunden und für uns selbst — mit den Technologien dahinter.",
-    homeAll: "Alle neun Projekte ansehen",
+    homeAll: "Alle zehn Projekte ansehen",
     techCarousel: "Technologien, mit denen wir arbeiten",
     clientsCarousel: "Unternehmen, mit denen wir gearbeitet haben",
     ctaTitle: "Ihr Projekt als nächstes?",
@@ -555,7 +568,7 @@ const de: Dictionary = {
     },
     work: {
       title: "Projekte",
-      description: "Neun Projekte von Silicortex — SaaS, KI, E-Commerce und Websites, mit den Technologien dahinter.",
+      description: "Zehn Projekte von Silicortex — SaaS, KI, E-Commerce und Websites, mit den Technologien dahinter.",
     },
     network: {
       title: "Netzwerk",

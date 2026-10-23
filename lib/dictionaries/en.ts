@@ -339,12 +339,12 @@ const en = {
   projects: {
     title: "Projects",
     intro:
-      "Nine projects we built — for clients, as our own products, and for a local association. Client names stay private; what we built, and with what, is all here.",
+      "Ten projects we built — for clients, as our own products, and for a local association. What we built, and with what, is all here.",
     stats: [
-      { value: "9", label: "projects" },
+      { value: "10", label: "projects" },
       { value: "3", label: "for clients" },
-      { value: "5", label: "own products" },
-      { value: "40+", label: "technologies" },
+      { value: "6", label: "own products" },
+      { value: "50+", label: "technologies" },
     ],
     kinds: { own: "Own product", client: "Client project", voluntary: "Pro bono" },
     stockPhoto: "Stock photo — screenshots follow",
@@ -352,6 +352,18 @@ const en = {
     stackTitle: "Technologies",
     visit: "Visit",
     items: {
+      robot: {
+        name: "Noah",
+        sector: "Humanoid robot · pib v4, Wiesbaden",
+        summary:
+          "A humanoid pib robot we assembled and extended: Noah talks, recognises people, makes facial expressions and gestures with hands and fingers — and is run from our own control dashboard.",
+        built: [
+          "A tile-based control panel on a tablet: motors, personality, people, games, follow mode, eyes, conference mode and an emergency stop",
+          "Vision on the robot itself: it recognises and greets people by name (only with their consent) and spots dice, with the model shrunk to ONNX to fit the Raspberry Pi",
+          "Two-way conversation in German and English with selectable personalities, all in Docker next to pib’s own ROS 2 stack",
+        ],
+        note: "With the support of DVKZWI Wiesbaden, pib’s regional partner",
+      },
       vibecenter: {
         name: "Vibe Center",
         sector: "SaaS for salons and barber shops",
@@ -365,8 +377,8 @@ const en = {
         note: "Hosting: schubwerk GmbH",
       },
       translation: {
-        name: "Live translation for mosques",
-        sector: "Religious community",
+        name: "Sada",
+        sector: "Live translation for mosques",
         summary:
           "Arabic sermons and lectures are transcribed as they are spoken and translated into German and English — on a screen in the prayer room and on every visitor's phone.",
         built: [
@@ -377,8 +389,8 @@ const en = {
         note: "",
       },
       workshop: {
-        name: "Workshop manager",
-        sector: "Heavy machinery repair",
+        name: "Misraba",
+        sector: "Heavy machinery repair · Abu Dhabi",
         summary:
           "One system for a repair workshop: jobs on a board from intake to handover, quotes, a parts shop and the public website — in Arabic and English.",
         built: [
@@ -389,8 +401,8 @@ const en = {
         note: "",
       },
       care: {
-        name: "Care platform",
-        sector: "Home care",
+        name: "EuroCura",
+        sector: "Home care platform",
         summary:
           "A platform that brings together people who need care and professional carers — from search and booking to payment.",
         built: [
@@ -413,8 +425,8 @@ const en = {
         note: "",
       },
       commerce: {
-        name: "E-commerce platform",
-        sector: "Online retail",
+        name: "PowerSource",
+        sector: "Online shop · sports nutrition and apparel",
         summary:
           "A complete online shop on its own commerce backend: catalogue, cart, checkout and an AI assistant that answers customer questions.",
         built: [
@@ -437,8 +449,8 @@ const en = {
         note: "",
       },
       tvLauncher: {
-        name: "TV launcher",
-        sector: "Fire TV",
+        name: "Bayt",
+        sector: "Home screen for Fire TV",
         summary:
           "An ad-free home screen for Fire TV that puts Arabic channels and favourite apps first — big tiles, made for the remote.",
         built: [
@@ -449,7 +461,7 @@ const en = {
         note: "",
       },
       association: {
-        name: "Association website",
+        name: "DVKZWI Wiesbaden",
         sector: "Cultural association in Wiesbaden",
         summary:
           "A website for a cultural association, built on its own WordPress theme so the team can maintain events, projects and members themselves.",
@@ -465,12 +477,13 @@ const en = {
     demoText: "An interactive sales dashboard with sample data — click through it in the browser.",
     demoCta: "Open the demo",
     techTitle: "Technologies across our projects",
-    techIntro: "The number shows in how many of the nine projects a technology is used.",
+    techIntro: "The number shows in how many of the ten projects a technology is used.",
     groups: {
       frontend: "Frontend",
       backend: "Backend & data",
       ai: "AI",
       automation: "Automation",
+      robotics: "Robotics & hardware",
       payments: "Payments",
       infra: "Infrastructure & testing",
       mobile: "Mobile & TV",
@@ -479,7 +492,7 @@ const en = {
     techExtra: "Shopware: years of hands-on work on online shops.",
     homeTitle: "Selected projects",
     homeIntro: "Real projects for clients and for ourselves — with the technologies behind them.",
-    homeAll: "See all nine projects",
+    homeAll: "See all ten projects",
     techCarousel: "Technologies we work with",
     clientsCarousel: "Companies we have worked with",
     ctaTitle: "Your project next?",
@@ -556,7 +569,7 @@ const en = {
     },
     work: {
       title: "Projects",
-      description: "Nine projects by Silicortex — SaaS, AI, e-commerce and websites, with the technologies behind each.",
+      description: "Ten projects by Silicortex — SaaS, AI, e-commerce and websites, with the technologies behind each.",
     },
     network: {
       title: "Network",

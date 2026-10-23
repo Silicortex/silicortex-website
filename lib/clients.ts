@@ -2,7 +2,7 @@
 //
 // Only companies that agreed to be named belong here — the owner confirms
 // each one (§ 5 UWG: a logo strip implies a real client relationship). The
-// projects page shows client work anonymised; nothing here may contradict it.
+// projects page names the same clients.
 // While the list is empty the carousel is not rendered at all.
 
 export type Client = {

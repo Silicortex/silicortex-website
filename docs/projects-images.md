@@ -1,23 +1,23 @@
 # Project images on /work
 
 All images live in `public/work/` and are referenced from `lib/projects.ts`.
-Rules (owner, 23.10.2026): client projects are shown **anonymised** — no client
-name, logo, address, phone number or link. Every screenshot below was checked
-by hand; names were painted over with the surrounding background colour, not
-blurred. Stock photos are labelled "Symbolbild / Stock photo" on the page until
-the owner's own images replace them.
+Clients are named (owner, 23.10.2026: they agreed to be shown with name and
+logo). Until then the projects were anonymised; the screenshots below are the
+named originals again. Every screenshot was checked by hand for personal data
+(the admin's euro amounts stay hidden).
 
 | File | Project | Source | What was hidden |
 |---|---|---|---|
 | `vibecenter-storefront.webp` | Vibe Center (own) | `vibe-center-app/presentation/screenshots/07-storefront-public.png` (demo tenant) | bottom 62 px cropped (Next.js dev badge) |
 | `vibecenter-dashboard.webp` | Vibe Center (own) | `…/17-dashboard-overview.png` | Next.js dev badge |
-| `translation-venue-screen.webp` | Live translation (client) | `sada/docs/guides/img/venue-screen.png` | app logo and name, bottom right; mosque name is already the placeholder "Musterstadt-Moschee" |
+| `translation-venue-screen.webp` | Sada (client) | `sada/docs/guides/img/venue-screen.png` | — (mosque name is the placeholder "Musterstadt-Moschee") |
 | `translation-phone.webp` | Live translation (client) | `sada/docs/guides/img/phone-held.png` | — (no name on it) |
-| `workshop-hero.webp` | Workshop manager (client) | local run of `misraba-app` (Docker, seed data), 23.10.2026 | in the browser before the screenshot: logo and name in the header hidden, headline shortened to "Heavy Machinery Repair", GPS line and "Since 1987 in Musaffah, Abu Dhabi" hidden; phone number is the seed placeholder |
-| `care-platform-home.webp`, `care-platform-admin.webp` | Care platform (client) | local run of `eurocura` (Docker, DemoSeeder data — fictional names), 23.10.2026 | product name replaced by "CarePlatform" in the browser, logo hidden, cookie and notification prompts dismissed |
-| `ecommerce-home.webp` | E-commerce platform (own) | local run of `powersource-app` (Docker), 23.10.2026 | product name replaced by "Store", logo hidden, cookie bar declined |
+| `workshop-hero.webp` | Misraba (client) | `misraba-app/docs/screenshots/01-home-en.jpg` (README) | — |
+| `care-platform-home.webp`, `care-platform-admin.webp` | EuroCura (client) | local run of `eurocura` (Docker, DemoSeeder data — fictional names), 23.10.2026 | cookie and notification prompts dismissed |
+| `ecommerce-home.webp` | PowerSource (own) | local run of `powersource-app` (Docker), 23.10.2026 | cookie bar declined |
 | `tv-launcher-home.webp` | TV launcher (own) | `bayt-launcher/docs/design/theme-preview.html`, dark home screen at 1920×1080 | — (no product name on the screen) |
-| `association-website.webp` | Association website (pro bono) | `dvkzwi-website/theme/screenshot.png` | association logo + full name (header), name line in the hero |
+| `association-website.webp` | DVKZWI Wiesbaden (pro bono) | `dvkzwi-website/theme/screenshot.png` | — |
+| `robot-dashboard.webp` | Noah robot (own) | `pib-brain` dashboard (`dashboard/app/static/noah.html`) rendered locally with its own identity/capabilities data, 23.10.2026 | the live parts that need the robot (camera, "unreachable" status) hidden; header and tile grid unchanged |
 | `admin-overview.webp` | Admin & bookkeeping (own) | local screenshot, 23.10.2026 | all euro amounts, dev badge (cropped) |
 | `silicortex-website.webp` | silicortex.de (own) | live screenshot, 23.10.2026 | — |
 

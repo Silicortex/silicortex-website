@@ -2,15 +2,15 @@
 // facts live here — images, frames, stack, links; the words are in the
 // dictionaries under `projects.items[id]`.
 //
-// Honesty rules (owner, 23.10.2026): client projects are shown anonymised —
-// no client name, logo, address or link, and their screenshots have names
-// painted out (see docs/projects-images.md). A stock photo is marked as such
-// on the page until the owner's own image replaces it. Every technology
-// listed is one the project's code really uses.
+// Honesty rules (owner, 23.10.2026): clients are named — they agreed to be
+// shown with name and logo. A stock photo would be marked as such on the page
+// (the "photo" frame); today every project has its own screenshot. Every
+// technology listed is one the project's code really uses. Sources of all
+// images: docs/projects-images.md.
 
 export type ProjectKind = "own" | "client" | "voluntary"
 export type Frame = "browser" | "phone" | "screen" | "photo"
-export type TechGroup = "frontend" | "backend" | "ai" | "automation" | "payments" | "infra" | "mobile"
+export type TechGroup = "frontend" | "backend" | "ai" | "automation" | "robotics" | "payments" | "infra" | "mobile"
 
 export type ProjectImage = {
   src: string
@@ -34,7 +34,7 @@ export type Project = {
 
 export type ProjectId =
   | "vibecenter" | "website" | "admin" | "care" | "commerce"
-  | "translation" | "tvLauncher" | "workshop" | "association"
+  | "translation" | "tvLauncher" | "workshop" | "association" | "robot"
 
 const img = (src: string, width: number, height: number, frame: Frame, url?: string): ProjectImage => ({
   src: `/work/${src}`, width, height, frame, url,
@@ -53,6 +53,21 @@ export const PROJECTS: Project[] = [
       { name: "shadcn/ui", group: "frontend" }, { name: "next-intl", group: "frontend" },
       { name: "Stripe", group: "payments" }, { name: "Vercel AI SDK", group: "ai" },
       { name: "Resend", group: "infra" }, { name: "Docker", group: "infra" },
+    ],
+  },
+  {
+    id: "robot",
+    kind: "own",
+    // The owner's LinkedIn post about Noah (video and details).
+    href: "https://www.linkedin.com/posts/mohamad-katramez-a24705215_robotics-pibrocks-ros2-activity-7511658836634714112-PWnQ",
+    main: img("robot-dashboard.webp", 1280, 800, "browser", "noah.local:8080"),
+    stack: [
+      { name: "Raspberry Pi 5", group: "robotics" }, { name: "ROS 2", group: "robotics" },
+      { name: "rosbridge", group: "robotics" }, { name: "OAK-D Lite (DepthAI)", group: "robotics" },
+      { name: "Tinkerforge", group: "robotics" }, { name: "Python", group: "backend" },
+      { name: "FastAPI", group: "backend" }, { name: "ONNX Runtime", group: "ai" },
+      { name: "Computer Vision", group: "ai" }, { name: "GPT-4o", group: "ai" }, { name: "Claude", group: "ai" },
+      { name: "Docker", group: "infra" },
     ],
   },
   {
@@ -154,7 +169,7 @@ export const PROJECTS: Project[] = [
 /** Every technology with the number of projects that use it, per group. */
 export function techOverview(): Record<TechGroup, { name: string; count: number }[]> {
   const out: Record<TechGroup, Map<string, number>> = {
-    frontend: new Map(), backend: new Map(), ai: new Map(), automation: new Map(), payments: new Map(), infra: new Map(), mobile: new Map(),
+    frontend: new Map(), backend: new Map(), ai: new Map(), automation: new Map(), robotics: new Map(), payments: new Map(), infra: new Map(), mobile: new Map(),
   }
   for (const p of PROJECTS) for (const t of p.stack) out[t.group].set(t.name, (out[t.group].get(t.name) ?? 0) + 1)
   return Object.fromEntries(
