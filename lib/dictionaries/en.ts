@@ -8,7 +8,7 @@ const en = {
   nav: {
     home: "Home",
     services: "Services",
-    work: "Work",
+    work: "Projects",
     network: "Network",
     contact: "Contact",
     cta: "Get Started",
@@ -336,6 +336,148 @@ const en = {
       }
     }
   },
+  projects: {
+    title: "Projects",
+    intro:
+      "Nine projects we built — for clients, as our own products, and for a local association. Client names stay private; what we built, and with what, is all here.",
+    stats: [
+      { value: "9", label: "projects" },
+      { value: "3", label: "for clients" },
+      { value: "5", label: "own products" },
+      { value: "40+", label: "technologies" },
+    ],
+    kinds: { own: "Own product", client: "Client project", voluntary: "Pro bono" },
+    stockPhoto: "Stock photo — screenshots follow",
+    builtTitle: "What we built",
+    stackTitle: "Technologies",
+    visit: "Visit",
+    items: {
+      vibecenter: {
+        name: "Vibe Center",
+        sector: "SaaS for salons and barber shops",
+        summary:
+          "Our own platform: every business gets its own booking site, a dashboard for appointments, team and clients, and a subscription — all on one multi-tenant system.",
+        built: [
+          "Online booking in four steps, with staff and time-slot choice",
+          "Dashboard for appointments, services, team, reviews and marketing",
+          "Sign-up with Stripe subscription; a storefront per business in several designs",
+        ],
+        note: "Hosting: schubwerk GmbH",
+      },
+      translation: {
+        name: "Live translation for mosques",
+        sector: "Religious community",
+        summary:
+          "Arabic sermons and lectures are transcribed as they are spoken and translated into German and English — on a screen in the prayer room and on every visitor's phone.",
+        built: [
+          "Real-time speech recognition with two engines for Arabic",
+          "AI translation into German and English, with Qur'an and hadith passages recognised and quoted correctly",
+          "Display for the room, phone view via QR code, and a dashboard with an archive and glossary",
+        ],
+        note: "",
+      },
+      workshop: {
+        name: "Workshop manager",
+        sector: "Heavy machinery repair",
+        summary:
+          "One system for a repair workshop: jobs on a board from intake to handover, quotes, a parts shop and the public website — in Arabic and English.",
+        built: [
+          "Job board with drag and drop, on desktop and phone",
+          "Customers, parts stock, services and price lists; quotes as PDF",
+          "Public website and parts shop, editable by the workshop itself",
+        ],
+        note: "",
+      },
+      care: {
+        name: "Care platform",
+        sector: "Home care",
+        summary:
+          "A platform that brings together people who need care and professional carers — from search and booking to payment.",
+        built: [
+          "Profiles and search for carers, booking of care visits",
+          "Secure login, roles and notifications",
+          "Online payment and invoices as PDF",
+        ],
+        note: "",
+      },
+      admin: {
+        name: "Admin & bookkeeping",
+        sector: "Internal tool",
+        summary:
+          "Our own back office: invoices, receipts, expenses and tax deadlines in one place — connected to Google Drive and Calendar, with AI that reads incoming invoices.",
+        built: [
+          "Invoices and receipt archive that cannot be altered once issued (GoBD)",
+          "VAT figures per quarter and a deadline calendar that syncs to Google Calendar",
+          "AI reads invoices from Drive and suggests the booking — a person confirms",
+        ],
+        note: "",
+      },
+      commerce: {
+        name: "E-commerce platform",
+        sector: "Online retail",
+        summary:
+          "A complete online shop on its own commerce backend: catalogue, cart, checkout and an AI assistant that answers customer questions.",
+        built: [
+          "Product catalogue, cart and checkout on Medusa v2",
+          "Storefront in several languages",
+          "AI assistant for product questions",
+        ],
+        note: "",
+      },
+      website: {
+        name: "silicortex.de",
+        sector: "Company website",
+        summary:
+          "The website you are on: three languages including Arabic right-to-left, our own brand system, and an interactive demo dashboard.",
+        built: [
+          "German, English and Arabic with right-to-left layout",
+          "Brand system with generated logos, icons and business cards",
+          "Light and dark theme, contact form, interactive demos",
+        ],
+        note: "",
+      },
+      tvLauncher: {
+        name: "TV launcher",
+        sector: "Fire TV",
+        summary:
+          "An ad-free home screen for Fire TV that puts Arabic channels and favourite apps first — big tiles, made for the remote.",
+        built: [
+          "Home screen with Arabic channels and apps",
+          "Navigation built for the remote control",
+          "No ads, no tracking",
+        ],
+        note: "",
+      },
+      association: {
+        name: "Association website",
+        sector: "Cultural association in Wiesbaden",
+        summary:
+          "A website for a cultural association, built on its own WordPress theme so the team can maintain events, projects and members themselves.",
+        built: [
+          "Custom WordPress block theme in the association's colours",
+          "Plugin for events, projects and team, with block bindings",
+          "Editable by the association without a developer",
+        ],
+        note: "",
+      },
+    },
+    demoTitle: "Try it yourself",
+    demoText: "An interactive sales dashboard with sample data — click through it in the browser.",
+    demoCta: "Open the demo",
+    techTitle: "Technologies across our projects",
+    techIntro: "The number shows in how many of the nine projects a technology is used.",
+    groups: {
+      frontend: "Frontend",
+      backend: "Backend & data",
+      ai: "AI",
+      payments: "Payments",
+      infra: "Infrastructure & testing",
+      mobile: "Mobile & TV",
+    },
+    ctaTitle: "Your project next?",
+    ctaText: "Tell us what you need — in German, English or Arabic.",
+    ctaButton: "Get in touch",
+  },
   network: {
     title: "Join the Team",
     subtitle: "We're building a distributed network of elite builders.",
@@ -405,8 +547,8 @@ const en = {
         "AI and automation, software and web development, e-commerce, and brand identity — the full range of digital services Silicortex builds.",
     },
     work: {
-      title: "Work",
-      description: "AI agents, automation workflows, and dashboards built by Silicortex.",
+      title: "Projects",
+      description: "Nine projects by Silicortex — SaaS, AI, e-commerce and websites, with the technologies behind each.",
     },
     network: {
       title: "Network",

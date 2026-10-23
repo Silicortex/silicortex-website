@@ -332,6 +332,148 @@ const de: Dictionary = {
       }
     }
   },
+  projects: {
+    title: "Projekte",
+    intro:
+      "Neun Projekte, die wir gebaut haben — für Kunden, als eigene Produkte und für einen Verein vor Ort. Kundennamen bleiben vertraulich; was wir gebaut haben und womit, steht hier.",
+    stats: [
+      { value: "9", label: "Projekte" },
+      { value: "3", label: "für Kunden" },
+      { value: "5", label: "eigene Produkte" },
+      { value: "40+", label: "Technologien" },
+    ],
+    kinds: { own: "Eigenes Produkt", client: "Kundenprojekt", voluntary: "Ehrenamtlich" },
+    stockPhoto: "Symbolbild — Screenshots folgen",
+    builtTitle: "Was wir gebaut haben",
+    stackTitle: "Technologien",
+    visit: "Ansehen",
+    items: {
+      vibecenter: {
+        name: "Vibe Center",
+        sector: "SaaS für Salons und Barbershops",
+        summary:
+          "Unsere eigene Plattform: Jeder Betrieb bekommt eine eigene Buchungsseite, ein Dashboard für Termine, Team und Kunden und ein Abo — alles auf einem mandantenfähigen System.",
+        built: [
+          "Online-Buchung in vier Schritten, mit Wahl von Mitarbeiter und Uhrzeit",
+          "Dashboard für Termine, Leistungen, Team, Bewertungen und Marketing",
+          "Registrierung mit Stripe-Abo; eine eigene Website pro Betrieb in mehreren Designs",
+        ],
+        note: "Hosting: schubwerk GmbH",
+      },
+      translation: {
+        name: "Live-Übersetzung für Moscheen",
+        sector: "Religionsgemeinschaft",
+        summary:
+          "Arabische Predigten und Vorträge werden während des Sprechens erfasst und ins Deutsche und Englische übersetzt — auf einem Bildschirm im Gebetsraum und auf dem Handy jedes Besuchers.",
+        built: [
+          "Spracherkennung in Echtzeit mit zwei Engines für Arabisch",
+          "KI-Übersetzung ins Deutsche und Englische; Koran- und Hadith-Stellen werden erkannt und korrekt zitiert",
+          "Anzeige für den Raum, Handy-Ansicht per QR-Code, Dashboard mit Archiv und Glossar",
+        ],
+        note: "",
+      },
+      workshop: {
+        name: "Werkstatt-Software",
+        sector: "Reparatur von Baumaschinen",
+        summary:
+          "Ein System für eine Reparaturwerkstatt: Aufträge auf einer Tafel von der Annahme bis zur Übergabe, Angebote, ein Ersatzteil-Shop und die öffentliche Website — auf Arabisch und Englisch.",
+        built: [
+          "Auftragstafel mit Drag & Drop, am Rechner und auf dem Handy",
+          "Kunden, Teilelager, Leistungen und Preislisten; Angebote als PDF",
+          "Öffentliche Website und Teile-Shop, von der Werkstatt selbst pflegbar",
+        ],
+        note: "",
+      },
+      care: {
+        name: "Pflege-Plattform",
+        sector: "Häusliche Pflege",
+        summary:
+          "Eine Plattform, die Pflegebedürftige und Pflegekräfte zusammenbringt — von der Suche über die Buchung bis zur Bezahlung.",
+        built: [
+          "Profile und Suche nach Pflegekräften, Buchung von Einsätzen",
+          "Sicheres Login, Rollen und Benachrichtigungen",
+          "Online-Zahlung und Rechnungen als PDF",
+        ],
+        note: "",
+      },
+      admin: {
+        name: "Verwaltung & Buchhaltung",
+        sector: "Internes Werkzeug",
+        summary:
+          "Unser eigenes Backoffice: Rechnungen, Belege, Ausgaben und Steuerfristen an einem Ort — verbunden mit Google Drive und Kalender, mit KI, die eingehende Rechnungen liest.",
+        built: [
+          "Rechnungen und Belegarchiv, nach dem Festschreiben unveränderbar (GoBD)",
+          "Umsatzsteuer-Zahlen je Quartal und ein Fristenkalender, der sich mit Google Kalender abgleicht",
+          "KI liest Rechnungen aus Drive und schlägt die Buchung vor — ein Mensch bestätigt",
+        ],
+        note: "",
+      },
+      commerce: {
+        name: "E-Commerce-Plattform",
+        sector: "Onlinehandel",
+        summary:
+          "Ein vollständiger Onlineshop auf eigenem Commerce-Backend: Katalog, Warenkorb, Checkout und ein KI-Assistent, der Kundenfragen beantwortet.",
+        built: [
+          "Produktkatalog, Warenkorb und Checkout auf Medusa v2",
+          "Shop-Oberfläche in mehreren Sprachen",
+          "KI-Assistent für Produktfragen",
+        ],
+        note: "",
+      },
+      website: {
+        name: "silicortex.de",
+        sector: "Unternehmenswebsite",
+        summary:
+          "Die Website, auf der Sie gerade sind: drei Sprachen inklusive Arabisch von rechts nach links, ein eigenes Markensystem und ein interaktives Demo-Dashboard.",
+        built: [
+          "Deutsch, Englisch und Arabisch mit Rechts-nach-links-Layout",
+          "Markensystem mit generierten Logos, Icons und Visitenkarten",
+          "Helles und dunkles Design, Kontaktformular, interaktive Demos",
+        ],
+        note: "",
+      },
+      tvLauncher: {
+        name: "TV-Startbildschirm",
+        sector: "Fire TV",
+        summary:
+          "Ein werbefreier Startbildschirm für Fire TV, der arabische Sender und die wichtigsten Apps nach vorne holt — große Kacheln, gemacht für die Fernbedienung.",
+        built: [
+          "Startbildschirm mit arabischen Sendern und Apps",
+          "Bedienung ganz auf die Fernbedienung ausgelegt",
+          "Keine Werbung, kein Tracking",
+        ],
+        note: "",
+      },
+      association: {
+        name: "Vereins-Website",
+        sector: "Kulturverein in Wiesbaden",
+        summary:
+          "Eine Website für einen Kulturverein, gebaut auf einem eigenen WordPress-Theme, damit das Team Veranstaltungen, Projekte und Mitglieder selbst pflegen kann.",
+        built: [
+          "Eigenes WordPress-Block-Theme in den Farben des Vereins",
+          "Plugin für Veranstaltungen, Projekte und Team, mit Block Bindings",
+          "Vom Verein ohne Entwickler pflegbar",
+        ],
+        note: "",
+      },
+    },
+    demoTitle: "Selbst ausprobieren",
+    demoText: "Ein interaktives Vertriebs-Dashboard mit Beispieldaten — direkt im Browser durchklicken.",
+    demoCta: "Demo öffnen",
+    techTitle: "Technologien in unseren Projekten",
+    techIntro: "Die Zahl zeigt, in wie vielen der neun Projekte eine Technologie steckt.",
+    groups: {
+      frontend: "Frontend",
+      backend: "Backend & Daten",
+      ai: "KI",
+      payments: "Zahlungen",
+      infra: "Infrastruktur & Tests",
+      mobile: "Mobil & TV",
+    },
+    ctaTitle: "Ihr Projekt als nächstes?",
+    ctaText: "Erzählen Sie uns, was Sie brauchen — auf Deutsch, Englisch oder Arabisch.",
+    ctaButton: "Kontakt aufnehmen",
+  },
   network: {
     title: "Werde Teil des Teams",
     subtitle:
@@ -405,7 +547,7 @@ const de: Dictionary = {
     },
     work: {
       title: "Projekte",
-      description: "KI-Agenten, Automatisierungs-Workflows und Dashboards von Silicortex.",
+      description: "Neun Projekte von Silicortex — SaaS, KI, E-Commerce und Websites, mit den Technologien dahinter.",
     },
     network: {
       title: "Netzwerk",
