@@ -358,9 +358,10 @@ const en = {
         summary:
           "A humanoid pib robot we assembled and extended: Noah talks, recognises people, makes facial expressions and gestures with hands and fingers — and is run from our own control dashboard.",
         built: [
-          "A tile-based control panel on a tablet: motors, personality, people, games, follow mode, eyes, conference mode and an emergency stop",
-          "Vision on the robot itself: it recognises and greets people by name (only with their consent) and spots dice, with the model shrunk to ONNX to fit the Raspberry Pi",
-          "Two-way conversation in German and English with selectable personalities, all in Docker next to pib’s own ROS 2 stack",
+          "Assembled from 3D-printed parts on the open-source pib v4, running on a Raspberry Pi 5 with ROS 2",
+          "Our own tile-based control panel on a tablet: motors, personality, people, games, follow mode, eyes, saved movement sequences and an emergency stop",
+          "Vision on the robot itself: OpenCV face detection and recognition — it greets people by name, only with their consent — and YOLOv8 dice detection shrunk to ONNX to fit the Pi",
+          "Talks both ways in German and English with selectable personalities, takes voice commands from any phone on the Wi-Fi, all in Docker beside pib’s own stack",
         ],
         note: "With the support of DVKZWI Wiesbaden, pib’s regional partner",
       },

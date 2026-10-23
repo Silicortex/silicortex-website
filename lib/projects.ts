@@ -17,8 +17,10 @@ export type ProjectImage = {
   width: number
   height: number
   frame: Frame
-  /** Shown in the browser frame's address bar; anonymised projects show none. */
+  /** Shown in the browser frame's address bar. */
   url?: string
+  /** A stock photo, not ours: the page says so on the image. */
+  stock?: boolean
 }
 
 export type Project = {
@@ -61,13 +63,17 @@ export const PROJECTS: Project[] = [
     // The owner's LinkedIn post about Noah (video and details).
     href: "https://www.linkedin.com/posts/mohamad-katramez-a24705215_robotics-pibrocks-ros2-activity-7511658836634714112-PWnQ",
     main: img("robot-dashboard.webp", 1280, 800, "browser", "noah.local:8080"),
+    // The owner's own photo of Noah (01.10.2026), with the control tablet.
+    inset: img("robot-noah.webp", 960, 1200, "photo"),
     stack: [
-      { name: "Raspberry Pi 5", group: "robotics" }, { name: "ROS 2", group: "robotics" },
-      { name: "rosbridge", group: "robotics" }, { name: "OAK-D Lite (DepthAI)", group: "robotics" },
-      { name: "Tinkerforge", group: "robotics" }, { name: "Python", group: "backend" },
-      { name: "FastAPI", group: "backend" }, { name: "ONNX Runtime", group: "ai" },
-      { name: "Computer Vision", group: "ai" }, { name: "GPT-4o", group: "ai" }, { name: "Claude", group: "ai" },
-      { name: "Docker", group: "infra" },
+      { name: "pib v4", group: "robotics" }, { name: "Raspberry Pi 5", group: "robotics" },
+      { name: "ROS 2 Humble", group: "robotics" }, { name: "rosbridge / roslibpy", group: "robotics" },
+      { name: "OAK-D Lite (DepthAI)", group: "robotics" }, { name: "Tinkerforge", group: "robotics" },
+      { name: "3D printing", group: "robotics" }, { name: "Python", group: "backend" },
+      { name: "FastAPI", group: "backend" }, { name: "OpenCV (YuNet, SFace)", group: "ai" },
+      { name: "YOLOv8", group: "ai" }, { name: "ONNX Runtime", group: "ai" },
+      { name: "Web Speech API", group: "ai" }, { name: "GPT-4o", group: "ai" }, { name: "Claude", group: "ai" },
+      { name: "JavaScript", group: "frontend" }, { name: "Docker", group: "infra" },
     ],
   },
   {

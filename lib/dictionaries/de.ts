@@ -354,9 +354,10 @@ const de: Dictionary = {
         summary:
           "Ein humanoider pib-Roboter, den wir aufgebaut und erweitert haben: Noah spricht, erkennt Menschen, zeigt Mimik und gestikuliert mit Händen und Fingern — gesteuert über unser eigenes Dashboard.",
         built: [
-          "Kachel-basiertes Control-Panel auf dem Tablet: Motoren, Charakter, Menschen, Spiele, Nachmach-Modus, Augen, Konferenz-Modus und Not-Stopp",
-          "Bilderkennung auf dem Roboter selbst: erkennt und begrüßt Menschen mit Namen (nur mit Einwilligung) und erkennt Würfel — das Modell als ONNX verkleinert, damit es auf den Raspberry Pi passt",
-          "Gespräche auf Deutsch und Englisch mit wählbaren Persönlichkeiten, alles in Docker neben pibs eigenem ROS-2-Stack",
+          "Aus 3D-gedruckten Teilen aufgebaut, auf Basis des Open-Source-Roboters pib v4, mit Raspberry Pi 5 und ROS 2",
+          "Eigenes Kachel-Control-Panel auf dem Tablet: Motoren, Charakter, Menschen, Spiele, Nachmach-Modus, Augen, gespeicherte Bewegungsabläufe und Not-Stopp",
+          "Bilderkennung auf dem Roboter selbst: Gesichtserkennung mit OpenCV — er begrüßt Menschen mit Namen, nur mit Einwilligung — und Würfelerkennung mit YOLOv8, als ONNX verkleinert, damit es auf den Pi passt",
+          "Gespräche in beide Richtungen auf Deutsch und Englisch mit wählbaren Persönlichkeiten, Sprachbefehle von jedem Handy im WLAN, alles in Docker neben pibs eigenem System",
         ],
         note: "Mit Unterstützung des DVKZWI Wiesbaden, Regionalpartner von pib",
       },

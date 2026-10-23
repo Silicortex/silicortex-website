@@ -56,9 +56,11 @@ function Phone({ image, alt, className = "" }: { image: ProjectImage; alt: strin
 
 function Photo({ image, alt, note }: { image: ProjectImage; alt: string; note: string }) {
   return (
-    <figure className="relative overflow-hidden rounded-2xl shadow-2xl shadow-slate-900/15 ring-1 ring-black/10 dark:ring-white/10">
+    <figure className="relative overflow-hidden rounded-2xl shadow-2xl shadow-slate-900/25 ring-1 ring-black/10 dark:ring-white/10">
       <Image src={image.src} width={image.width} height={image.height} alt={alt} sizes="(min-width: 1024px) 58vw, 100vw" className="block h-auto w-full" />
-      <figcaption className="absolute bottom-3 start-3 rounded-full bg-slate-950/70 px-3 py-1 text-xs text-white backdrop-blur">{note}</figcaption>
+      {image.stock && (
+        <figcaption className="absolute bottom-3 start-3 rounded-full bg-slate-950/70 px-3 py-1 text-xs text-white backdrop-blur">{note}</figcaption>
+      )}
     </figure>
   )
 }
@@ -75,9 +77,15 @@ function Media({ project, name, p, priority }: { project: Project; name: string;
   // smaller browser window — and sits below it on narrow screens.
   return (
     <div className="relative pb-10 sm:pb-16">
-      <div className={inset.frame === "phone" ? "sm:me-16" : "sm:me-24"}>{mainEl}</div>
-      <div className={`mt-6 sm:absolute sm:bottom-0 sm:end-0 sm:mt-0 ${inset.frame === "phone" ? "mx-auto w-36 sm:w-40" : "w-full sm:w-1/2"}`}>
-        {inset.frame === "phone" ? <Phone image={inset} alt={name} /> : <Browser image={inset} alt={name} />}
+      <div className={inset.frame === "browser" ? "sm:me-24" : "sm:me-16"}>{mainEl}</div>
+      <div
+        className={`mt-6 sm:absolute sm:bottom-0 sm:end-0 sm:mt-0 ${
+          inset.frame === "phone" ? "mx-auto w-36 sm:w-40" : inset.frame === "photo" ? "mx-auto w-48 sm:w-[30%]" : "w-full sm:w-1/2"
+        }`}
+      >
+        {inset.frame === "phone" ? <Phone image={inset} alt={name} />
+          : inset.frame === "photo" ? <Photo image={inset} alt={name} note={p.stockPhoto} />
+          : <Browser image={inset} alt={name} />}
       </div>
     </div>
   )
