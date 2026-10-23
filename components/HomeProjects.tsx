@@ -4,6 +4,7 @@ import type { Dictionary, Lang } from "@/lib/dictionaries"
 import { CLIENTS } from "@/lib/clients"
 import { PROJECTS, techOverview, type ProjectId } from "@/lib/projects"
 import { Marquee } from "@/components/Marquee"
+import { TechIcon } from "@/components/TechIcon"
 
 // The home page's projects section: three highlights that lead into /work,
 // then the carousels — the companies we worked with (only once the owner has
@@ -102,7 +103,8 @@ export function HomeProjects({ lang, dict }: { lang: Lang; dict: Dictionary }) {
           <Marquee
             label={p.techCarousel}
             items={tech.map((name) => (
-              <span key={name} className="inline-flex h-11 items-center rounded-full border border-slate-200 bg-white px-5 text-sm font-medium text-slate-700 dark:border-white/10 dark:bg-white/5 dark:text-slate-200">
+              <span key={name} className="inline-flex h-11 items-center rounded-full gap-2 border border-slate-200 bg-white px-5 text-sm font-medium text-slate-700 dark:border-white/10 dark:bg-white/5 dark:text-slate-200">
+                <TechIcon name={name} />
                 {name}
               </span>
             ))}
@@ -111,7 +113,8 @@ export function HomeProjects({ lang, dict }: { lang: Lang; dict: Dictionary }) {
             label={p.techCarousel}
             reverse
             items={[...tech].reverse().map((name) => (
-              <span key={name} className="mt-3 inline-flex h-11 items-center rounded-full border border-slate-200 bg-white px-5 text-sm font-medium text-slate-700 dark:border-white/10 dark:bg-white/5 dark:text-slate-200">
+              <span key={name} className="mt-3 inline-flex h-11 items-center rounded-full gap-2 border border-slate-200 bg-white px-5 text-sm font-medium text-slate-700 dark:border-white/10 dark:bg-white/5 dark:text-slate-200">
+                <TechIcon name={name} />
                 {name}
               </span>
             ))}

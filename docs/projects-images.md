@@ -10,7 +10,7 @@ named originals again. Every screenshot was checked by hand for personal data
 |---|---|---|---|
 | `vibecenter-storefront.webp` | Vibe Center (own) | `vibe-center-app/presentation/screenshots/07-storefront-public.png` (demo tenant) | bottom 62 px cropped (Next.js dev badge) |
 | `vibecenter-dashboard.webp` | Vibe Center (own) | `…/17-dashboard-overview.png` | Next.js dev badge |
-| `translation-venue-screen.webp` | Sada (client) | `sada/docs/guides/img/venue-screen.png` | — (mosque name is the placeholder "Musterstadt-Moschee") |
+| `translation-venue-quran.webp` | Sada (client) | `sada/docs/guides/img/venue-quran.png` (the prayer-room screen with a Qur’an passage and its translation) | — |
 | `translation-phone.webp` | Live translation (client) | `sada/docs/guides/img/phone-held.png` | — (no name on it) |
 | `workshop-hero.webp` | Misraba (client) | `misraba-app/docs/screenshots/01-home-en.jpg` (README) | — |
 | `care-platform-home.webp`, `care-platform-admin.webp` | EuroCura (client) | local run of `eurocura` (Docker, DemoSeeder data — fictional names), 23.10.2026 | cookie and notification prompts dismissed |

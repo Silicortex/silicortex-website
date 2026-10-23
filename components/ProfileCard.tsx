@@ -36,7 +36,7 @@ export function ProfileCard() {
           {/* Photo */}
           <div className="relative h-28 w-28 shrink-0 overflow-hidden rounded-2xl border-2 border-white shadow-[0_4px_20px_-4px_rgba(6,81,237,0.25)] ring-1 ring-blue-500/20 sm:h-32 sm:w-32 dark:border-white/10">
             <Image
-              src="/mohamad.jpg"
+              src="/mohamad-portrait.jpg"
               alt="Mohamad Katramez"
               fill
               sizes="(max-width: 640px) 112px, 128px"

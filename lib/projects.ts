@@ -82,7 +82,7 @@ export const PROJECTS: Project[] = [
   {
     id: "translation",
     kind: "client",
-    main: img("translation-venue-screen.webp", 1600, 900, "screen"),
+    main: img("translation-venue-quran.webp", 1600, 900, "screen"),
     inset: img("translation-phone.webp", 585, 1266, "phone"),
     stack: [
       { name: "Python", group: "backend" }, { name: "FastAPI", group: "backend" },
