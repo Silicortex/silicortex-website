@@ -157,9 +157,10 @@ export const PROJECTS: Project[] = [
   {
     id: "tvLauncher",
     kind: "own",
+    href: "https://bayt.silicortex.de",
     main: img("tv-launcher-home.webp", 1920, 1080, "screen"),
     stack: [
-      { name: "Kotlin", group: "mobile" }, { name: "Jetpack Compose", group: "mobile" },
+      { name: "Kotlin", group: "mobile" }, { name: "Android Views", group: "mobile" },
       { name: "Android TV / Fire OS", group: "mobile" }, { name: "Gradle", group: "infra" },
     ],
   },

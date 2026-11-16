@@ -451,13 +451,13 @@ const en = {
       },
       tvLauncher: {
         name: "Bayt",
-        sector: "Home screen for Fire TV",
+        sector: "Home screen for Android TV and Fire TV",
         summary:
-          "An ad-free home screen for Fire TV that puts Arabic channels and favourite apps first — big tiles, made for the remote.",
+          "A free, ad-free home screen for the TV: the Quran, prayer times and the family's apps in one place — big tiles, made for the remote.",
         built: [
-          "Home screen with Arabic channels and apps",
-          "Navigation built for the remote control",
-          "No ads, no tracking",
+          "The Quran with recitations, prayer times and a mosque-style screensaver",
+          "English, German and Arabic, with right-to-left layout",
+          "No ads, no tracking — free, as a waqf",
         ],
         note: "",
       },

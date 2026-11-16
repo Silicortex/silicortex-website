@@ -447,13 +447,13 @@ const de: Dictionary = {
       },
       tvLauncher: {
         name: "Bayt",
-        sector: "Startbildschirm für Fire TV",
+        sector: "Startbildschirm für Android TV und Fire TV",
         summary:
-          "Ein werbefreier Startbildschirm für Fire TV, der arabische Sender und die wichtigsten Apps nach vorne holt — große Kacheln, gemacht für die Fernbedienung.",
+          "Ein kostenloser, werbefreier Startbildschirm für den Fernseher: der Quran, Gebetszeiten und die Apps der Familie an einem Ort — große Kacheln, gemacht für die Fernbedienung.",
         built: [
-          "Startbildschirm mit arabischen Sendern und Apps",
-          "Bedienung ganz auf die Fernbedienung ausgelegt",
-          "Keine Werbung, kein Tracking",
+          "Quran mit Rezitationen, Gebetszeiten und ein Bildschirmschoner wie eine Moschee-Anzeige",
+          "Deutsch, Englisch und Arabisch, mit Rechts-nach-links-Layout",
+          "Keine Werbung, kein Tracking — kostenlos, als Waqf",
         ],
         note: "",
       },
